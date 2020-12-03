@@ -8,7 +8,7 @@ from . import u_dist, x_dist, prior
 class model:
     '''
     Class for latent cause models.
-    
+    MEOW!
     Attributes
     ----------
     name : str
