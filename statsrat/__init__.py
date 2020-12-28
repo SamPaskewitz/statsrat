@@ -134,19 +134,23 @@ def log_lik(model, ds, par_val):
     ll = np.sum(log_prob * resp) # log-likelihood of choice sequence
     return ll
 
-def perform_oat(model, experiment, oat = None, n = 5, max_time = 60, algorithm = nlopt.GN_ORIG_DIRECT):
+def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time = 60, algorithm = nlopt.GN_ORIG_DIRECT):
     """
     Perform an ordinal adequacy test (OAT).
     
     Parameters
     ----------
-    model : learning model object
+    model: learning model object
     
-    experiment : experiment
+    experiment: experiment
+    
+    minimize: boolean, optional
+        Should the OAT score by minimized as well as maximized?
+        Defaults to True.
 
-    oat : str, optional
+    oat: str, optional
 
-    n : int, optional
+    n: int, optional
         Number of individuals to simulate.  Defaults to 5.
     
     max_time: int, optional
@@ -219,79 +223,195 @@ def perform_oat(model, experiment, oat = None, n = 5, max_time = 60, algorithm =
                 return oat_total
     n_free = len(free_names) # number of free parameters
     free_pars = model.pars.loc[free_names] # free parameters
+    mid_pars = (free_pars['max'] + free_pars['min'])/2 # midpoint of each parameter's allowed interval
     
     # maximize the OAT score
-    opt_max = nlopt.opt(algorithm, n_free)
-    opt_max.set_max_objective(f)
-    opt_max.set_lower_bounds(np.array(free_pars['min'] + 0.001))
-    opt_max.set_upper_bounds(np.array(free_pars['max'] - 0.001))
-    opt_max.set_maxtime(max_time)
-    par_max = opt_max.optimize(np.array(free_pars['default']))
+    # global optimization
+    gopt_max = nlopt.opt(algorithm, n_free)
+    gopt_max.set_max_objective(f)
+    gopt_max.set_lower_bounds(np.array(free_pars['min'] + 0.001))
+    gopt_max.set_upper_bounds(np.array(free_pars['max'] - 0.001))
+    gopt_max.set_maxtime(max_time/2)
+    par_max_aprx = gopt_max.optimize(mid_pars)
+    # local optimization (to refine answer)
+    lopt_max = nlopt.opt(nlopt.LN_SBPLX, n_free)
+    lopt_max.set_max_objective(f)
+    lopt_max.set_lower_bounds(np.array(free_pars['min'] + 0.001))
+    lopt_max.set_upper_bounds(np.array(free_pars['max'] - 0.001))
+    lopt_max.set_maxtime(max_time/2)
+    par_max = lopt_max.optimize(par_max_aprx)
 
-    # minimize the OAT score
-    opt_min = nlopt.opt(algorithm, n_free)
-    opt_min.set_min_objective(f)
-    opt_min.set_lower_bounds(np.array(free_pars['min'] + 0.001))
-    opt_min.set_upper_bounds(np.array(free_pars['max'] - 0.001))
-    opt_min.set_maxtime(max_time)
-    par_min = opt_min.optimize(np.array(free_pars['default']))
-    
+    if minimize:
+        # minimize the OAT score
+        # global optimization
+        gopt_min = nlopt.opt(algorithm, n_free)
+        gopt_min.set_min_objective(f)
+        gopt_min.set_lower_bounds(np.array(free_pars['min'] + 0.001))
+        gopt_min.set_upper_bounds(np.array(free_pars['max'] - 0.001))
+        gopt_min.set_maxtime(max_time/2)
+        par_min_aprx = gopt_min.optimize(mid_pars)
+        # local optimization (to refine answer)
+        lopt_min = nlopt.opt(nlopt.LN_SBPLX, n_free)
+        lopt_min.set_max_objective(f)
+        lopt_min.set_lower_bounds(np.array(free_pars['min'] + 0.001))
+        lopt_min.set_upper_bounds(np.array(free_pars['max'] - 0.001))
+        lopt_min.set_maxtime(max_time/2)
+        par_min = lopt_min.optimize(par_min_aprx)
+
     # simulate data to compute resulting OAT scores at max and min
     par_names = model.pars.index.tolist()
     if 'resp_scale' in par_names:
         min_data = dict(keys = s_list)
         max_data = dict(keys = s_list)
         for s in s_list:
-            min_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_min, 5), random_resp = False)
             max_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_max, 5), random_resp = False)
+            if minimize:
+                min_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_min, 5), random_resp = False)
     else:
         for s in s_list:
-            min_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_min, random_resp = False)
             max_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_max, random_resp = False)
+            if minimize:
+                min_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_min, random_resp = False)
     # package results for output
     output_dict = dict()
     if n > 1:
-        min_conf = oat_used.conf_interval(data = min_data, conf_level = 0.95)
-        max_conf = oat_used.conf_interval(data = max_data, conf_level = 0.95)    
-        for i in range(n_free):
-            output_dict[free_names[i]] = [par_min[i], par_max[i]]
-        output_dict['mean'] = [min_conf['mean'], max_conf['mean']]
-        output_dict['lower'] = [min_conf['lower'], max_conf['lower']]
-        output_dict['upper'] = [min_conf['upper'], max_conf['upper']]  
+        if minimize:
+            min_conf = oat_used.conf_interval(data = min_data, conf_level = 0.95)
+            max_conf = oat_used.conf_interval(data = max_data, conf_level = 0.95)    
+            for i in range(n_free):
+                output_dict[free_names[i]] = [par_min[i], par_max[i]]
+            output_dict['mean'] = [min_conf['mean'], max_conf['mean']]
+            output_dict['lower'] = [min_conf['lower'], max_conf['lower']]
+            output_dict['upper'] = [min_conf['upper'], max_conf['upper']]
+            index = ['min', 'max']
+        else:
+            max_conf = oat_used.conf_interval(data = max_data, conf_level = 0.95)    
+            for i in range(n_free):
+                output_dict[free_names[i]] = [par_max[i]]
+            output_dict['mean'] = [max_conf['mean']]
+            output_dict['lower'] = [max_conf['lower']]
+            output_dict['upper'] = [max_conf['upper']]
+            index = ['max']
     else:
-        min_value = oat_used.compute_total(data = min_data)
-        max_value = oat_used.compute_total(data = max_data)
-        for i in range(n_free):
-            output_dict[free_names[i]] = [par_min[i], par_max[i]]
-        output_dict['value'] = [min_value, max_value]
-    output = pd.DataFrame(output_dict, index = ['min', 'max'])
+        if minimize:
+            min_value = oat_used.compute_total(data = min_data)
+            max_value = oat_used.compute_total(data = max_data)
+            for i in range(n_free):
+                output_dict[free_names[i]] = [par_min[i], par_max[i]]
+            output_dict['value'] = [min_value, max_value]
+            index = ['min', 'max']
+        else:
+            max_value = oat_used.compute_total(data = max_data)
+            for i in range(n_free):
+                output_dict[free_names[i]] = [par_max[i]]
+            output_dict['value'] = [max_value]
+            index = ['max']
+    output = pd.DataFrame(output_dict, index)
         
     return output
 
-def fit_indv(model, ds, a = 1, b = 1):
+def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = None, n = 20):
+    """
+    Compute ordinal adequacy test (OAT) scores while varying one model parameter
+    (at evenly spaced intervals across its entire domain) and keeping the other parameters fixed.
+    Useful for examining model behavior via plots.
+    
+    Parameters
+    ----------
+    model: learning model object
+    
+    experiment: experiment
+
+    free_par: str
+        Name of parameter to vary.
+        
+    fixed_values: dict
+        Dict of values to be given to fixed parameters (keys are
+        parameter names).
+        
+    n_points: int, optional
+        How many values of the free parameter should be
+        used.  Defaults to 10.
+
+    oat: str, optional
+
+    n: int, optional
+        Number of individuals to simulate.  Defaults to 20.
+        
+    Returns
+    -------
+    df: data frame
+        Parameter combinations with their mean OAT scores.
+    """
+    # determine which OAT to use
+    if oat is None:
+        oat_used = experiment.oats[list(experiment.oats.keys())[0]]
+    else:
+        oat_used = experiment.oats[oat]
+    
+    # make a list of all schedules (groups) to simulate
+    s_list = oat_used.schedule_pos + oat_used.schedule_neg
+
+    # for each schedule, create a list of trial sequences to use in simulations
+    trials_list = dict(keys = s_list)
+    for s in s_list:
+        new = []
+        for j in range(n):
+            new += [experiment.make_trials(schedule = s)]
+        trials_list[s] = new
+    
+    # set up data frame of parameter combinations
+    par_names = model.pars.index.tolist()
+    df = pd.DataFrame(0, index = range(n_points), columns = par_names, dtype = 'float')
+    fixed_par_names = par_names
+    fixed_par_names.remove(free_par) # modifies list in place
+    for p in fixed_par_names:
+        df[p] = fixed_values[p]
+    free_min = model.pars['min'].loc[free_par] + 0.001
+    free_max = model.pars['max'].loc[free_par] - 0.001
+    step_size = (free_max - free_min)/n_points
+    df[free_par] = np.arange(free_min, free_max, step_size)
+    
+    # loop through parameter combinations
+    oat_score = np.zeros(n_points)
+    for i in range(n_points):
+        # loop through schedules to simulate behavior
+        sim_data = dict(keys = s_list)
+        for s in s_list:
+            sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, df.iloc[i], random_resp = False)
+        oat_score[i] = oat_used.compute_total(data = sim_data)
+        
+    # package data together for output
+    df['oat_score'] = oat_score
+    return df
+        
+def fit_indv(model, ds, mu, tau, max_time = 10):
     """
     Fit the model to time step data by individual MLE/MAP.
     
     Parameters
     ----------
-    model : object
+    model: object
         Learning model.
         
-    ds : dataset (xarray)
+    ds: dataset (xarray)
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
 
-    a : int, optional
+    mu: float or None, optional
 
-    b : int, optional
+    tau: float (> 0) or None, optional
 
     Returns
     -------
-    df : dataframe
+    df: dataframe
 
     Notes
     -----
-    MLE when a = b = 1 -> uniform prior.
+    If either a or b is None (default) then MLE is performed (i.e. you use a uniform prior).
+
+    This currently assumes log-normal priors on all model parameters.  This may not be
+    appropriate in all cases.
 
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
     """
@@ -304,54 +424,75 @@ def fit_indv(model, ds, a = 1, b = 1):
     bounds = []
     for i in range(len(model.pars)):
         bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
-
+        
     # set up data frame
-    lvl0_names = n_p*['est_par'] + ['prop_log_post']
-    lvl1_names = par_names + ['']
-    arrays = [lvl0_names, lvl1_names]
-    tuples = list(zip(*arrays))
-    col_index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-    df = pd.DataFrame(0.0, index = range(n), columns = col_index)
-    df.loc[:, 'ident'] = ds.ident
-
+    col_index = par_names + ['prop_log_post']
+    df = pd.DataFrame(0.0, index = range(n), columns = col_index) 
+    
     # maximize log-likelihood/posterior
     for i in range(n):
         ds_i = ds.loc[{'ident' : ds.ident[i]}].squeeze()
         
-        def f(x, grad = None):
-            if grad.size > 0:
-                grad = None
-            par_val = x
-            ll = log_lik(model, ds_i, par_val)
-            log_prior = np.sum(stats.beta.logpdf(par_val, a, b, loc, scale))
-            prop_log_post = ll + log_prior
-            return prop_log_post
-    
-        opt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
-        opt.set_max_objective(f)
-        opt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
-        opt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
-        opt.set_maxtime(5)
-        xopt = opt.optimize(np.array(model.pars['default']))
-        df.loc[i, 'est_par'] = xopt
-        df.loc[i, 'prop_log_post'] = opt.last_optimum_value()
-
+        # define objective function
+        if (a is None) or (b is None):
+            # uniform prior
+            def f(x, grad = None):
+                if grad.size > 0:
+                    grad = None
+                par_val = x
+                prop_log_post = log_lik(model, ds_i, par_val)
+                return prop_log_post
+        else:
+            # non-uniform prior
+            def f(x, grad = None):
+                if grad.size > 0:
+                    grad = None
+                par_val = x
+                ll = log_lik(model, ds_i, par_val)
+                # loop through parameters to compute log_prior
+                log_prior = 0
+                for j in range(n_p):
+                    # UPDATE THIS
+                    log_prior += logpdf_fun[priors[j]](par_val[j], a[j], b[j], loc[j], scale[j])
+                prop_log_post = ll + log_prior
+                return prop_log_post
+        
+        # global optimization
+        gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
+        gopt.set_max_objective(f)
+        gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
+        gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+        gopt.set_maxtime(max_time/2)
+        gxopt = gopt.optimize(np.array(model.pars['default']))
+        # local optimization (to refine answer)
+        lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
+        lopt.set_max_objective(f)
+        lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
+        lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+        lopt.set_maxtime(max_time/2)
+        lxopt = lopt.optimize(gxopt)
+        
+        df.loc[i, par_names] = lxopt
+        df.loc[i, 'prop_log_post'] = lopt.last_optimum_value()
+    # set index to 'ident'
+    df = df.set_index(ds.ident.to_series(), drop = True)
+        
     return df
 
-def fit_em(model, ds, max_em_iter = 5):
+def fit_em(model, ds, max_em_iter = 5, max_time = 10):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
     Parameters
     ----------
-    model : object
+    model: object
         Learning model.
         
-    ds : dataset (xarray)
+    ds: dataset (xarray)
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
 
-    max_em_iter : int, optional
+    max_em_iter: int, optional
         Maximum number of EM algorithm iterations.
         Defaults to 5.
 
@@ -364,8 +505,8 @@ def fit_em(model, ds, max_em_iter = 5):
     n = len(ds.ident)
     par_names = list(model.pars.index)
     n_p = len(par_names) # number of psychological parameters
-    loc = list(model.pars['min'])
-    scale = list(model.pars['max'] - model.pars['min'])
+    lower = list(model.pars['min'])
+    size = list(model.pars['max'] - model.pars['min'])
     bounds = []
     for i in range(len(model.pars)):
         bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
@@ -373,45 +514,65 @@ def fit_em(model, ds, max_em_iter = 5):
     # keep track of relative change in est_psych_par
     rel_change = np.zeros(max_em_iter)
 
-    # initialize
-    est_psych_par = np.zeros((n, n_p))
-    for j in range(n_p):
-        est_psych_par[:, j] = scale[j] * 0.5 + loc[j]
-    est_a = np.zeros(n_p)
-    est_b = np.zeros(n_p)
+    # IMPORTANT
+    # The previous version was incorrect.
+    # The conjugate priors for the parameters of beta and gamma distributions are very difficult to use.
+    # Therefore, I should use log-normal distributions instead of gammas and something similar instead of betas.
+    
+    # define functions to compute posterior mean hyperparameters in E step
+    def est_log_normal_hpar(theta, min_theta, scale):
+        theta_star = np.sign(theta - min_theta) # parameter re-scaled to the interval (0, inf)
+        suf_stat0 = np.log(theta_star).sum(0)
+        suf_stat1 = np.log(theta_star).sum(0)**2
+        
+        # log(theta_star) ~ normal(mu, sigmasq)
+        # mu, sigmasq ~ normal_inv_gamma(mu0, nu, alpha, beta)
+        # mu0 = 0, nu = 10, alpha = 10, beta = 10
+        # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
+        # FINISH
+        #est_mu =  # posterior mean for mu
+        #est_tau = ()/() # posterior mean for tau
+        return est_mu, est_tau
+    
+    # initialize (using MLE, i.e. uniform priors)
+    print('initial estimation with uniform prior')
+    result = fit_indv(model, ds, None, None, max_time)
+    est_psych_par = np.array(result.loc[:, par_names])
+    hpar0_prior = 10
+    hpar1_prior = 10
+    nu_prior = 10
+    hpar0 = np.zeros(n_p)
+    hpar1 = np.zeros(n_p)
+    nu = nu_prior + n
 
     # loop through EM algorithm
     for i in range(max_em_iter):
         print('EM iteration ' + str(i + 1))
         # E step (posterior means of hyperparameters given current estimates of psych_par)
         for j in range(n_p):
-            theta_star = (est_psych_par[:, j] - loc[j]) / scale[j] # parameter re-scaled to the interval (0, 1)
-            est_a[j] = 10 / (10 - np.sum(np.log(theta_star))) # prior on a is gamma(10, 10) -> posterior of a is gamma(10, 10 - np.sum(np.log(theta_star)))
-            est_b[j] = 10 / (10 - np.sum(np.log(1 - theta_star))) # prior on a is gamma(10, 10) -> posterior of a is gamma(10, 10 - np.sum(np.log(1 - theta_star)))
+            ystar = np.log(est_psych_par[:, j] - lower[j])
+            sufstat0 = ystar.sum()
+            hpar0[j] = hpar0_prior + sufstat0
+            sufstat1 = (ystar**2).sum()
+            hpar1[j] = hpar1_prior + sufstat1
+            # FINISH BY OBTAINING EXPECTATIONS OF PARAMETERS.
         # M step (MAP estimates of psych_par given results of E step)
-        new_est_psych_par = np.array(fit_indv(model = model, ds = ds, a = est_a, b = est_b).loc[:, 'est_par'])
+        result = fit_indv(model, ds, est_mu, est_tau, max_time)
+        new_est_psych_par = np.array(result.loc[:, par_names])
         # relative change (to assess convergence)
-        rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par)) / np.sum(abs(est_psych_par))
+        rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
         print('relative change: ' + '{:.8}'.format(rel_change[i]))
         # update est_psych_par
         est_psych_par = new_est_psych_par
         # exit loop if have achieved tolerance
         if rel_change[i] < 0.0001:
             break
-
-    # set up data frame
-    lvl0_names = n_p*['est_par']
-    lvl1_names = par_names
-    arrays = [lvl0_names, lvl1_names]
-    tuples = list(zip(*arrays))
-    col_index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-    df = pd.DataFrame(est_psych_par, index = range(n), columns = col_index)
-    df.loc[:, 'ident'] = ds.ident
     
     # output
-    return df
+    return result
 
 def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n = 10):
+    # UPDATE THIS TO USE GAMMA PRIORS WHEN APPROPRIATE.
     """
     Generate simulated data given an experiment and schedule (with random parameter vectors).
     

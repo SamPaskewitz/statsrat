@@ -1,22 +1,5 @@
 import numpy as np
 
-def coupling_prob(sim_pars, t, z, z_counts, max_z):
-    '''
-    Fixed probability (c) that two observations come from the same latent cause.
-    See Anderson (1991), Equations 4 and 5.
-    '''
-    prob = np.zeros(max_z)
-    if t > 0:
-        n_z = (z_counts > 0).sum() # number of latent causes inferred so far
-        prob[range(n_z)] = (sim_pars['c']*z_counts[range(n_z)])/(1 - sim_pars['c'] + sim_pars['c']*t) # probability of old causes
-        if n_z < max_z:
-            prob[n_z] = (1 - sim_pars['c'])/(1 - sim_pars['c'] + sim_pars['c']*t) # probability of a new cause
-    else:
-        prob[0] = 1 # the initial observation is automatically assigned to the initial latent cause
-    return prob
-
-coupling_prob.par_names = ['c']
-
 def Chinese_rest(sim_pars, t, z, z_counts, max_z):
     '''
     Chinese restaurant process.

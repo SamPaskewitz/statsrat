@@ -206,7 +206,7 @@ par_names += ['extra_counts']; par_list += [{'min': 1.0, 'max': 10.0, 'default':
 par_names += ['metric']; par_list += [{'min': 1, 'max': 10, 'default': 2}]
 par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
 par_names += ['a0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
-par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 1}]
+par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis
 par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
 par_names += ['u_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
 par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter

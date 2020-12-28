@@ -8,7 +8,7 @@ from . import u_dist, x_dist, prior
 class model:
     '''
     Class for latent cause models.
-    MEOW!
+    
     Attributes
     ----------
     name : str
@@ -31,14 +31,16 @@ class model:
     -----
     Both the outcome vector (u) and stimulus vector (x) are assumed to be
     determined by a latent cause (z).  Only one latent cause is active on each
-    trial.  The number of latent causes can be fixed in advance, or new
-    latent causes may be inferred over the course of learning.  A local MAP approximation is used for
-    latent cause assignment.  See the following for more information:
+    trial.  Instead of local MAP approximation (Anderson, 1991; Gerhsman et al, 2017)
+    or a particle filter (Gershman et al, 2010) to simulate latent cause models, statsrat
+    uses a streaming variational Bayes algorithm (Blei & Jordan, 2006; Broderick et al)
 
     Anderson, J. R. (1991). The adaptive nature of human categorization. Psychological Review, 98(3), 409.
+    Blei, D. M., & Jordan, M. I. (2006). Variational inference for Dirichlet process mixtures. Bayesian Analysis, 1(1), 121–143. https://doi.org/10.1214/06-BA104
+    Broderick, T., Boyd, N., Wibisono, A., Wilson, A. C., & Jordan, M. I. (n.d.). Streaming Variational Bayes.
     Gershman, S. J., Blei, D. M., & Niv, Y. (2010). Context, learning, and extinction. Psychological Review, 117(1), 197–209.
     Gershman, S. J., Monfils, M.-H., Norman, K. A., & Niv, Y. (2017). The computational nature of memory modification. Elife, 6, e23763.
-    Matlab code for Gershman et al (2017): https://github.com/sjgershm/memory-modification/blob/master/imm_localmap.m
+
     '''
     def __init__(self, name, u_dist, x_dist, prior):
         '''
@@ -109,6 +111,16 @@ class model:
         .. math:: \text{resp} = \frac{ e^{-\phi \hat{u}_i} }{ e^{-\phi \hat{u}_i} + 1 }
 
         Here :math:`\phi` represents the 'resp_scale' parameter.
+        
+        Likelihood computations only use stimulus attributes (elements of x) and 
+        outcomes (elements of u) that the learner has observed up to that point in 
+        the learning process.  That way, model computations cannot be affected by 
+        future events (stimulus attributes that haven't yet been encountered).  This
+        is important for between groups simulations in which each group's schedule has
+        a different set of stimulus attributes or possible outcomes.
+        
+        Similarly, likelihood computations only use outcomes (elements of u) that
+        the learner believes are possible at a given stage.
         '''        
         # use default parameters unless others are given
         if par_val is None:
@@ -136,15 +148,18 @@ class model:
         u_hat = np.zeros((n_t, n_u)) # outcome predictions
         b_hat = np.zeros((n_t, n_u)) # expected behavior
         delta = np.zeros((n_t, n_u)) # prediction error
-        z = np.zeros((n_t, max_z)) # MAP latent cause assignments
-        u_dist = self.u_dist(sim_pars, n_t, n_u, max_z) # outcome likelihood
-        x_dist = self.x_dist(sim_pars, n_t, n_x, max_z) # stimulus likelihood
+        u_dist = self.u_dist(sim_pars, n_t, n_u, max_z) # outcome distribution
+        x_dist = self.x_dist(sim_pars, n_t, n_x, max_z) # stimulus distribution
+        tau_u = np.zeros((n_t, max_z, u_dist.n_tau)) # natural hyperparameters of outcome distribution
+        tau_x = np.zeros(n_t, max_z, x_dist.n_tau)) # natural hyperparameters of stimulus distribution
         prior = np.zeros((n_t, max_z)) # prior on latent causes
         post_x = np.zeros((n_t, max_z)) # posterior of latent causes after observing x, but before observing u
         post_xu = np.zeros((n_t, max_z)) # posterior of latent causes after observing both x and u
         x_lik = np.zeros((n_t, max_z)) # likelihood of x
         u_lik = np.zeros((n_t, max_z)) # likelihood of u
-        z_counts = np.zeros(max_z) # number of observations assigned to each latent cause
+        z_counts = np.zeros(max_z) # estimated number of observations assigned to each latent cause
+        x_obs_sofar = np.zeros(n_x) # whether or not each stimulus attribute (x) has been observed so far
+        u_obs_sofar = np.zeros(n_u) # whether or not each outcome (u) has been observed so far
         
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -155,27 +170,29 @@ class model:
         # loop through time steps
         for t in range(n_t):
             # calculate posterior on latent causes before observing outcome (u)
-            prior[t, :] = self.prior(sim_pars, t, z, z_counts, max_z) # prior on latent causes
-            x_lik[t, :] = x_dist.lik(sim_pars, t, x[t, :]) # likelihood of x
+            prior[t, :] = self.prior(sim_pars, t, z_est, z_counts, max_z) # prior on latent causes
+            x_obs_sofar[x[t, :] > 0] = 1 # keep track of stimulus attributes (x) observed so far
+            x_lik[t, :] = x_dist.lik(obs = x[t, :], use = x_obs_sofar) # likelihood of x (based on attributes observed so far)
             numerator = prior[t, :]*x_lik[t, :]
             post_x[t, :] = numerator/numerator.sum() # posterior on latent causes after observing only x
             
             # reward prediction, before feedback
-            u_hat[t, :] = u_dist.predict(sim_pars, t, x[t, :], u_psb[t, :], post_x[t, :]) # prediction
+            #u_hat[t, :] = u_dist.predict(sim_pars, t, x[t, :], u_psb[t, :], post_x[t, :]) # prediction
+            u_hat_z = u_psb[t, :]*u_dist.predict_mean() # predictions from each latent cause
+            u_hat[t, :] = post_x[t, :]@u_hat_z # prediction (probability weighted average across latent causes)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
                          
             # calculate posterior on latent causes after observing outcome (u)
-            u_lik[t, :] = u_dist.lik(sim_pars, t, u[t, :], x[t, :], u_psb[t, :]) # likelihood of u
+            u_obs_sofar[u[t, :] > 0] = 1 # keep track of outcomes (u) observed so far
+            #u_lik[t, :] = u_dist.lik(obs = u[t, :], use = u_psb[t, :]*u_obs_sofar) # likelihood of u
+            u_lik[t, :] = np.exp() # FINISH
             new_numerator = numerator*u_lik[t, :]
             post_xu[t, :] = new_numerator/new_numerator.sum() # posterior on latent causes after observing both x and u
-            most_prob = np.argmax(post_xu[t, :]) # most probable latent cause
-            z[t, most_prob] = 1 # MAP latent cause assignment
-            z_counts[most_prob] += 1 
                          
             # update x and u distribution parameters
             # ADD EFFECT OF u_lrn
-            x_dist.update(sim_pars, t, x[t, :], post_xu[t, :], z_counts, z[t, :])
-            u_dist.update(sim_pars, t, u[t, :], x[t, :], post_xu[t, :], z_counts, z[t, :])
+            x_dist.update(x[t, :], post_xu[t, :])
+            u_dist.update(u[t, :], post_xu[t, :])
             
         # generate simulated responses
         if random_resp is False:
@@ -225,7 +242,6 @@ class model:
 ########## PARAMETERS ##########
                          
 par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
-par_names += ['c']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}] # coupling probability
 par_names += ['beta0']; par_list += [{'min': 0.0, 'max': 50.0, 'default': 10}] # prior strength, i.e. half of "sample size" (discrete likelihood)
 par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2}] # concentration parameter (for prior); higher -> tend to infer more latent causes
 par_names += ['lmb0']; par_list += [{'min': 0.0, 'max': 20.0, 'default': 0.1}] # confidence in the prior on mu (normal likelihood)

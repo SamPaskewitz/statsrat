@@ -116,40 +116,44 @@ class experiment:
 
         return trials
 
-    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, schedule = None, other_info = None, header = 'infer'):
+    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, schedule = None, other_info = None, header = 'infer', n_final = 8):
         """
         Import empirical data from .csv files.
 
         Parameters
         ----------
-        path : str
+        path: str
             Path to the .csv files.
-        x_col : list
+        x_col: list
             Names of columns (strings) indicating cues (stimulus
             attributes, i.e. columns of 'x').
-        resp_col : list
+        resp_col: list
             Names of columns (strings) indicating responses.
-        resp_map : dict
+        resp_map: dict
             Maps response names in the raw data to response names in the
             schedule definition.
-        ident_col : str or None, optional
+        ident_col: str or None, optional
             If string, name of column indicating individual identifier.
             If None, then participants are given the arbitrary labels
             'sub_0', 'sub_1' etc.  Defaults to None.
-        schedule : str, optional
+        schedule: str, optional
             Name of the schedule from which to make trials.  By default
             selects the first schedule in the experiment object's
             definition.
-        other_info : dict or None, optional
+        other_info: dict or None, optional
             Specifies other information (e.g. demographics) to be imported.
             Dictionary keys are variable names (e.g. 'sex', 'age'), while the
             values give the corresponding row index (e.g. a question such as 
             'What is your age?') and column name as a tuple.  Defaults to None
             (do not import any additional data).
-        header : int, list of int, default ‘infer’
+        header: int or list of int, default ‘infer’
             Passed to pandas.read_csv.  Row number(s) to use as the column names,
             and the start of the data.
-
+        n_final: int, optional
+            Number of trials at end of each stage to use for calculating percent correct
+            choices.  For example, set n_final = 10 to compute percent correct choices
+            using the last 10 trials of each stage.
+        
         Returns
         -------
         ds : dataset (xarray)
@@ -335,10 +339,7 @@ class experiment:
             print('There was a problem merging individual datasets together.')
             
         # create summary data frame (each row corresponds to a participant)
-        summary = ds.drop_dims(['t', 'trial', 'x_name', 'u_name']).to_dataframe()
-        #summary = pd.DataFrame({'ident':  ds.ident})
-        #for var_name in other_info:
-        #    summary[var_name] = ds[var_name]            
+        summary = ds.drop_dims(['t', 'trial', 'x_name', 'u_name']).to_dataframe()         
         # calculate percent correct per stage (excluding test stages)
         n_stage = len(scd.stage_list)
         for i in range(n_stage):
@@ -349,8 +350,8 @@ class experiment:
                 # I'm having trouble with 'groupby', so I'm using a 'for' loop instead.
                 for ident in ds.ident:
                     index = np.array(ds.stage_name == stage_name)
-                    pct_correct += [100*ds['correct'].loc[{'t': index, 'ident': ident}].mean()]
-                var_name = stage_name + '_' + 'pct_correct'
+                    pct_correct += [100*ds['correct'].loc[{'t': index, 'ident': ident}][-n_final:].mean()]
+                var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct' 
                 summary[var_name] = np.array(pct_correct)
         # calculate behavioral scores
         n_oats = len(self.oats)
@@ -362,6 +363,7 @@ class experiment:
             else:
                 if scd.name in oat.schedule_neg:
                     summary[oat_name] = oat.behav_score_neg.compute_scores(ds = ds)
+        summary = summary.set_index(ds.ident.to_series(), drop = True)
         
         return (ds, summary)
 
