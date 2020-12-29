@@ -131,7 +131,7 @@ def log_lik(model, ds, par_val):
     b_hat[b_hat == 0] = 0.00000001
     log_prob = np.log(b_hat) # logarithms of choice probabilities
     resp = np.array(ds['b'])
-    ll = np.sum(log_prob * resp) # log-likelihood of choice sequence
+    ll = np.sum(log_prob*resp) # log-likelihood of choice sequence
     return ll
 
 def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time = 60, algorithm = nlopt.GN_ORIG_DIRECT):
@@ -226,7 +226,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     mid_pars = (free_pars['max'] + free_pars['min'])/2 # midpoint of each parameter's allowed interval
     
     # maximize the OAT score
-    # global optimization
+    # global optimization (to find approximate optimum)
     gopt_max = nlopt.opt(algorithm, n_free)
     gopt_max.set_max_objective(f)
     gopt_max.set_lower_bounds(np.array(free_pars['min'] + 0.001))
@@ -385,7 +385,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, mu, tau, max_time = 10):
+def fit_indv(model, ds, tau = None, max_time = 10):
     """
     Fit the model to time step data by individual MLE/MAP.
     
@@ -398,9 +398,9 @@ def fit_indv(model, ds, mu, tau, max_time = 10):
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
 
-    mu: float or None, optional
-
-    tau: float (> 0) or None, optional
+    tau: array-like of floats or None, optional
+        Natural parameters of the log-normal prior.
+        Defaults to None (don't use log-normal prior).
 
     Returns
     -------
@@ -408,10 +408,12 @@ def fit_indv(model, ds, mu, tau, max_time = 10):
 
     Notes
     -----
-    If either a or b is None (default) then MLE is performed (i.e. you use a uniform prior).
+    If tau is None (default) then MLE is performed (i.e. you use a uniform prior).
 
-    This currently assumes log-normal priors on all model parameters.  This may not be
-    appropriate in all cases.
+    This currently assumes log-normal priors on all model parameters.  This may be an
+    improper prior for some cases (e.g. a learning rate parameter that must be between
+    0 and 1 might be better modeled using something like a beta prior).  I may add different
+    types of prior in the future.
 
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
     """
@@ -419,8 +421,7 @@ def fit_indv(model, ds, mu, tau, max_time = 10):
     n = len(ds.ident)
     par_names = list(model.pars.index)
     n_p = len(par_names)
-    loc = model.pars['min']
-    scale = model.pars['max'] - model.pars['min']
+    lower = model.pars['min']
     bounds = []
     for i in range(len(model.pars)):
         bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
@@ -434,30 +435,29 @@ def fit_indv(model, ds, mu, tau, max_time = 10):
         ds_i = ds.loc[{'ident' : ds.ident[i]}].squeeze()
         
         # define objective function
-        if (a is None) or (b is None):
+        if tau is None:
             # uniform prior
             def f(x, grad = None):
                 if grad.size > 0:
                     grad = None
                 par_val = x
-                prop_log_post = log_lik(model, ds_i, par_val)
-                return prop_log_post
+                return log_lik(model, ds_i, par_val)
         else:
-            # non-uniform prior
+            # log-normal prior
             def f(x, grad = None):
                 if grad.size > 0:
                     grad = None
                 par_val = x
                 ll = log_lik(model, ds_i, par_val)
-                # loop through parameters to compute log_prior
-                log_prior = 0
+                # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
+                prop_log_prior = 0
                 for j in range(n_p):
-                    # UPDATE THIS
-                    log_prior += logpdf_fun[priors[j]](par_val[j], a[j], b[j], loc[j], scale[j])
-                prop_log_post = ll + log_prior
+                    y = np.log(np.sign(par_val[j] - lower[j]))
+                    prop_log_prior += tau[0]*y + tau[1]*y**2
+                prop_log_post = ll + prop_log_prior
                 return prop_log_post
         
-        # global optimization
+        # global optimization (to find approximate optimum)
         gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
         gopt.set_max_objective(f)
         gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
@@ -499,6 +499,27 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
     Returns
     -------
     dict
+    
+    Notes
+    -----
+    This assumes that all (psychological) model parameters (when shifted to (0, Inf)) have a log-normal distribution.
+    
+    Let theta be defined as any model parameter, and y be that the natural logarithm of that 
+    parameter after being shifted to the interval (0, Inf):
+    y = log(sign(theta - min theta)*(theta - min theta))
+    
+    Then we assume y ~ N(mu, 1/rho) where rho is a precision parameters.
+    The corresponding natural parameters are tau0 = mu*rho and tau1 = -0.5*rho.
+    
+    We perform the EM algorithm to estimate y, treating tau0 and tau1 as our latent variables,
+    where y' is the current estimate and x is the behavioral data:
+    Q(y | y') = E[log p(y | x, tau0, tau1)]
+    = log p(x | y) + E[tau0]*y + E[tau1]*y^2 + constant term with respect to y
+    This is obtained by using Bayes' theorem along with the canonical exponential form of the
+    log-normal prior.  Thus the E step consists of computing E[tau0] and E[tau1], where the
+    expectation is taken according to the posterior distribution of tau0 and tau1 (i.e. of mu and rho)
+    given x and y'.  Recognizing that this posterior is normal-gamma allows us to make the neccesary calculations
+    (details not provided here).
     """
     
     # count things, set up parameter space boundaries etc.
@@ -513,51 +534,36 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
 
     # keep track of relative change in est_psych_par
     rel_change = np.zeros(max_em_iter)
-
-    # IMPORTANT
-    # The previous version was incorrect.
-    # The conjugate priors for the parameters of beta and gamma distributions are very difficult to use.
-    # Therefore, I should use log-normal distributions instead of gammas and something similar instead of betas.
-    
-    # define functions to compute posterior mean hyperparameters in E step
-    def est_log_normal_hpar(theta, min_theta, scale):
-        theta_star = np.sign(theta - min_theta) # parameter re-scaled to the interval (0, inf)
-        suf_stat0 = np.log(theta_star).sum(0)
-        suf_stat1 = np.log(theta_star).sum(0)**2
-        
-        # log(theta_star) ~ normal(mu, sigmasq)
-        # mu, sigmasq ~ normal_inv_gamma(mu0, nu, alpha, beta)
-        # mu0 = 0, nu = 10, alpha = 10, beta = 10
-        # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
-        # FINISH
-        #est_mu =  # posterior mean for mu
-        #est_tau = ()/() # posterior mean for tau
-        return est_mu, est_tau
     
     # initialize (using MLE, i.e. uniform priors)
     print('initial estimation with uniform prior')
-    result = fit_indv(model, ds, None, None, max_time)
+    result = fit_indv(model, ds, None, max_time)
     est_psych_par = np.array(result.loc[:, par_names])
-    hpar0_prior = 10
-    hpar1_prior = 10
-    nu_prior = 10
-    hpar0 = np.zeros(n_p)
-    hpar1 = np.zeros(n_p)
-    nu = nu_prior + n
+    
+    # See the following:
+    # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
+    mu0 = 0
+    nu = 10 # 10 "virtual observations" in prior
+    alpha = 5
+    beta = 5
 
     # loop through EM algorithm
     for i in range(max_em_iter):
         print('EM iteration ' + str(i + 1))
         # E step (posterior means of hyperparameters given current estimates of psych_par)
         for j in range(n_p):
-            ystar = np.log(est_psych_par[:, j] - lower[j])
-            sufstat0 = ystar.sum()
-            hpar0[j] = hpar0_prior + sufstat0
-            sufstat1 = (ystar**2).sum()
-            hpar1[j] = hpar1_prior + sufstat1
-            # FINISH BY OBTAINING EXPECTATIONS OF PARAMETERS.
+            y = np.log(np.sign(est_psych_par[:, j] - lower[j]))
+            y_bar = y.mean()
+            # posterior hyperparameters for tau0 and tau1
+            mu0_prime = (nu*mu0 + n*y_bar)/(nu + n)
+            nu_prime = nu + n
+            alpha_prime = alpha + n/2
+            beta_prime = beta + 0.5*(y - y_bar).sum() + 0.5*(n*nu/(n + nu))*(y_bar - mu0)**2
+            # expectations of natural hyperparameters (https://en.wikipedia.org/wiki/Normal-gamma_distribution)
+            E_tau0 = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
+            E_tau1 = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
-        result = fit_indv(model, ds, est_mu, est_tau, max_time)
+        result = fit_indv(model, ds, [E_tau0, E_tau1], max_time)
         new_est_psych_par = np.array(result.loc[:, par_names])
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
@@ -572,7 +578,7 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
     return result
 
 def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n = 10):
-    # UPDATE THIS TO USE GAMMA PRIORS WHEN APPROPRIATE.
+    # UPDATE THIS TO USE LOG-NORMAL PRIORS.
     """
     Generate simulated data given an experiment and schedule (with random parameter vectors).
     
