@@ -201,9 +201,9 @@ class model:
 
 par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
-par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
+par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}] # max was previously 1
 par_names += ['extra_counts']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0}]
-par_names += ['metric']; par_list += [{'min': 1, 'max': 10, 'default': 2}]
+par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # min was previously 1
 par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
 par_names += ['a0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis

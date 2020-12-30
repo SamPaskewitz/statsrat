@@ -939,4 +939,4 @@ class behav_score:
                 scores += [pos_mean - neg_mean]
             else:
                 scores += [pos_mean]
-        return np.array(scores)    
+        return np.array(scores)
