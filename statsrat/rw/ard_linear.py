@@ -13,7 +13,6 @@ class model:
     Class for Bayesian regression models with shrinkage
     (automatic relevance detection).  These don't quite fit
     into the Rescorla-Wagner (rw) family, but are very similar.
-    FINISH UPDATING.
 
     Attributes
     ----------
@@ -126,6 +125,7 @@ class model:
         mean_tausq_inv = np.zeros((n_t, n_f)) # variational mean of 1/tau^2
         initial_mean_tausq_inv = (sim_pars['prior_tausq_inv_hpar1'] + 1)/(-sim_pars['prior_tausq_inv_hpar0'])
         mean_tausq_inv[0, :] = initial_mean_tausq_inv
+        mean_tausq = np.zeros((n_t, n_f)) # variational mean of tau^2 (solely for analysis purposes)
         mean_w = np.zeros((n_t, n_f, n_u)) # variational mean of w (a.k.a. mu)
         var_w = np.zeros((n_t, n_f, n_u)) # variational variance of w (i.e. the diagonal elements of the covariance matrix)
         var_w[0, :, :] = 1/initial_mean_tausq_inv
@@ -155,6 +155,7 @@ class model:
             hpar0_tausq_inv[t, :] = sim_pars['prior_tausq_inv_hpar0'] - 0.5*mean_wsq[t, :, :].sum(1)
             hpar1_tausq_inv[t, :] = sim_pars['prior_tausq_inv_hpar1'] + 0.5*u_psb_so_far.sum()
             mean_tausq_inv[t, :] = (hpar1_tausq_inv[t, :] + 1)/(-hpar0_tausq_inv[t, :])
+            mean_tausq[t, :] = -hpar0_tausq_inv[t, :]/hpar1_tausq_inv[t, :]
             T = np.diag(mean_tausq_inv[t, :]) # mean prior precision matrix (same for all outcomes)
             # compute hpar_w and related quantities using mean_tausq_inv
             for j in range(n_u):
@@ -169,7 +170,7 @@ class model:
                     # compute var_w and mean_wsq
                     var_w[t:n_t, :, j] = 1/np.diag(hpar1_w[t, :, :, j])
                     mean_wsq[t:n_t, :, j] = var_w[t, :, j] + mean_w[t, :, j]**2
-            # predict u (outcome) and compute b (behavior)    
+            # predict u (outcome) and compute b (behavior)  
             u_hat[t, :] = u_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             # update sufficient statistics of x and u for estimating w
@@ -177,7 +178,7 @@ class model:
             for j in range(n_u):
                 update = u_lrn[t, j] == 1
                 if update:
-                    sufstat0_w[(t+1):n_t, :, j] = sufstat0_w[t, :, j] + (f*u[t, j])/sim_pars['u_var']
+                    sufstat0_w[(t+1):n_t, :, j] = sufstat0_w[t, :, j] + (f*u[t, j])/sim_pars['u_var'] # LOOK HERE FOR IBRE
                     sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/sim_pars['u_var']
 
         # generate simulated responses
@@ -204,6 +205,7 @@ class model:
                                      'b' : (['t', 'u_name'], b),
                                      'shrink_cond' : (['t', 'u_name'], shrink_cond),
                                      'mean_tausq_inv' : (['t', 'f_name'], mean_tausq_inv),
+                                     'mean_tausq' : (['t', 'f_name'], mean_tausq),
                                      'mean_w' : (['t', 'f_name', 'u_name'], mean_w),
                                      'var_w' : (['t', 'f_name', 'u_name'], var_w),
                                      'mean_wsq' : (['t', 'f_name', 'u_name'], mean_wsq),
