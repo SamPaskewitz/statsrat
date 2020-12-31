@@ -116,7 +116,7 @@ class experiment:
 
         return trials
 
-    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, schedule = None, other_info = None, header = 'infer', n_final = 8):
+    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', n_final = 8):
         """
         Import empirical data from .csv files.
 
@@ -136,6 +136,11 @@ class experiment:
             If string, name of column indicating individual identifier.
             If None, then participants are given the arbitrary labels
             'sub_0', 'sub_1' etc.  Defaults to None.
+        conf_col: str or None, optional
+            Name of the column indicating confidence responses (i.e.
+            a measure of confidence following choices, typically
+            obtained in the test stages of human classification tasks).
+            Defaults to None (suitable for data without confidence responses).
         schedule: str, optional
             Name of the schedule from which to make trials.  By default
             selects the first schedule in the experiment object's
@@ -285,6 +290,10 @@ class experiment:
                     ds_new = ds_new.assign_coords({'t' : range(len(t_order)), 'trial' : range(len(t_order))})
                     ds_new = ds_new.assign(b = b)
                     ds_new = ds_new.expand_dims(ident = [ident])
+                    # add confidence ratings
+                    if not conf_col is None:
+                        conf = xr.DataArray(raw[conf_col].values, coords = [range(scd.n_t)], dims = ['t'])
+                        ds_new = ds_new.assign(conf = conf)
                     # add other information (e.g. demographics)
                     if not other_info is None:
                         other_dict = dict()
@@ -332,6 +341,7 @@ class experiment:
 
         # merge datasets together
         try:
+            print(ds_list[0])
             ds = xr.combine_nested(ds_list, concat_dim = 'ident')
             ds.attrs['schedule'] = scd.name
         except Exception as e:
@@ -355,14 +365,18 @@ class experiment:
                 summary[var_name] = np.array(pct_correct)
         # calculate behavioral scores
         n_oats = len(self.oats)
+        if conf_col is None:
+            has_conf = False
+        else:
+            has_conf = True
         for i in range(n_oats):
             oat_name = list(self.oats.keys())[i]
             oat = self.oats[oat_name]
             if scd.name in oat.schedule_pos:
-                summary[oat_name] = oat.behav_score_pos.compute_scores(ds = ds)
+                summary[oat_name] = oat.behav_score_pos.compute_scores(ds, has_conf)
             else:
                 if scd.name in oat.schedule_neg:
-                    summary[oat_name] = oat.behav_score_neg.compute_scores(ds = ds)
+                    summary[oat_name] = oat.behav_score_neg.compute_scores(ds, has_conf)
         summary = summary.set_index(ds.ident.to_series(), drop = True)
         
         return (ds, summary)
@@ -874,16 +888,16 @@ class behav_score:
         """
         Parameters
         ----------
-        stage : str
+        stage: str
             Name of the relevant stage.
-        trial_pos : list
+        trial_pos: list of str
             Trials whose scores are counted as positive.   
-        resp_pos : list
+        resp_pos: list of str
             Response counted as positive for each trial type.
-        trial_neg : list, optional
+        trial_neg: list of str, optional
             Trials whose scores are counted as negative.
             Defaults to an empty list.
-        resp_neg : list, optional
+        resp_neg: list of str, optional
             Responses counted as negative for each trial type.
             Defaults to an empty list.
         """
@@ -893,22 +907,29 @@ class behav_score:
         self.trial_neg = trial_neg
         self.resp_neg = resp_neg
         
-    def compute_scores(self, ds):
+    def compute_scores(self, ds, use_conf = False):
         """
         Compute behavioral score for each individual in the data set.
         
         Parameters
         ----------
-        ds : dataset
+        ds: dataset
             Dataset (xarray) containing behavioral and other experimental data.
-        oat : str, optional
+        oat: str, optional
             Name of the OAT to use.  By default selects the first OAT
             in the experiment object's definition.
+        use_conf: boolean, optional
+            If True then then responses will be multiplied by confidence when
+            computing behavioral scores.  This will only work if 'conf' (confidence
+            score) is a variable in the dataset (so far, simulation data produced
+            by statsrat does NOT include confidence scores).  Defaults to False
+            (behavioral scores are based choices only).
             
         Returns
         -------
-        scores : array of floats
+        scores: array of float
             Array of individual behavioral scores.
+        
         """            
         # loop through replications ('ident')
         scores = []
@@ -920,7 +941,12 @@ class behav_score:
             pos_n = 0
             for i in range(n_ttype):
                 pos_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_pos[i])
-                pos_sum += np.sum(ds_name['b'].loc[{'t' : pos_index, 'u_name' : self.resp_pos[i]}])
+                b = ds_name['b'].loc[{'t' : pos_index, 'u_name' : self.resp_pos[i]}]
+                if use_conf:
+                    conf = ds_name['conf'].loc[{'t' : pos_index}]
+                    pos_sum += np.sum(conf*b)
+                else:
+                    pos_sum += np.sum(b)
                 pos_n += pos_index.sum()
             pos_mean = pos_sum/pos_n
             
@@ -933,7 +959,12 @@ class behav_score:
                 neg_n = 0
                 for i in range(n_ttype):
                     neg_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_neg[i])
-                    neg_sum += np.sum(ds_name['b'].loc[{'t' : neg_index, 'u_name' : self.resp_neg[i]}])
+                    b = ds_name['b'].loc[{'t' : neg_index, 'u_name' : self.resp_neg[i]}]
+                    if use_conf:
+                        conf = ds_name['conf'].loc[{'t' : neg_index}]
+                        neg_sum += np.sum(conf*b)
+                    else:
+                        neg_sum += np.sum(b)
                     neg_n += neg_index.sum()
                 neg_mean = neg_sum/neg_n
                 scores += [pos_mean - neg_mean]
