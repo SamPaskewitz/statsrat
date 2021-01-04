@@ -11,17 +11,17 @@ class model:
 
     Attributes
     ----------
-    name : str
+    name: str
         Model name.
     fbase : function
         Base mapping between cues (x) and features (f_x).
-    fweight : function
+    fweight: function
         Attentional weights for features.
-    lrate : function
+    lrate: function
         Determines learning rates.
-    aux : object
+    aux: object
         Auxilliary learning, e.g. attention or weight covariance.
-    par_names : list
+    par_names: list
         Names of the model's free parameters (strings).
 
     Methods
@@ -34,18 +34,18 @@ class model:
         """
         Parameters
         ----------
-        name : str
+        name: str
             Model name.
-        fbase : function
+        fbase: function
             Base mapping between cues (x) and features (f_x).
-        fweight : function
+        fweight: function
             Attentional weights for features.
-        lrate : function
+        lrate: function
             Determines learning rates.
-        aux : object
+        aux: object
             Auxilliary learning, e.g. attention or weight covariance.
         """
-        # add data to object ('self')
+        # add attributes to object ('self')
         self.name = name
         self.fbase = fbase
         self.fweight = fweight
@@ -62,17 +62,17 @@ class model:
         
         Parameters
         ----------
-        trials : dataset (xarray)
+        trials: dataset (xarray)
             Time step level experimental data (cues, outcomes etc.).
 
-        resp_type : str, optional
+        resp_type: str, optional
             Type of behavioral response: one of 'choice', 'exct' or 'supr'.
             Defaults to 'choice'.
 
-        par_val : list, optional
+        par_val: list, optional
             Learning model parameters (floats or ints).
 
-        random_resp : str, optional
+        random_resp: str, optional
             Whether or not simulated responses should be random.  Defaults
             to false, in which case behavior (b) is identical to expected
             behavior (b_hat); this saves some computation time.  If true
@@ -81,12 +81,12 @@ class model:
             'exct' or 'supr' then a small amount of normally distributed
             noise (sd = 0.01) is added to b_hat.
 
-        ident : str, optional
+        ident: str, optional
             Individual participant identifier.  Defaults to 'sim'.
 
         Returns
         -------
-        ds : dataset
+        ds: dataset
             Simulation data.
 
         Notes

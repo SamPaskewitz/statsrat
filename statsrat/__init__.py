@@ -164,10 +164,13 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
 
     Returns
     -------
-    output : dataframe (Pandas)
+    output: dataframe (Pandas)
         Model parameters that produce maximum and minimum mean OAT score,
         along with those maximum and minimum mean OAT scores and (if n > 1)
         their associated 95% confidence intervals.
+        
+    mean_probs: data array
+        Relevant choice probabilities, averaged across individuals and trials.
 
     Notes
     -----
@@ -307,8 +310,13 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
             output_dict['value'] = [max_value]
             index = ['max']
     output = pd.DataFrame(output_dict, index)
-        
-    return output
+    # compute relevant mean choice probabilities
+    data_dict = max_data
+    if minimize:
+        data_dict.update(min_data)
+    mean_probs = oat_used.mean_choice_probs(data = data_dict)
+    
+    return (output, mean_probs)
 
 def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = None, n = 20):
     """
