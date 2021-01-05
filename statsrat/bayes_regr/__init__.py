@@ -162,9 +162,6 @@ class model:
         link = self.link(n_u, n_f)
         hpar0_w = np.zeros((n_t + 1, n_f, n_u)) # hyperparameter for the variational distribution of w (precision * mean)
         hpar1_w = np.zeros((n_t + 1, n_f, n_f, n_u)) # hyperparameter for the variational distribution of w (precision)
-        initial_tausq_inv = tausq_inv_dist.mean_tausq_inv()
-        for j in range(n_u):
-            hpar1_w[0, :, :, j] = np.diag(initial_tausq_inv[:, j])
         # array for sufficient statistics need to estimate w
         sufstat0_w = np.zeros((n_t + 1, n_f, n_u)) # sufficient statistic for w
         sufstat1_w = np.zeros((n_t + 1, n_f, n_f, n_u)) # sufficient statistic for w
@@ -173,9 +170,10 @@ class model:
         mean_tausq = np.zeros((n_t, n_f, n_u)) # variational mean of tau^2 (solely for analysis purposes)
         mean_w = np.zeros((n_t, n_f, n_u)) # variational mean of w (a.k.a. mu)
         var_w = np.zeros((n_t, n_f, n_u)) # variational variance of w (i.e. the diagonal elements of the covariance matrix)
-        var_w[0, :, :] = tausq_inv_dist.mean_tausq()
         mean_wsq = np.zeros((n_t, n_f, n_u)) # variational mean of w^2
-        mean_wsq[0, :, :] = tausq_inv_dist.mean_tausq()
+        initial_tausq_inv = tausq_inv_dist.mean_tausq_inv()
+        for j in range(n_u):
+            mean_wsq[0, :, j] = 1/initial_tausq_inv[:, j]
         z_hat = np.zeros((n_t, n_u)) # predicted latent variable (z) before observing outcome (u)
         mean_z = np.zeros((n_t, n_u)) # variational mean of the latent variable z (after observing u)
         # determine value of z_var (variance of the latent variable z)
@@ -193,8 +191,7 @@ class model:
         sim_resp_fun = resp_dict[resp_type]
         
         # loop through time steps
-        for t in range(n_t):
-            
+        for t in range(n_t):         
             # update tausq_inv_dist using mean_wsq and compute means of tausq and tausq_inv
             tausq_inv_dist.update(mean_wsq[t, :, :], u_psb[t, :])
             mean_tausq_inv[t, :, :] = tausq_inv_dist.mean_tausq_inv()
