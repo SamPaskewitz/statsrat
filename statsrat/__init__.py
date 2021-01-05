@@ -207,10 +207,11 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         def f(x, grad = None):
                 if grad.size > 0:
                     grad = None
-                par_val = x
+                par_val = np.append(x, 5)
+                print(par_val)
                 sim_data = {}
                 for s in s_list:
-                    sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_val, 5), random_resp = False)
+                    sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
                 oat_total = oat_used.compute_total(data = sim_data)
                 return oat_total
     else:
@@ -219,9 +220,10 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
                 if grad.size > 0:
                     grad = None
                 par_val = x
+                print(par_val)
                 sim_data = {}
                 for s in s_list:
-                    sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_val, 5), random_resp = False)
+                    sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
                 oat_total = oat_used.compute_total(data = sim_data)
                 return oat_total
     n_free = len(free_names) # number of free parameters

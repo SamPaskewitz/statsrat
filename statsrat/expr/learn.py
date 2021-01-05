@@ -886,7 +886,7 @@ class oat:
         else:
             data_dict = {self.schedule_pos[0] : data} # make a dict containing the input data
         
-        # positive schedules
+        # ** positive schedules **
         
         # relevant trial names (i.e. trial types)
         if self.behav_score_pos.trial_neg is None:
@@ -911,13 +911,13 @@ class oat:
         for s in self.schedule_pos:
             for tn in trial_name:
                 # FIGURE THIS STUFF OUT!!!
-                index = np.array(ds_s.trial_name == tn) & np.array(data_dict[s].stage_name == self.behav_score_pos.stage)
+                index = np.array(data_dict[s].trial_name == tn) & np.array(data_dict[s].stage_name == self.behav_score_pos.stage)
                 df_s = data_dict[s].loc[{'t': index}].to_dataframe()
                 for un in u_name:
-                    mean_prob = ds_s['b'].loc[{'t': index, 'u_name': un}].mean()
+                    mean_prob = df_s['b'].loc[df_s.u_name == un].mean()
                     da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_prob
        
-        # negative schedules
+        # ** negative schedules **
         
         if not self.schedule_neg is None:
             # relevant trial names (i.e. trial types)
