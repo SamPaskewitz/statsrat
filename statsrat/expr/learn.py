@@ -292,7 +292,8 @@ class experiment:
                     ds_new = ds_new.expand_dims(ident = [ident])
                     # add confidence ratings
                     if not conf_col is None:
-                        conf = xr.DataArray(raw[conf_col].values, coords = [range(scd.n_t)], dims = ['t'])
+                        conf_val = np.array(raw[conf_col].values, dtype = 'float')
+                        conf = xr.DataArray(conf_val, coords = [range(scd.n_t)], dims = ['t'])
                         ds_new = ds_new.assign(conf = conf)
                     # add other information (e.g. demographics)
                     if not other_info is None:
@@ -341,7 +342,6 @@ class experiment:
 
         # merge datasets together
         try:
-            print(ds_list[0])
             ds = xr.combine_nested(ds_list, concat_dim = 'ident')
             ds.attrs['schedule'] = scd.name
         except Exception as e:

@@ -1,0 +1,288 @@
+,schedule,age,sex,latinx,race,employment,tutorial_0a_last8_pct_correct,tutorial_0b_last8_pct_correct,tutorial_0c_last8_pct_correct,training_last8_pct_correct,transfer_last8_pct_correct,rel_irl,threat_benign_os,threat_benign_ri,promis_anx,promis_ang,promis_dep,promis_pos,bite,source,avg_last8_pct_correct,good_perf
+NDARKM468VR6,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,87.5,-0.5,2.75,5.0,17.0,9.0,8.0,61.0,6.0,inlab,95.83333333333333,True
+NDARTX594HBJ,design,18-24,Female, No, White, Employed part-time,87.5,100.0,87.5,87.5,87.5,-1.25,-2.0,-1.0,25.0,15.0,19.0,46.0,15.0,inlab,87.5,True
+NDARRR883WV4,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,87.5,100.0,6.0,0.0,0.0,27.0,13.0,19.0,47.0,10.0,inlab,95.83333333333333,True
+NDARMA408TN4,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,75.0,62.5,2.25,-7.0,-4.75,20.0,14.0,19.0,50.0,12.0,inlab,79.16666666666667,False
+NDARBP237PTC,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,50.0,100.0,-1.375,0.0,3.125,19.0,12.0,14.0,62.0,17.0,inlab,83.33333333333333,False
+NDARYW436KKA,design,18-24, Male,Yes, White, Full-time Student,100.0,87.5,100.0,62.5,100.0,0.25,-1.75,1.0,8.0,9.0,8.0,54.0,11.0,inlab,87.5,False
+NDARJK173BTB,design,18-24,Female, No, White, Full-time Student,87.5,87.5,100.0,62.5,25.0,-0.25,-4.0,-1.75,19.0,8.0,9.0,61.0,9.0,inlab,62.5,False
+NDARVK538WJM,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,2.75,0.0,-0.5,22.0,8.0,14.0,44.0,7.0,inlab,100.0,True
+NDARFJ736JF0,design,18-24,Female,Yes, White, Full-time Student,87.5,100.0,100.0,37.5,37.5,-0.125,1.0,-0.375,33.0,17.0,13.0,41.0,22.0,inlab,58.333333333333336,False
+Hugh Lynch,design,18-24, Male, No, White, Full-time Student,87.5,100.0,87.5,62.5,87.5,0.25,1.5,1.25,12.0,13.0,10.0,30.0,7.0,inlab,79.16666666666667,False
+NDARNP207HY2,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,7.0,-0.5,0.0,10.0,5.0,9.0,57.0,5.0,inlab,100.0,True
+NDARHV096YGG,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,75.0,100.0,5.25,-6.25,1.5,29.0,13.0,26.0,33.0,14.0,inlab,91.66666666666667,True
+NDARXP547KTV,design,18-24,Female, No, White, Full-time Student,100.0,87.5,87.5,75.0,75.0,-0.375,0.25,-2.125,18.0,12.0,21.0,49.0,16.0,inlab,79.16666666666667,True
+NDARHV206ALF,design,18-24,Female,Yes, White, Full-time Student,100.0,87.5,100.0,62.5,100.0,1.0,-2.0,3.0,30.0,12.0,21.0,51.0,14.0,inlab,87.5,False
+NDARDZ839HUQ,design,18-24, Male, No, White, Full-time Student,100.0,87.5,100.0,87.5,100.0,5.125,0.0,1.375,11.0,8.0,10.0,73.0,5.0,inlab,95.83333333333333,True
+NDARVY357NXK,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,5.5,-0.75,1.5,22.0,14.0,9.0,44.0,14.0,inlab,100.0,True
+NDARWF379MBC,design,18-24,Female, No, White, Full-time Student,87.5,87.5,100.0,75.0,100.0,-2.375,-3.75,-3.625,20.0,8.0,12.0,50.0,12.0,inlab,91.66666666666667,True
+NDARZU593BWD,design,18-24, Male, No, White, Seeking opportunities,100.0,100.0,100.0,100.0,87.5,6.125,3.75,-0.625,9.0,11.0,14.0,66.0,17.0,inlab,95.83333333333333,True
+NDARKK020JET,design,18-24, Male,Yes, White, Employed part-time,100.0,100.0,100.0,50.0,87.5,-1.0,-1.0,-2.0,11.0,8.0,8.0,59.0,7.0,inlab,79.16666666666667,False
+NDAREN580ANP,design,18-24,Female,Yes, More than one race, Seeking opportunities,100.0,100.0,100.0,100.0,100.0,5.25,7.0,-1.75,11.0,5.0,8.0,73.0,6.0,inlab,100.0,True
+NDARHM184CYQ,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,87.5,100.0,75.0,5.875,0.75,0.125,32.0,15.0,22.0,45.0,15.0,inlab,87.5,True
+NDARFV427WGW,design,18-24, Male, No, Asian, Full-time Student,87.5,100.0,100.0,75.0,62.5,2.5,6.0,-3.75,26.0,12.0,25.0,43.0,14.0,inlab,79.16666666666667,False
+NDARWJ653DPT,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,87.5,87.5,6.625,-6.25,-0.125,23.0,14.0,20.0,45.0,13.0,inlab,91.66666666666667,True
+NDARTR142UPG,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,87.5,100.0,0.0,5.5,7.0,20.0,7.0,19.0,55.0,10.0,inlab,95.83333333333333,True
+NDARCF304NZ9,design,18-24, Male, No, Asian, Full-time Student,100.0,100.0,87.5,100.0,87.5,3.375,5.5,3.375,11.0,5.0,8.0,75.0,5.0,inlab,91.66666666666667,True
+NDARYE560VJN,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,75.0,87.5,6.125,7.0,-0.375,17.0,13.0,8.0,49.0,11.0,inlab,87.5,True
+NDARYW306GZY,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,7.0,1.5,0.0,15.0,7.0,8.0,54.0,5.0,inlab,100.0,True
+NDARGT747DL1,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,100.0,87.5,-0.5,1.75,5.0,29.0,20.0,25.0,49.0,15.0,inlab,95.83333333333333,True
+NDARRP632WTN,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,75.0,62.5,0.5,2.5,-0.75,26.0,7.0,14.0,48.0,5.0,inlab,79.16666666666667,False
+NDARAK663YPC,design,18-24,Female,Yes, More than one race, Employed part-time,87.5,100.0,100.0,50.0,100.0,1.125,4.0,0.625,19.0,9.0,17.0,23.0,15.0,inlab,83.33333333333333,False
+NDARTF867VN1,design,18-24,Female, No, White, Employed part-time,100.0,87.5,100.0,87.5,25.0,0.875,4.75,4.625,19.0,12.0,8.0,57.0,9.0,inlab,70.83333333333333,False
+NDARAU273JDU,design,18-24,Female, No, White, Full-time Student,100.0,87.5,100.0,87.5,100.0,5.375,2.0,1.625,29.0,16.0,18.0,51.0,17.0,inlab,95.83333333333333,True
+NDARDP948BJB,design,18-24, Male, No, White, Seeking opportunities,100.0,100.0,100.0,75.0,87.5,0.5,-5.5,3.5,25.0,18.0,31.0,37.0,14.0,inlab,87.5,True
+NDARAK066VH1,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,-3.375,0.0,3.625,16.0,11.0,9.0,66.0,10.0,inlab,100.0,True
+NDARZF446DMK,design,18-24,Female,Yes, White, Seeking opportunities,100.0,87.5,100.0,100.0,100.0,1.125,0.0,-2.375,31.0,14.0,20.0,39.0,17.0,inlab,100.0,True
+NDAREZ571KLP,design,18-24, Male, No, White, Seeking opportunities,100.0,100.0,100.0,100.0,100.0,7.0,-7.0,0.0,12.0,7.0,15.0,48.0,15.0,inlab,100.0,True
+NDARTP308DH7,design,18-24,Female,Yes, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,1.0,1.25,3.0,26.0,12.0,20.0,41.0,14.0,inlab,100.0,True
+NDARDN270JPK,design,18-24,Female, No, Asian, Full-time Student,100.0,100.0,100.0,87.5,87.5,3.5,3.5,2.0,16.0,11.0,10.0,50.0,13.0,inlab,91.66666666666667,True
+NDARBD074LK8,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,50.0,37.5,-2.625,1.75,0.125,10.0,14.0,8.0,60.0,5.0,inlab,62.5,False
+NDARFY205EGZ,design,18-24, Male, No, Black or African American, Full-time Student,75.0,100.0,100.0,37.5,50.0,0.5,4.0,-1.25,23.0,15.0,28.0,26.0,10.0,inlab,62.5,False
+NDAREJ634BE8,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,87.5,100.0,3.5,1.5,3.5,8.0,13.0,8.0,60.0,7.0,inlab,95.83333333333333,True
+NDARZL430KHH,design,18-24, Male, No, Asian, Full-time Student,75.0,100.0,100.0,37.5,50.0,2.375,0.0,0.125,8.0,5.0,8.0,55.0,5.0,inlab,62.5,False
+NDARGX685ZYL,design,18-24, Male, No, White, Full-time Student,87.5,100.0,100.0,100.0,100.0,1.125,0.25,-0.125,27.0,21.0,22.0,16.0,20.0,inlab,100.0,True
+NDARCY639FWH,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,100.0,100.0,5.875,1.75,1.125,20.0,12.0,16.0,44.0,9.0,inlab,100.0,True
+NDARHY304HKR,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,25.0,100.0,1.625,-4.0,-0.375,15.0,6.0,10.0,69.0,7.0,inlab,75.0,False
+NDARXG795GN0,design,18-24,Female, No, White, Employed part-time,100.0,100.0,87.5,87.5,100.0,1.75,-0.5,-3.0,34.0,12.0,30.0,45.0,16.0,inlab,91.66666666666667,True
+NDARTY667FUE,design,18-24,Female, No, White, Employed part-time,100.0,75.0,100.0,37.5,37.5,1.25,0.5,1.75,33.0,11.0,28.0,51.0,16.0,inlab,58.333333333333336,False
+NDARGH383RY5,design,18-24, Male, No, White, Full-time Student,87.5,87.5,100.0,62.5,37.5,-0.125,-0.5,0.375,16.0,12.0,13.0,49.0,11.0,inlab,66.66666666666667,False
+NDARFM004BBL,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,75.0,100.0,6.875,2.5,0.125,16.0,9.0,9.0,67.0,11.0,inlab,91.66666666666667,True
+NDARHY674EWX,design,18-24,Female,Yes, White, Full-time Student,100.0,100.0,100.0,87.5,100.0,-0.125,5.75,5.375,18.0,5.0,8.0,59.0,5.0,inlab,95.83333333333333,True
+NDARZJ774JDG,design,18-24,Female, No, Asian, Full-time Student,87.5,100.0,100.0,100.0,75.0,4.375,-0.5,-1.875,23.0,17.0,22.0,48.0,23.0,inlab,91.66666666666667,True
+NDARLN198PLP,design,18-24, Male, No, Asian, Full-time Student,100.0,100.0,100.0,100.0,100.0,6.625,0.5,0.125,32.0,20.0,33.0,29.0,24.0,inlab,100.0,True
+NDARNY617LLP,design,18-24,Female, No, White, Full-time Student,75.0,100.0,100.0,87.5,100.0,4.75,3.0,-2.0,16.0,7.0,8.0,57.0,6.0,inlab,95.83333333333333,True
+NDARRV815CLJ,design,18-24, Male, No, Asian, Full-time Student,100.0,100.0,100.0,50.0,62.5,0.0,0.5,0.0,15.0,15.0,19.0,46.0,17.0,inlab,70.83333333333333,False
+NDARHU354VBH,design,18-24,Female, No, White, Full-time Student,100.0,100.0,75.0,100.0,100.0,6.625,2.25,0.375,20.0,13.0,12.0,50.0,10.0,inlab,91.66666666666667,True
+NDARLU545TTN,design,18-24,Female,Yes, More than one race, Seeking opportunities,87.5,100.0,87.5,25.0,75.0,-0.25,-2.75,2.25,16.0,5.0,17.0,56.0,5.0,inlab,62.5,False
+NDARZX089VCG,design,18-24,Female, No, More than one race, Full-time Student,100.0,100.0,100.0,100.0,87.5,6.25,0.5,0.75,21.0,16.0,12.0,42.0,14.0,inlab,95.83333333333333,True
+NDARUL795TYJ,design,18-24, Male, No, White, Full-time Student,87.5,100.0,100.0,87.5,87.5,0.75,3.75,-0.75,11.0,5.0,8.0,70.0,5.0,inlab,91.66666666666667,True
+NDARBK361TKF,design,18-24, Male, No, Asian, Full-time Student,100.0,100.0,100.0,62.5,87.5,1.625,1.0,-1.875,34.0,11.0,31.0,32.0,12.0,inlab,83.33333333333333,False
+NDARDL184EB4,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,75.0,87.5,0.875,-0.25,-0.875,11.0,11.0,9.0,61.0,10.0,inlab,87.5,True
+NDAREN885BXT,design,18-24,Female,Yes, White, Full-time Student,100.0,100.0,62.5,75.0,87.5,1.5,5.75,-2.25,25.0,8.0,12.0,53.0,8.0,inlab,75.0,False
+NDARMU640DY7,design,18-24,Female, No, White, Full-time Student,100.0,87.5,87.5,75.0,87.5,4.5,0.75,-2.0,14.0,11.0,8.0,62.0,9.0,inlab,83.33333333333333,True
+NDARGR305EJL,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,87.5,87.5,-0.25,6.25,-6.0,19.0,15.0,21.0,51.0,18.0,inlab,91.66666666666667,True
+NDARYR462DHU,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,75.0,100.0,1.875,2.25,3.875,26.0,14.0,14.0,52.0,14.0,inlab,91.66666666666667,True
+NDARRZ414WWN,design,18-24, Male,Yes, More than one race, Full-time Student,87.5,100.0,87.5,75.0,100.0,-0.125,-1.25,-2.125,20.0,13.0,13.0,49.0,7.0,inlab,87.5,True
+NDARCL235EWL,design,18-24, Male, No, White, Full-time Student,87.5,100.0,100.0,62.5,87.5,0.25,0.0,-0.25,9.0,6.0,8.0,60.0,6.0,inlab,83.33333333333333,False
+NDARJA102PPC,design,18-24,Female, No, White, Full-time Student,100.0,50.0,100.0,37.5,50.0,0.125,1.25,0.125,29.0,12.0,13.0,45.0,11.0,inlab,62.5,False
+NDARYU449LN2,design,18-24,Female,Yes, White, Employed part-time,75.0,87.5,87.5,62.5,87.5,2.0,-4.5,3.75,25.0,14.0,22.0,34.0,13.0,inlab,79.16666666666667,False
+NDARGL348GN8,design,18-24,Female, No, White, Full-time Student,75.0,75.0,100.0,100.0,100.0,2.0,-0.25,0.0,16.0,10.0,8.0,45.0,8.0,inlab,100.0,True
+NDARKA385PGJ,design,18-24,Female, No, White, Full-time Student,100.0,100.0,87.5,75.0,75.0,2.25,-3.75,-2.25,22.0,13.0,8.0,57.0,14.0,inlab,79.16666666666667,True
+NDARBY152TGN,design,18-24,Female, No, White, Full-time Student,87.5,100.0,100.0,87.5,87.5,3.75,5.5,3.25,29.0,10.0,25.0,52.0,15.0,inlab,91.66666666666667,True
+NDARVF155JL8,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,2.25,-0.5,-2.5,29.0,12.0,20.0,57.0,15.0,inlab,100.0,True
+NDARHK822GEU,design,18-24,Female, No, Black or African American, Full-time Student,87.5,87.5,100.0,75.0,50.0,0.0,-3.5,5.5,9.0,6.0,9.0,43.0,6.0,inlab,75.0,False
+NDARFZ181WZM,design,18-24, Male, No, White, Seeking opportunities,100.0,100.0,100.0,100.0,100.0,6.125,5.75,0.125,12.0,12.0,17.0,53.0,11.0,inlab,100.0,True
+NDARZP862GRC,design,18-24, Male, No, White, Full-time Student,87.5,100.0,100.0,37.5,100.0,0.875,-0.5,-0.625,15.0,9.0,15.0,44.0,7.0,inlab,79.16666666666667,False
+NDARGW220PW4,design,18-24,Female, No, White, Employed part-time,100.0,87.5,87.5,100.0,87.5,0.25,-6.0,0.25,16.0,12.0,25.0,39.0,14.0,inlab,91.66666666666667,True
+NDARGK691NJD,design,18-24, Male, No, Asian, Employed part-time,100.0,100.0,100.0,100.0,100.0,6.125,3.25,0.125,22.0,15.0,20.0,38.0,11.0,inlab,100.0,True
+NDARRP741YMM,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,100.0,100.0,4.75,-4.5,0.0,27.0,11.0,12.0,47.0,9.0,inlab,100.0,True
+NDARLW483PCB,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,75.0,37.5,-2.625,-4.0,-1.375,28.0,7.0,9.0,70.0,9.0,inlab,70.83333333333333,False
+NDARKR846XRG,design,18-24,Female,Yes, More than one race, Full-time Student,100.0,87.5,100.0,100.0,87.5,1.375,-1.0,4.375,20.0,10.0,17.0,60.0,10.0,inlab,95.83333333333333,True
+NDARRW348DAT,design,18-24, Male, No, Black or African American,Employed full-time,87.5,87.5,87.5,100.0,100.0,4.375,-4.75,0.875,28.0,9.0,26.0,57.0,13.0,inlab,95.83333333333333,True
+NDARGU904BNY,design,18-24,Female,Yes, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,1.875,-4.25,-2.125,20.0,12.0,10.0,53.0,14.0,inlab,100.0,True
+NDARVL324EZR,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,5.875,-6.25,0.125,16.0,6.0,12.0,56.0,7.0,inlab,100.0,True
+NDARVD189HL6,design,18-24,Female,Yes, More than one race, Full-time Student,100.0,100.0,100.0,100.0,100.0,7.0,-3.5,0.0,26.0,14.0,25.0,48.0,20.0,inlab,100.0,True
+NDARXF801EXF,design,18-24,Female, No, White, Employed part-time,75.0,100.0,100.0,100.0,100.0,6.75,0.25,0.25,20.0,6.0,11.0,51.0,9.0,inlab,100.0,True
+NDARJA852KXY,design,18-24,Female,Yes, White, Full-time Student,87.5,100.0,75.0,100.0,100.0,7.0,0.5,0.0,20.0,9.0,17.0,46.0,9.0,inlab,91.66666666666667,True
+NDARVC462XUT,design,18-24,Female, No, White, Employed part-time,75.0,100.0,100.0,100.0,87.5,6.625,-7.0,0.125,12.0,14.0,24.0,36.0,10.0,inlab,95.83333333333333,True
+NDARGX030JMJ,design,18-24,Female, No, White, Full-time Student,100.0,87.5,100.0,87.5,100.0,5.75,5.5,0.25,16.0,18.0,18.0,45.0,25.0,inlab,95.83333333333333,True
+NDARTB755BML,design,18-24,Female,Yes, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,5.25,0.0,0.0,21.0,11.0,11.0,63.0,9.0,inlab,100.0,True
+NDAREL770HW7,design,18-24,Female, No, White, Employed part-time,100.0,100.0,100.0,75.0,100.0,-1.75,0.25,3.25,32.0,12.0,21.0,30.0,13.0,inlab,91.66666666666667,True
+NDARPN484KHR,design,18-24,Female, No, White, Full-time Student,100.0,100.0,87.5,25.0,50.0,-0.75,-1.0,-0.25,14.0,8.0,9.0,43.0,6.0,inlab,54.166666666666664,False
+NDARVT540EAQ,design,18-24,Female,Yes, More than one race,Employed full-time,87.5,100.0,87.5,62.5,62.5,-3.625,7.0,-1.625,32.0,17.0,19.0,32.0,16.0,inlab,70.83333333333333,False
+NDARLW483LGJ,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,50.0,87.5,0.0,3.25,0.5,20.0,7.0,20.0,44.0,10.0,inlab,79.16666666666667,False
+NDARJG306GFX,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,100.0,87.5,-6.75,3.5,-0.25,25.0,15.0,17.0,54.0,17.0,inlab,95.83333333333333,True
+NDARXU098KBW,design,18-24,Female, No, White, Full-time Student,87.5,100.0,100.0,100.0,100.0,1.5,1.25,0.5,19.0,8.0,9.0,55.0,10.0,inlab,100.0,True
+NDARKY896MK9,design,18-24,Female, No, White, Full-time Student,87.5,87.5,100.0,87.5,100.0,5.375,0.5,-1.375,26.0,12.0,22.0,32.0,13.0,inlab,95.83333333333333,True
+NDARPJ061XK4,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,5.125,0.0,-0.875,28.0,14.0,17.0,41.0,12.0,inlab,100.0,True
+NDARNP702ETH,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,3.375,-0.5,1.625,16.0,12.0,8.0,60.0,13.0,inlab,100.0,True
+NDARMW194YJL,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,7.0,4.0,0.0,10.0,6.0,9.0,54.0,5.0,inlab,100.0,True
+NDARVV905HH7,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,100.0,2.5,0.25,0.25,22.0,7.0,18.0,27.0,7.0,inlab,100.0,True
+NDARAD554ZD6,design,18-24,Female, No, Asian, Full-time Student,100.0,100.0,100.0,100.0,100.0,7.0,-4.75,0.0,14.0,9.0,8.0,54.0,7.0,inlab,100.0,True
+NDARAY643KPU,design,18-24,Female, No, White, Seeking opportunities,100.0,100.0,100.0,100.0,100.0,2.25,5.25,-3.25,13.0,5.0,11.0,49.0,5.0,inlab,100.0,True
+NDARJB426XBN,design,18-24, Male, No, White, Seeking opportunities,100.0,100.0,87.5,50.0,75.0,-1.0,0.0,0.75,12.0,8.0,8.0,71.0,7.0,inlab,70.83333333333333,False
+NDARAF940PF3,design,18-24,Female, No, White, Full-time Student,100.0,87.5,75.0,100.0,75.0,6.625,4.5,-0.375,32.0,20.0,31.0,43.0,15.0,inlab,83.33333333333333,True
+NDARDJ173LFQ,design,18-24, Male, No, Black or African American, Full-time Student,100.0,100.0,87.5,12.5,75.0,-3.25,-1.0,-3.75,22.0,23.0,29.0,26.0,26.0,inlab,58.333333333333336,False
+NDARZC072PAH,design,18-24, Male, No, White, Full-time Student,100.0,100.0,100.0,100.0,87.5,4.875,-5.25,1.625,15.0,15.0,11.0,44.0,13.0,inlab,95.83333333333333,True
+NDARMH389NCL,design,18-24,Female, No, White, Full-time Student,100.0,100.0,100.0,87.5,100.0,0.375,-1.5,-5.875,27.0,17.0,14.0,57.0,21.0,inlab,95.83333333333333,True
+NDARDJ786YFD,design,18-24, Male, No, White, Employed part-time,100.0,100.0,100.0,100.0,100.0,7.0,7.0,0.0,29.0,14.0,29.0,39.0,13.0,inlab,100.0,True
+NDARVN179CFY,design,18-24,Female, No, White, Employed part-time,100.0,100.0,100.0,100.0,87.5,5.125,-7.0,0.375,29.0,12.0,26.0,58.0,12.0,inlab,95.83333333333333,True
+NDARPG437CRZ,design,18-24,Female, No, White, Full-time Student,100.0,87.5,87.5,87.5,87.5,-0.75,1.0,-2.25,29.0,11.0,18.0,58.0,11.0,inlab,87.5,True
+NDARUT680KBD,,,,,,,,,,,,,,,10.0,9.0,12.0,63.0,8.0,inlab,,False
+Clayton Lobel,,,,,,,,,,,,,,,20.0,15.0,15.0,45.0,15.0,inlab,,False
+sub_0,design,18 years old,Male,No,White,Full-time student,100.0,100.0,87.5,100.0,100.0,1.0,1.0,0.0,16.0,10.0,10.0,48.0,10.0,online,95.83333333333333,True
+sub_1,design,18 years old,Female,Yes,More than one race,Seeking opportunities,100.0,100.0,100.0,62.5,75.0,0.25,0.0,-0.25,24.0,14.0,17.0,39.0,15.0,online,79.16666666666667,False
+sub_2,design,20 years old,Male,No,White,Full-time student,100.0,100.0,100.0,75.0,100.0,0.0,-0.5,0.0,18.0,14.0,19.0,47.0,16.0,online,91.66666666666667,True
+sub_3,design,19 years old,Male,No,White,Full-time student,100.0,75.0,87.5,75.0,25.0,0.75,0.5,0.25,32.0,11.0,26.0,34.0,15.0,online,62.5,False
+sub_4,design,20 years old,Male,No,White,Employed part-time,87.5,87.5,75.0,62.5,87.5,0.25,-0.5,0.25,24.0,15.0,15.0,42.0,13.0,online,75.0,False
+sub_5,design,18 years old,Female,No,White,Full-time student,100.0,87.5,87.5,100.0,87.5,0.0,0.5,0.0,30.0,20.0,28.0,31.0,24.0,online,91.66666666666667,True
+sub_6,design,18 years old,Male,Yes,More than one race,Employed part-time,100.0,100.0,100.0,75.0,100.0,0.0,1.0,-0.5,32.0,18.0,32.0,32.0,13.0,online,91.66666666666667,True
+sub_7,design,18 years old,Female,No,White,Full-time student,75.0,100.0,50.0,50.0,37.5,0.0,0.0,0.0,32.0,20.0,32.0,60.0,20.0,online,45.833333333333336,False
+sub_8,design,23 years old,Female,No,White,Full-time student,87.5,100.0,100.0,50.0,62.5,-0.75,0.0,-0.25,15.0,15.0,24.0,27.0,13.0,online,70.83333333333333,False
+sub_9,design,18 years old,Female,No,White,Seeking opportunities,100.0,100.0,100.0,100.0,100.0,0.0,-0.5,-1.0,20.0,12.0,19.0,36.0,16.0,online,100.0,True
+sub_10,design,18 years old,Female,No,White,Full-time student,100.0,87.5,87.5,75.0,87.5,0.0,-1.0,0.0,23.0,13.0,11.0,44.0,14.0,online,83.33333333333333,True
+sub_11,design,19 years old,Female,No,White,Full-time student,62.5,100.0,100.0,100.0,100.0,1.0,-0.5,0.0,37.0,25.0,40.0,30.0,25.0,online,100.0,True
+sub_12,design,18 years old,Female,No,White,Employed part-time,87.5,87.5,87.5,100.0,100.0,1.0,1.0,0.0,16.0,11.0,11.0,62.0,12.0,online,95.83333333333333,True
+sub_13,design,19 years old,Female,No,White,Employed part-time,100.0,100.0,100.0,75.0,100.0,0.25,-1.0,-0.75,8.0,5.0,8.0,56.0,7.0,online,91.66666666666667,True
+sub_14,design,19 years old,Female,No,White,Full-time student,87.5,100.0,100.0,100.0,87.5,0.5,0.5,0.0,16.0,10.0,16.0,60.0,11.0,online,95.83333333333333,True
+sub_15,design,21 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,1.0,0.0,23.0,13.0,8.0,30.0,9.0,online,100.0,True
+sub_16,design,19 years old,Male,No,Asian,Employed full-time,100.0,100.0,100.0,62.5,62.5,0.0,0.0,0.0,26.0,23.0,20.0,30.0,21.0,online,75.0,False
+sub_18,design,18 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,0.5,1.0,0.5,8.0,5.0,8.0,62.0,7.0,online,100.0,True
+sub_19,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,75.0,100.0,-0.25,-1.0,-0.25,32.0,18.0,30.0,46.0,20.0,online,91.66666666666667,True
+sub_20,design,18 years old,Female,Yes,Prefer not to answer,Employed part-time,87.5,100.0,100.0,37.5,25.0,-0.5,0.0,0.5,24.0,15.0,24.0,45.0,15.0,online,54.166666666666664,False
+sub_21,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,75.0,100.0,0.25,1.0,0.75,31.0,13.0,11.0,33.0,19.0,online,91.66666666666667,True
+sub_22,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,87.5,87.5,-0.5,0.5,0.5,13.0,12.0,10.0,73.0,16.0,online,91.66666666666667,True
+sub_23,design,21 years old,Female,No,White,Employed part-time,100.0,100.0,100.0,37.5,100.0,-0.5,-1.0,0.5,31.0,15.0,16.0,61.0,13.0,online,79.16666666666667,False
+sub_24,design,18 years old,Male,No,White,Seeking opportunities,100.0,100.0,100.0,100.0,100.0,0.5,-1.0,0.5,15.0,11.0,10.0,65.0,12.0,online,100.0,True
+sub_25,design,18 years old,Female,No,White,Employed part-time,100.0,100.0,87.5,50.0,37.5,0.25,0.0,-0.25,24.0,15.0,24.0,45.0,15.0,online,58.333333333333336,False
+sub_26,design,18 years old,Male,No,Black or African American,Full-time student,100.0,100.0,100.0,25.0,62.5,-0.25,0.0,-0.25,23.0,14.0,18.0,42.0,13.0,online,62.5,False
+sub_27,design,18 years old,Female,No,White,Employed part-time,75.0,87.5,100.0,100.0,87.5,0.0,0.5,0.0,24.0,16.0,21.0,49.0,19.0,online,95.83333333333333,True
+sub_28,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,87.5,75.0,0.25,0.0,0.25,16.0,12.0,21.0,73.0,15.0,online,87.5,True
+sub_29,design,18 years old,Female,No,Black or African American,Full-time student,100.0,100.0,100.0,100.0,75.0,0.0,-1.0,1.0,20.0,11.0,20.0,67.0,12.0,online,91.66666666666667,True
+sub_30,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,75.0,75.0,0.5,0.0,0.5,14.0,12.0,9.0,63.0,14.0,online,83.33333333333333,True
+sub_31,design,19 years old,Male,No,White,Full-time student,75.0,100.0,100.0,50.0,25.0,-0.25,1.0,-0.75,19.0,17.0,8.0,66.0,15.0,online,58.333333333333336,False
+sub_32,design,19 years old,Female,No,White,Employed part-time,87.5,87.5,100.0,50.0,62.5,-0.75,0.0,-0.25,15.0,9.0,13.0,38.0,7.0,online,70.83333333333333,False
+sub_33,design,18 years old,Female,No,White,Full-time student,87.5,75.0,62.5,50.0,62.5,-0.5,-1.0,-0.5,29.0,10.0,15.0,68.0,9.0,online,58.333333333333336,False
+sub_34,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,50.0,62.5,0.25,1.0,-0.25,17.0,17.0,32.0,75.0,19.0,online,70.83333333333333,False
+sub_35,design,20 years old,Female,Yes,Asian,Full-time student,87.5,87.5,100.0,25.0,62.5,-0.25,1.0,0.25,40.0,11.0,12.0,55.0,18.0,online,62.5,False
+sub_36,design,18 years old,Male,No,White,Employed part-time,87.5,87.5,100.0,75.0,100.0,0.5,1.0,-0.5,10.0,5.0,8.0,62.0,8.0,online,91.66666666666667,True
+sub_37,design,18 years old,Female,No,White,Employed part-time,50.0,50.0,12.5,50.0,37.5,0.25,0.0,-0.25,32.0,20.0,16.0,60.0,20.0,online,33.333333333333336,False
+sub_38,design,18 years old,Female,No,White,Full-time student,87.5,100.0,100.0,50.0,100.0,0.5,0.5,0.0,39.0,13.0,35.0,26.0,13.0,online,83.33333333333333,False
+sub_39,design,20 years old,Male,No,White,Full-time student,100.0,87.5,100.0,87.5,100.0,0.0,1.0,-1.0,12.0,11.0,19.0,42.0,12.0,online,95.83333333333333,True
+sub_40,design,19 years old,Female,Yes,White,Seeking opportunities,100.0,100.0,100.0,37.5,100.0,-0.5,-0.5,0.0,38.0,25.0,40.0,30.0,25.0,online,79.16666666666667,False
+sub_41,design,23 years old,Male,No,White,Full-time student,87.5,100.0,100.0,25.0,62.5,0.0,-0.5,0.0,20.0,12.0,11.0,45.0,15.0,online,62.5,False
+sub_43,design,20 years old,Male,No,White,Employed part-time,100.0,100.0,100.0,87.5,50.0,0.25,0.0,0.25,30.0,7.0,27.0,31.0,15.0,online,79.16666666666667,False
+sub_44,design,18 years old,Male,No,White,Seeking opportunities,100.0,75.0,87.5,62.5,62.5,-0.25,0.5,-0.25,16.0,16.0,9.0,60.0,13.0,online,70.83333333333333,False
+sub_45,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,75.0,100.0,0.25,-1.0,0.25,10.0,5.0,8.0,61.0,10.0,online,91.66666666666667,True
+sub_47,design,18 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,-0.5,0.0,21.0,11.0,21.0,40.0,10.0,online,100.0,True
+sub_48,design,20 years old,Female,No,More than one race,Full-time student,100.0,100.0,100.0,100.0,100.0,0.75,1.0,0.25,34.0,16.0,37.0,24.0,17.0,online,100.0,True
+sub_49,design,21 years old,Male,No,White,Employed part-time,100.0,87.5,87.5,62.5,87.5,0.0,0.5,0.0,18.0,13.0,19.0,35.0,14.0,online,79.16666666666667,False
+sub_50,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,87.5,100.0,-0.25,0.0,-0.75,16.0,10.0,8.0,67.0,9.0,online,95.83333333333333,True
+sub_51,design,18 years old,Male,No,White,Full-time student,100.0,87.5,62.5,50.0,25.0,0.75,0.5,0.25,24.0,16.0,13.0,40.0,15.0,online,45.833333333333336,False
+sub_52,design,22 years old,Male,No,White,Full-time student,100.0,100.0,87.5,37.5,62.5,0.75,0.0,0.25,17.0,10.0,18.0,56.0,7.0,online,62.5,False
+sub_53,design,18 years old,Male,No,White,Seeking opportunities,100.0,100.0,100.0,100.0,100.0,1.0,0.0,0.0,15.0,5.0,13.0,68.0,6.0,online,100.0,True
+sub_54,design,18 years old,Female,No,Prefer not to answer,Prefer not to answer,87.5,87.5,100.0,62.5,87.5,0.25,0.0,0.25,22.0,13.0,21.0,52.0,11.0,online,83.33333333333333,False
+sub_55,design,18 years old,Female,No,White,Full-time student,87.5,100.0,100.0,87.5,75.0,0.75,0.5,-0.25,23.0,14.0,8.0,54.0,9.0,online,87.5,True
+sub_56,design,21 years old,Female,Yes,White,Employed part-time,100.0,100.0,100.0,100.0,100.0,0.0,1.0,-1.0,28.0,13.0,33.0,33.0,13.0,online,100.0,True
+sub_57,design,19 years old,Female,No,White,Full-time student,87.5,100.0,100.0,37.5,62.5,-0.25,-1.0,0.75,10.0,15.0,8.0,75.0,6.0,online,66.66666666666667,False
+sub_58,design,18 years old,Male,Yes,White,Full-time student,100.0,100.0,100.0,100.0,100.0,-0.25,0.0,-0.75,28.0,15.0,24.0,35.0,14.0,online,100.0,True
+sub_59,design,18 years old,Female,No,White,Employed part-time,100.0,100.0,87.5,100.0,100.0,1.0,1.0,0.0,26.0,15.0,19.0,46.0,15.0,online,95.83333333333333,True
+sub_61,design,20 years old,Male,No,White,Full-time student,87.5,87.5,50.0,75.0,50.0,0.25,0.5,-0.25,21.0,8.0,10.0,59.0,8.0,online,58.333333333333336,False
+sub_65,design,20 years old,Female,Yes,White,Full-time student,100.0,87.5,100.0,100.0,87.5,1.0,1.0,0.0,26.0,11.0,16.0,51.0,10.0,online,95.83333333333333,True
+sub_67,design,18 years old,Female,Yes,White,Full-time student,87.5,62.5,100.0,62.5,87.5,0.5,1.0,-0.5,31.0,10.0,23.0,45.0,10.0,online,83.33333333333333,False
+sub_68,design,18 years old,Female,No,Black or African American,Employed part-time,100.0,100.0,100.0,87.5,100.0,-0.25,0.5,0.75,10.0,9.0,9.0,35.0,11.0,online,95.83333333333333,True
+sub_69,design,18 years old,Female,No,White,Full-time student,100.0,100.0,87.5,50.0,100.0,-0.25,0.0,0.25,23.0,17.0,14.0,48.0,13.0,online,79.16666666666667,False
+sub_70,design,20 years old,Male,No,White,Seeking opportunities,100.0,87.5,100.0,75.0,100.0,0.0,-0.5,-1.0,24.0,18.0,17.0,58.0,15.0,online,91.66666666666667,True
+sub_71,design,18 years old,Female,Yes,Prefer not to answer,Full-time student,100.0,100.0,100.0,75.0,100.0,0.0,0.5,-1.0,37.0,22.0,35.0,19.0,25.0,online,91.66666666666667,True
+sub_72,design,18 years old,Female,No,White,Employed part-time,100.0,87.5,100.0,100.0,75.0,-0.25,-0.5,0.25,33.0,25.0,32.0,33.0,22.0,online,91.66666666666667,True
+sub_73,design,19 years old,Female,Yes,Prefer not to answer,Seeking opportunities,75.0,100.0,100.0,50.0,62.5,0.25,-0.5,-0.75,32.0,22.0,20.0,25.0,22.0,online,70.83333333333333,False
+sub_74,design,18 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,75.0,0.0,0.0,-1.0,21.0,20.0,11.0,54.0,13.0,online,91.66666666666667,True
+sub_76,design,20 years old,Male,Yes,White,Full-time student,50.0,50.0,62.5,75.0,75.0,-0.5,0.5,-0.5,25.0,16.0,30.0,30.0,14.0,online,70.83333333333333,False
+sub_77,design,20 years old,Male,No,White,Employed part-time,75.0,100.0,100.0,37.5,37.5,-0.25,-0.5,0.25,24.0,14.0,24.0,45.0,15.0,online,58.333333333333336,False
+sub_78,design,19 years old,Female,No,White,Full-time student,100.0,87.5,100.0,100.0,100.0,1.0,0.0,0.0,25.0,12.0,24.0,75.0,13.0,online,100.0,True
+sub_79,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,50.0,75.0,-0.25,-0.5,0.25,31.0,14.0,27.0,15.0,15.0,online,75.0,False
+sub_80,design,18 years old,Female,No,White,Full-time student,100.0,87.5,100.0,100.0,100.0,1.0,1.0,0.0,10.0,12.0,10.0,60.0,9.0,online,100.0,True
+sub_81,design,18 years old,Female,Yes,Prefer not to answer,Full-time student,100.0,100.0,100.0,100.0,100.0,0.5,0.0,0.0,28.0,15.0,22.0,45.0,9.0,online,100.0,True
+sub_82,design,18 years old,Female,No,White,Seeking opportunities,100.0,100.0,100.0,100.0,87.5,1.0,0.0,0.0,23.0,7.0,8.0,60.0,7.0,online,95.83333333333333,True
+sub_83,design,19 years old,Female,Yes,White,Full-time student,87.5,100.0,100.0,62.5,75.0,0.0,0.0,0.0,30.0,14.0,27.0,45.0,12.0,online,79.16666666666667,False
+sub_84,design,18 years old,Male,No,White,Full-time student,100.0,87.5,100.0,75.0,87.5,1.0,-1.0,0.0,23.0,14.0,9.0,47.0,12.0,online,87.5,True
+sub_85,design,19 years old,Male,No,White,Full-time student,87.5,100.0,100.0,100.0,100.0,1.0,0.0,0.0,21.0,6.0,13.0,56.0,10.0,online,100.0,True
+sub_86,design,21 years old,Male,Yes,Black or African American,Full-time student,100.0,100.0,87.5,100.0,100.0,-0.25,1.0,-0.25,11.0,14.0,10.0,45.0,8.0,online,95.83333333333333,True
+sub_87,design,19 years old,Male,No,White,Seeking opportunities,87.5,100.0,100.0,87.5,100.0,0.5,0.5,0.0,17.0,11.0,9.0,45.0,12.0,online,95.83333333333333,True
+sub_88,design,20 years old,Female,No,Asian,Full-time student,87.5,100.0,100.0,87.5,100.0,1.0,1.0,0.0,19.0,20.0,16.0,60.0,18.0,online,95.83333333333333,True
+sub_89,design,19 years old,Male,No,White,Full-time student,87.5,100.0,37.5,12.5,12.5,0.25,0.0,-0.25,32.0,20.0,24.0,31.0,25.0,online,20.833333333333332,False
+sub_90,design,18 years old,Female,No,White,Full-time student,87.5,100.0,100.0,25.0,75.0,0.25,0.5,-0.75,22.0,20.0,22.0,63.0,20.0,online,66.66666666666667,False
+sub_91,design,19 years old,Male,Yes,White,Employed full-time,87.5,100.0,100.0,75.0,25.0,-0.75,0.0,0.25,8.0,8.0,8.0,38.0,8.0,online,66.66666666666667,False
+sub_92,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,50.0,100.0,0.0,1.0,-1.0,14.0,10.0,13.0,74.0,10.0,online,83.33333333333333,False
+sub_93,design,21 years old,Male,No,More than one race,Employed part-time,100.0,100.0,100.0,100.0,87.5,-0.25,0.0,0.75,17.0,9.0,15.0,48.0,9.0,online,95.83333333333333,True
+sub_94,design,21 years old,Female,No,White,Full-time student,100.0,100.0,100.0,37.5,75.0,0.5,0.5,0.5,14.0,8.0,8.0,58.0,9.0,online,70.83333333333333,False
+sub_95,design,18 years old,Female,No,White,Full-time student,87.5,100.0,100.0,100.0,100.0,1.0,0.5,0.0,23.0,13.0,17.0,60.0,16.0,online,100.0,True
+sub_96,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,100.0,87.5,1.0,1.0,0.0,21.0,6.0,13.0,56.0,13.0,online,95.83333333333333,True
+sub_97,design,18 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,1.0,0.0,8.0,5.0,8.0,75.0,5.0,online,100.0,True
+sub_98,design,20 years old,Female,No,White,Full-time student,87.5,100.0,100.0,50.0,75.0,1.0,-1.0,0.0,19.0,20.0,9.0,66.0,19.0,online,75.0,False
+sub_99,design,18 years old,Male,No,White,Employed part-time,100.0,100.0,100.0,50.0,75.0,0.5,-1.0,0.0,19.0,17.0,23.0,64.0,13.0,online,75.0,False
+sub_100,design,18 years old,Male,No,White,Employed part-time,100.0,87.5,100.0,62.5,50.0,-0.25,0.0,-0.25,8.0,5.0,8.0,15.0,17.0,online,70.83333333333333,False
+sub_101,design,19 years old,Female,No,More than one race,Full-time student,100.0,100.0,100.0,62.5,37.5,0.25,-0.5,-0.25,11.0,12.0,11.0,52.0,15.0,online,66.66666666666667,False
+sub_103,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,62.5,75.0,-0.25,0.5,-0.25,38.0,21.0,31.0,33.0,22.0,online,79.16666666666667,False
+sub_104,design,19 years old,Male,Yes,White,Full-time student,87.5,87.5,87.5,50.0,75.0,-0.25,0.5,-0.25,37.0,25.0,30.0,17.0,16.0,online,70.83333333333333,False
+sub_105,design,20 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,0.0,-1.0,1.0,15.0,8.0,20.0,46.0,11.0,online,100.0,True
+sub_106,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,50.0,87.5,0.5,-0.5,-0.5,28.0,20.0,21.0,37.0,18.0,online,79.16666666666667,False
+sub_107,design,18 years old,Male,No,White,Employed part-time,87.5,87.5,100.0,87.5,37.5,-0.25,-1.0,-0.25,16.0,11.0,14.0,56.0,8.0,online,75.0,False
+sub_108,design,21 years old,Male,No,White,Employed full-time,25.0,50.0,25.0,62.5,50.0,0.0,0.0,0.0,31.0,20.0,26.0,74.0,10.0,online,45.833333333333336,False
+sub_109,design,21 years old,Male,No,White,Full-time student,100.0,100.0,87.5,100.0,100.0,1.0,0.0,0.0,19.0,10.0,14.0,60.0,8.0,online,95.83333333333333,True
+sub_110,design,22 years old,Male,No,White,Full-time student,100.0,100.0,100.0,62.5,100.0,0.25,1.0,0.25,21.0,13.0,15.0,46.0,11.0,online,87.5,False
+sub_111,design,18 years old,Female,No,White,Employed part-time,100.0,100.0,100.0,100.0,87.5,1.0,-0.5,0.0,13.0,8.0,17.0,43.0,12.0,online,95.83333333333333,True
+sub_112,design,18 years old,Female,Yes,White,Employed part-time,100.0,100.0,100.0,100.0,100.0,-0.75,-0.5,-0.25,26.0,19.0,21.0,48.0,19.0,online,100.0,True
+sub_113,design,19 years old,Female,No,White,Employed part-time,50.0,100.0,100.0,100.0,100.0,0.75,0.0,-0.25,18.0,8.0,9.0,62.0,9.0,online,100.0,True
+sub_114,design,18 years old,Female,Yes,White,Employed part-time,100.0,100.0,100.0,62.5,62.5,-0.25,1.0,0.75,32.0,20.0,29.0,46.0,20.0,online,75.0,False
+sub_115,design,19 years old,Female,No,White,Full-time student,100.0,75.0,100.0,50.0,50.0,0.0,0.0,-0.5,31.0,20.0,22.0,31.0,25.0,online,66.66666666666667,False
+sub_116,design,20 years old,Male,No,White,Seeking opportunities,100.0,100.0,37.5,62.5,75.0,0.25,1.0,-0.75,16.0,10.0,16.0,60.0,11.0,online,58.333333333333336,False
+sub_117,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,75.0,100.0,0.75,1.0,0.25,31.0,14.0,35.0,38.0,19.0,online,91.66666666666667,True
+sub_118,design,19 years old,Female,No,White,Seeking opportunities,100.0,87.5,87.5,50.0,75.0,-1.0,0.5,0.0,24.0,13.0,22.0,32.0,11.0,online,70.83333333333333,False
+sub_119,design,18 years old,Male,No,White,Employed part-time,100.0,87.5,100.0,87.5,50.0,0.5,1.0,0.5,17.0,8.0,8.0,75.0,6.0,online,79.16666666666667,False
+sub_120,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,0.75,1.0,-0.25,8.0,7.0,8.0,70.0,6.0,online,100.0,True
+sub_121,design,20 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,87.5,-0.75,1.0,-0.25,17.0,10.0,12.0,45.0,11.0,online,95.83333333333333,True
+sub_122,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,87.5,0.0,-0.5,0.0,14.0,7.0,9.0,40.0,8.0,online,95.83333333333333,True
+sub_123,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,62.5,62.5,-0.75,0.0,0.25,13.0,11.0,8.0,56.0,9.0,online,75.0,False
+sub_124,design,20 years old,Female,No,White,Employed part-time,100.0,100.0,100.0,100.0,100.0,0.5,-1.0,0.5,32.0,14.0,27.0,37.0,13.0,online,100.0,True
+sub_125,design,19 years old,Female,No,Black or African American,Seeking opportunities,87.5,100.0,100.0,62.5,50.0,0.25,-0.5,-0.25,10.0,5.0,8.0,45.0,10.0,online,70.83333333333333,False
+sub_126,design,18 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,-0.5,0.0,25.0,16.0,16.0,51.0,11.0,online,100.0,True
+sub_127,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,50.0,75.0,0.0,1.0,-0.5,27.0,12.0,25.0,48.0,12.0,online,75.0,False
+sub_128,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,-1.0,0.0,17.0,10.0,15.0,60.0,10.0,online,100.0,True
+sub_129,design,18 years old,Female,No,White,Seeking opportunities,100.0,100.0,100.0,75.0,100.0,0.75,1.0,-0.25,23.0,11.0,18.0,53.0,10.0,online,91.66666666666667,True
+sub_130,design,19 years old,Female,Yes,White,Employed part-time,100.0,100.0,87.5,75.0,37.5,0.0,-0.5,0.5,31.0,6.0,10.0,75.0,14.0,online,66.66666666666667,False
+sub_131,design,22 years old,Male,No,White,Seeking opportunities,100.0,100.0,87.5,87.5,100.0,0.25,0.5,-0.75,20.0,10.0,11.0,70.0,10.0,online,91.66666666666667,True
+sub_132,design,18 years old,Female,No,White,Employed part-time,87.5,100.0,100.0,100.0,100.0,1.0,-0.5,0.0,10.0,16.0,15.0,40.0,13.0,online,100.0,True
+sub_133,design,19 years old,Female,No,More than one race,Full-time student,100.0,100.0,100.0,37.5,75.0,0.0,1.0,0.0,22.0,8.0,8.0,73.0,12.0,online,70.83333333333333,False
+sub_135,design,18 years old,Male,No,White,Seeking opportunities,100.0,100.0,87.5,62.5,100.0,0.25,1.0,-0.25,26.0,15.0,8.0,58.0,17.0,online,83.33333333333333,False
+sub_136,design,19 years old,Male,Yes,White,Full-time student,100.0,100.0,100.0,50.0,50.0,0.0,0.0,0.0,11.0,15.0,8.0,74.0,15.0,online,66.66666666666667,False
+sub_137,design,19 years old,Female,No,White,Full-time student,75.0,100.0,75.0,50.0,62.5,0.0,0.5,0.0,12.0,10.0,9.0,52.0,11.0,online,62.5,False
+sub_138,design,21 years old,Female,No,Asian,Employed part-time,100.0,100.0,100.0,100.0,100.0,1.0,-1.0,0.0,21.0,17.0,16.0,53.0,17.0,online,100.0,True
+sub_139,design,20 years old,Male,Yes,More than one race,Employed part-time,75.0,75.0,87.5,50.0,62.5,-0.5,0.0,0.0,22.0,14.0,23.0,45.0,13.0,online,66.66666666666667,False
+sub_141,design,18 years old,Female,No,White,Seeking opportunities,100.0,100.0,100.0,87.5,87.5,1.0,0.0,0.0,31.0,12.0,32.0,24.0,9.0,online,91.66666666666667,True
+sub_142,design,21 years old,Female,No,White,Full-time student,100.0,100.0,100.0,50.0,100.0,-0.25,-0.5,0.25,30.0,21.0,25.0,57.0,25.0,online,83.33333333333333,False
+sub_144,design,19 years old,Female,No,Black or African American,Employed part-time,62.5,75.0,100.0,50.0,50.0,0.25,0.0,0.25,26.0,12.0,29.0,58.0,18.0,online,66.66666666666667,False
+sub_145,design,20 years old,Male,No,White,Full-time student,100.0,100.0,87.5,87.5,62.5,0.5,1.0,0.0,16.0,10.0,12.0,71.0,11.0,online,79.16666666666667,False
+sub_146,design,18 years old,Female,No,White,Full-time student,50.0,50.0,50.0,50.0,50.0,0.0,0.0,0.0,24.0,15.0,24.0,45.0,15.0,online,50.0,False
+sub_147,design,18 years old,Male,Yes,White,Full-time student,100.0,100.0,100.0,100.0,87.5,1.0,-1.0,0.0,30.0,13.0,32.0,47.0,18.0,online,95.83333333333333,True
+sub_148,design,18 years old,Male,No,White,Full-time student,100.0,100.0,87.5,100.0,87.5,0.75,0.0,-0.25,9.0,5.0,8.0,74.0,7.0,online,91.66666666666667,True
+sub_149,design,20 years old,Male,No,White,Full-time student,100.0,100.0,100.0,62.5,100.0,0.0,1.0,-0.5,14.0,15.0,8.0,88.0,12.0,online,87.5,False
+sub_150,design,18 years old,Female,No,White,Full-time student,87.5,100.0,100.0,87.5,100.0,-0.25,-0.5,0.25,38.0,18.0,30.0,21.0,22.0,online,95.83333333333333,True
+sub_151,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,62.5,50.0,-0.25,-0.5,-0.25,40.0,20.0,40.0,15.0,25.0,online,70.83333333333333,False
+sub_152,design,23 years old,Female,No,Black or African American,Full-time student,75.0,100.0,75.0,62.5,100.0,0.25,1.0,-0.75,13.0,10.0,14.0,75.0,6.0,online,79.16666666666667,False
+sub_153,design,18 years old,Male,No,White,Full-time student,100.0,100.0,100.0,50.0,62.5,-0.5,-0.5,0.0,23.0,13.0,12.0,59.0,14.0,online,70.83333333333333,False
+sub_155,design,18 years old,Female,No,White,Employed part-time,100.0,100.0,100.0,62.5,87.5,-0.25,1.0,0.25,39.0,25.0,40.0,37.0,23.0,online,83.33333333333333,False
+sub_156,design,20 years old,Male,No,White,Employed part-time,100.0,100.0,75.0,62.5,100.0,0.0,1.0,-1.0,20.0,13.0,21.0,42.0,12.0,online,79.16666666666667,False
+sub_157,design,19 years old,Female,No,White,Full-time student,87.5,75.0,100.0,50.0,50.0,0.0,-1.0,-0.5,17.0,13.0,8.0,60.0,13.0,online,66.66666666666667,False
+sub_159,design,19 years old,Female,Yes,White,Employed part-time,100.0,100.0,100.0,100.0,100.0,1.0,0.0,0.0,38.0,25.0,29.0,32.0,25.0,online,100.0,True
+sub_160,design,18 years old,Male,Yes,White,Full-time student,50.0,87.5,87.5,62.5,87.5,0.0,-0.5,0.0,25.0,11.0,15.0,76.0,11.0,online,79.16666666666667,False
+sub_161,design,20 years old,Male,No,Asian,Employed part-time,87.5,100.0,87.5,75.0,37.5,-0.5,-0.5,0.5,16.0,6.0,12.0,67.0,9.0,online,66.66666666666667,False
+sub_162,design,18 years old,Female,No,White,Seeking opportunities,100.0,100.0,87.5,62.5,75.0,0.0,0.5,-0.5,18.0,14.0,10.0,75.0,8.0,online,75.0,False
+sub_163,design,20 years old,Male,No,White,Full-time student,87.5,100.0,100.0,62.5,75.0,0.25,0.0,0.75,8.0,8.0,8.0,61.0,5.0,online,79.16666666666667,False
+sub_164,design,19 years old,Female,No,White,Prefer not to answer,100.0,100.0,100.0,25.0,37.5,0.0,0.0,0.0,40.0,21.0,24.0,45.0,15.0,online,54.166666666666664,False
+sub_165,design,18 years old,Male,No,White,Prefer not to answer,87.5,100.0,100.0,100.0,75.0,0.0,-0.5,-0.5,32.0,16.0,19.0,60.0,19.0,online,91.66666666666667,True
+sub_166,design,18 years old,Female,No,White,Full-time student,100.0,75.0,100.0,75.0,75.0,0.75,0.0,0.25,21.0,18.0,10.0,52.0,16.0,online,83.33333333333333,True
+sub_167,design,18 years old,Female,No,White,Full-time student,100.0,87.5,87.5,62.5,87.5,-0.75,-1.0,-0.25,10.0,7.0,8.0,73.0,7.0,online,79.16666666666667,False
+sub_168,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,75.0,62.5,-0.25,-0.5,0.25,32.0,20.0,22.0,45.0,19.0,online,79.16666666666667,False
+sub_169,design,18 years old,Male,No,White,Employed part-time,87.5,100.0,87.5,75.0,75.0,0.0,-0.5,0.5,29.0,19.0,28.0,45.0,19.0,online,79.16666666666667,True
+sub_170,design,19 years old,Male,No,White,Full-time student,100.0,100.0,100.0,62.5,87.5,0.0,0.5,0.0,8.0,5.0,8.0,49.0,5.0,online,83.33333333333333,False
+sub_172,design,20 years old,Female,No,Black or African American,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,-1.0,0.0,36.0,18.0,35.0,40.0,17.0,online,100.0,True
+sub_173,design,18 years old,Male,No,White,Full-time student,100.0,87.5,62.5,25.0,62.5,0.25,0.0,-0.25,8.0,5.0,8.0,45.0,10.0,online,50.0,False
+sub_174,design,18 years old,Female,No,More than one race,Full-time student,87.5,100.0,87.5,75.0,50.0,-0.25,0.0,0.25,24.0,15.0,9.0,45.0,19.0,online,70.83333333333333,False
+sub_175,design,18 years old,Male,No,White,Employed part-time,100.0,62.5,75.0,37.5,62.5,-0.75,0.5,0.25,21.0,17.0,23.0,44.0,15.0,online,58.333333333333336,False
+sub_176,design,18 years old,Male,Yes,Native Hawaiian or other Pacific Islander,Employed part-time,87.5,100.0,100.0,75.0,62.5,0.25,0.0,0.25,35.0,21.0,32.0,30.0,21.0,online,79.16666666666667,False
+sub_177,design,20 years old,Female,No,White,Full-time student,100.0,100.0,87.5,100.0,100.0,1.0,0.0,0.0,27.0,14.0,20.0,41.0,15.0,online,95.83333333333333,True
+sub_179,design,20 years old,Female,No,White,Full-time student,100.0,100.0,100.0,100.0,87.5,0.75,0.5,0.25,33.0,14.0,11.0,52.0,20.0,online,95.83333333333333,True
+sub_180,design,20 years old,Male,Prefer not to answer,White,Prefer not to answer,100.0,62.5,62.5,50.0,50.0,0.0,0.0,0.0,27.0,16.0,29.0,48.0,15.0,online,54.166666666666664,False
+sub_181,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,100.0,100.0,1.0,0.0,0.0,32.0,19.0,29.0,53.0,18.0,online,100.0,True
+sub_182,design,18 years old,Male,No,White,Full-time student,87.5,100.0,100.0,100.0,100.0,-1.0,-0.5,0.0,27.0,8.0,26.0,49.0,10.0,online,100.0,True
+sub_183,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,50.0,75.0,-0.5,-0.5,0.5,13.0,10.0,17.0,62.0,11.0,online,75.0,False
+sub_184,design,21 years old,Male,No,White,Full-time student,87.5,100.0,100.0,100.0,100.0,1.0,0.0,0.0,15.0,5.0,17.0,47.0,5.0,online,100.0,True
+sub_185,design,18 years old,Male,No,Asian,Full-time student,100.0,100.0,100.0,37.5,50.0,0.25,0.0,0.25,23.0,8.0,18.0,51.0,8.0,online,62.5,False
+sub_186,design,21 years old,Male,No,White,Full-time student,87.5,87.5,50.0,62.5,75.0,0.0,1.0,0.0,30.0,23.0,38.0,24.0,24.0,online,62.5,False
+sub_187,design,20 years old,Female,No,More than one race,Full-time student,100.0,100.0,100.0,100.0,100.0,0.75,1.0,0.25,34.0,16.0,37.0,24.0,17.0,online,100.0,True
+sub_188,design,18 years old,Male,No,White,Employed part-time,100.0,87.5,100.0,62.5,50.0,-0.25,0.0,-0.25,8.0,5.0,8.0,15.0,17.0,online,70.83333333333333,False
+sub_189,design,18 years old,Female,No,White,Full-time student,100.0,100.0,100.0,62.5,75.0,-0.25,0.5,-0.25,38.0,21.0,31.0,33.0,22.0,online,79.16666666666667,False
+sub_190,design,19 years old,Female,No,White,Full-time student,100.0,100.0,100.0,62.5,62.5,-0.75,0.0,0.25,13.0,11.0,8.0,56.0,9.0,online,75.0,False
+sub_191,design,19 years old,Female,Yes,White,Employed part-time,100.0,100.0,100.0,100.0,100.0,1.0,0.0,0.0,38.0,25.0,29.0,32.0,25.0,online,100.0,True

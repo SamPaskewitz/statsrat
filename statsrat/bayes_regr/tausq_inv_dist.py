@@ -35,14 +35,10 @@ class ard:
         self.u_psb_so_far = np.zeros(n_u)
         
     def update(self, mean_wsq, u_psb):
-        # keep track of which outcomes have been observed so far
-        for j in range(self.n_u):
-            if u_psb[j] == 1:
-                self.u_psb_so_far[j] = 1
         # update hyperparameters
         for j in range(self.n_u):
             self.hpar0[:, j] = self.prior_hpar0 - 0.5*mean_wsq[:, j]
-        self.hpar1 = self.prior_hpar1 + 0.5*self.u_psb_so_far.sum()
+        self.hpar1 = self.prior_hpar1 + 0.5
     
     def mean_tausq_inv(self):
         return (self.hpar1 + 1)/(-self.hpar0)
@@ -54,10 +50,10 @@ ard.par_names = ['prior_tausq_inv_hpar0', 'prior_tausq_inv_hpar1']
 
 class ard_drv_atn:
     '''
-    Automatic relevance determination (based on the gamma distribution)
-    with the assumption that all of the regression weights (w) associated
-    with a feature share a common prior prevision (tausq_inv).  This ends
-    up being a form of derived attention model.
+    Automatic relevance determination (assuming that tausq_inv has a gamma
+    distribution) with the assumption that all of the regression weights 
+    (w) associated with a feature share a common prior precision (tausq_inv).
+    This ends up being a form of derived attention model.
     '''
     def __init__(self, n_u, n_f, sim_pars):
         self.n_u = n_u

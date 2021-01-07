@@ -2,6 +2,29 @@ import numpy as np
 import pandas as pd
 import glob
 
+
+def promis_lookup(raw_sum, scale):
+    """
+    Lookup table to process promis measures (from promis scoring manuals).
+    
+    Arguments
+    ---------
+    raw_sum: list-like
+        Raw sums of scores from promis short forms.
+    scale: str
+        Name of the scale ('anx', 'pos', 'ang' or 'dep').
+    """
+    anx_table = pd.Series([37.1, 43.2, 45.9, 47.8, 49.4, 50.8, 52.1, 53.2, 54.3, 55.4, 56.4, 57.4, 58.4, 59.4, 60.4, 61.4, 62.5, 63.5, 64.5, 65.6, 66.6, 67.7, 68.7, 69.8, 70.8, 71.9, 73.0, 74.1, 75.4, 76.7, 78.2, 80.0, 83.1],
+                          index = np.arange(8, 40 + 1))
+    pos_table = pd.Series([14.4, 15.7, 17.3, 18.7, 20.1, 21.3, 22.5, 23.5, 24.5, 25.4, 26.3, 27.1, 27.9, 28.7, 29.4, 30.2, 30.9, 31.6, 32.3, 33.0, 33.7, 34.4, 35.0, 35.7, 36.4, 37.0, 37.7, 38.3, 39.0, 39.6, 40.3, 40.9, 41.6, 42.2, 42.9, 43.5, 44.2, 44.8, 45.5, 46.2, 46.9, 47.5, 48.2, 48.9, 49.6, 50.3, 51.1, 51.8, 52.6, 53.4, 54.2, 55.0, 55.9, 56.9, 58.0, 59.2, 60.5, 62.1, 63.9, 66.3, 69.9],
+                          index = np.arange(15, 75 + 1))
+    ang_table = pd.Series([32.9, 38.1, 41.3, 44.0, 46.3, 48.4, 50.6, 52.7, 54.7, 56.8, 58.8, 60.8, 62.9, 65.0, 67.2, 69.4, 71.7, 74.1, 76.8, 79.6, 82.9],
+                          index = np.arange(5, 25 + 1))
+    dep_table = pd.Series([38.2, 44.7, 47.5, 49.4, 50.9, 52.1, 53.2, 54.1, 55.1, 55.9, 56.8, 57.7, 58.5, 59.4, 60.3, 61.2, 62.1, 63.0, 63.9, 64.9, 65.8, 66.8, 67.7, 68.7, 69.7, 70.7, 71.7, 72.8, 73.9, 75.0, 76.4, 78.2, 81.3],
+                          index = np.arange(8, 40 + 1))
+    table_dict = {'anx': anx_table, 'pos': pos_table, 'ang': ang_table, 'dep': dep_table}
+    return table_dict[scale].loc[raw_sum].values
+
 def read_surveys(path, fun, ident_col = None, header = 'infer'):
     """
     Read all surveys in 'path' and put into a single data frame.
@@ -44,22 +67,26 @@ def process_psychopy(df):
     names = 8*['anx_slider']
     for n in range(8):
         names[n] += str(n+1) + '.response'
-    promis_anx = df[names].sum().sum()
+    raw_promis_anx = df[names].sum().sum()
+    promis_anx = promis_lookup(raw_promis_anx, 'anx')
     
     names = 5*['ang_slider']
     for n in range(5):
         names[n] += str(n+1) + '.response'
-    promis_ang = df[names].sum().sum()
+    raw_promis_ang = df[names].sum().sum()
+    promis_ang = promis_lookup(raw_promis_ang, 'ang')
     
     names = 8*['dep_slider']
     for n in range(8):
         names[n] += str(n+1) + '.response'
-    promis_dep = df[names].sum().sum()
+    raw_promis_dep = df[names].sum().sum()
+    promis_dep = promis_lookup(raw_promis_dep, 'dep')
     
     names = 15*['pos_slider']
     for n in range(15):
         names[n] += str(n+1) + '.response'
-    promis_pos = df[names].sum().sum()
+    raw_promis_pos = df[names].sum().sum()
+    promis_pos = promis_lookup(raw_promis_pos, 'pos')
     
     names = 5*['bite_slider']
     for n in range(5):
@@ -86,22 +113,26 @@ def process_testable(df):
     # PROMIS anxiety
     index = df.responseRows == 'I felt fearful; I found it hard to focus on anything other than my anxiety; My worries overwhelmed me; I felt uneasy; I felt nervous; I felt like I needed help for my anxiety; I felt anxious; I felt tense'
     responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    promis_anx = responses.sum()
+    raw_promis_anx = responses.sum()
+    promis_anx = promis_lookup(raw_promis_anx, 'anx')
 
     # PROMIS anger
     index = df.responseRows == 'I was irritated more than people knew; I felt angry; I felt like I was ready to explode; I was grouchy; I felt annoyed'
     responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    promis_ang = responses.sum()
+    raw_promis_ang = responses.sum()
+    promis_ang = promis_lookup(raw_promis_ang, 'ang')
     
     # PROMIS depression
     index = df.responseRows == 'I felt worthless; I felt helpless; I felt depressed; I felt hopeless; I felt like a failure; I felt unhappy; I felt that I had nothing to look forward to; I felt that nothing could cheer me up'
     responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    promis_dep = responses.sum()
+    raw_promis_dep = responses.sum()
+    promis_dep = promis_lookup(raw_promis_dep, 'dep')
 
     # PROMIS positive affect
     index = df.responseRows == 'I felt cheerful; I felt attentive; I felt delighted; I felt happy; I felt joyful; I felt enthusiastic; I felt determined; I felt interested; I was thinking creatively; I liked myself; I felt peaceful; I felt good-natured; I felt useful; I felt understood; I felt content'
     responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    promis_pos = responses.sum() 
+    raw_promis_pos = responses.sum()
+    promis_pos = promis_lookup(raw_promis_pos, 'pos')
 
     # BITE
     index = df.responseRows == 'I have been grumpy; I have been feeling like I might snap; Other people have been getting on my nerves; Things have been bothering me more than they normally do; I have been feeling irritable'
