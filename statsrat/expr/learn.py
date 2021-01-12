@@ -133,9 +133,9 @@ class experiment:
             Maps response names in the raw data to response names in the
             schedule definition.
         ident_col: str or None, optional
-            If string, name of column indicating individual identifier.
-            If None, then participants are given the arbitrary labels
-            'sub_0', 'sub_1' etc.  Defaults to None.
+            If string, name of column indicating individual identifier
+            (the 'ident' variable).  If None, then file names are used
+            as 'ident'.  Defaults to None.
         conf_col: str or None, optional
             Name of the column indicating confidence responses (i.e.
             a measure of confidence following choices, typically
@@ -225,7 +225,7 @@ class experiment:
                 did_not_work_read += [file_set[i]]
             if not file_set[i] in did_not_work_read:
                 if ident_col is None:
-                    ident = 'sub_' + str(i)
+                    ident = file_set[i].replace('.csv', '').replace(path + '/', '') # participant ID is file name
                 else:
                     try:
                         ident = raw[ident_col].dropna()[0]
@@ -909,12 +909,17 @@ class oat:
                                         'u_name': u_name})
         # loop through schedules
         for s in self.schedule_pos:
+            df_s = data_dict[s].to_dataframe()
+            df_s.columns = df_s.columns.to_flat_index()
+            print(df_s)
             for tn in trial_name:
                 # FIGURE THIS STUFF OUT!!!
-                index = np.array(data_dict[s].trial_name == tn) & np.array(data_dict[s].stage_name == self.behav_score_pos.stage)
-                df_s = data_dict[s].loc[{'t': index}].to_dataframe()
+                index_tn = np.array(df_s.trial_name == tn)
+                index_sn = np.array(df_s.stage_name == self.behav_score_pos.stage)
                 for un in u_name:
-                    mean_prob = df_s['b'].loc[df_s.u_name == un].mean()
+                    index_un = np.array(df_s.u_name == un)
+                    index = index_tn*index_sn*index_un
+                    mean_prob = df_s['b'].loc[index].mean()
                     da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_prob
        
         # ** negative schedules **

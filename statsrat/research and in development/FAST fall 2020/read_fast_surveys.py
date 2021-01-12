@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import glob
 
-
 def promis_lookup(raw_sum, scale):
     """
     Lookup table to process promis measures (from promis scoring manuals).
@@ -23,7 +22,7 @@ def promis_lookup(raw_sum, scale):
     dep_table = pd.Series([38.2, 44.7, 47.5, 49.4, 50.9, 52.1, 53.2, 54.1, 55.1, 55.9, 56.8, 57.7, 58.5, 59.4, 60.3, 61.2, 62.1, 63.0, 63.9, 64.9, 65.8, 66.8, 67.7, 68.7, 69.7, 70.7, 71.7, 72.8, 73.9, 75.0, 76.4, 78.2, 81.3],
                           index = np.arange(8, 40 + 1))
     table_dict = {'anx': anx_table, 'pos': pos_table, 'ang': ang_table, 'dep': dep_table}
-    return table_dict[scale].loc[raw_sum].values
+    return table_dict[scale].loc[raw_sum]
 
 def read_surveys(path, fun, ident_col = None, header = 'infer'):
     """
@@ -34,6 +33,20 @@ def read_surveys(path, fun, ident_col = None, header = 'infer'):
     file_set = [file for file in glob.glob(path + "**/*.csv", recursive=True)]
     assert len(file_set) > 0, 'Cannot find any files in specified path.'
     
+    # for converting months from letters to numbers
+    month_code = {'Jan': 1, 
+                  'Feb': 2, 
+                  'Mar': 3, 
+                  'Apr': 4, 
+                  'May': 5,
+                  'Jun': 6,
+                  'Jul': 7,
+                  'Aug': 8,
+                  'Sep': 9,
+                  'Oct': 10,
+                  'Nov': 11,
+                  'Dec': 12}
+    
     # loop through files
     n_f = len(file_set)
     results_list = []
@@ -42,8 +55,20 @@ def read_surveys(path, fun, ident_col = None, header = 'infer'):
             # import raw data
             raw = pd.read_csv(file_set[i], error_bad_lines = False, header = header)
             results = fun(raw)
+            if fun == process_testable:
+                # Get date from Testable files.
+                raw0 = pd.read_csv(file_set[i], error_bad_lines = False, header = 0) # the Testable files have the date in a row above the regular column headings.
+                raw_date = raw0['local_timestamp'].iloc[0] # date as formatted by Testable
+                foo = raw_date.split('_')
+                [y, m, d] = foo[0].split('-')
+                results['date'] = m + '/' + d + '/' + y
+            else:
+                # Get date from Psychopy files.
+                raw_date = raw['date'].iloc[0]
+                [y, m, d, t] = raw_date.split('_')
+                results['date'] = str(month_code[m]) + '/' + d + '/' + y
             if ident_col is None:
-                    ident = 'sub_' + str(i)
+                    ident = file_set[i].replace('.csv', '').replace(path + '/', '') # participant ID is file name
             else:
                 ident = raw[ident_col].dropna()[0]
                 if not isinstance(ident, str): # change participant ID to string if it's not already a string
@@ -62,82 +87,91 @@ def read_surveys(path, fun, ident_col = None, header = 'infer'):
 
 def process_psychopy(df):
     """
-    Process survey data from a single Psychopy data file (that's already been import as a Pandas data frame).
+    Process survey data from a single Psychopy data file (that's already been imported as a Pandas data frame).
     """
-    names = 8*['anx_slider']
-    for n in range(8):
-        names[n] += str(n+1) + '.response'
-    raw_promis_anx = df[names].sum().sum()
-    promis_anx = promis_lookup(raw_promis_anx, 'anx')
+    # duration of experiment
+    duration = 0.0 # FIX THIS LATER
     
-    names = 5*['ang_slider']
+    promis_anx_resp = np.zeros(8)
+    for n in range(8):
+        name = 'anx_slider' + str(n+1) + '.response'
+        promis_anx_resp[n] = df[name].sum()
+    
+    promis_ang_resp = np.zeros(5)
     for n in range(5):
-        names[n] += str(n+1) + '.response'
-    raw_promis_ang = df[names].sum().sum()
-    promis_ang = promis_lookup(raw_promis_ang, 'ang')
+        name = 'ang_slider' + str(n+1) + '.response'
+        promis_ang_resp[n] = df[name].sum()
     
-    names = 8*['dep_slider']
+    promis_dep_resp = np.zeros(8)
     for n in range(8):
-        names[n] += str(n+1) + '.response'
-    raw_promis_dep = df[names].sum().sum()
-    promis_dep = promis_lookup(raw_promis_dep, 'dep')
+        name = 'dep_slider' + str(n+1) + '.response'
+        promis_dep_resp[n] = df[name].sum()
     
-    names = 15*['pos_slider']
+    promis_pos_resp = np.zeros(15)
     for n in range(15):
-        names[n] += str(n+1) + '.response'
-    raw_promis_pos = df[names].sum().sum()
-    promis_pos = promis_lookup(raw_promis_pos, 'pos')
+        name = 'pos_slider' + str(n+1) + '.response'
+        promis_pos_resp[n] = df[name].sum()
     
-    names = 5*['bite_slider']
+    bite_resp = np.zeros(5)
     for n in range(5):
-        names[n] += str(n+1) + '.response'
-    bite = df[names].sum().sum()
+        name = 'bite_slider' + str(n+1) + '.response'
+        bite_resp[n] = df[name].sum()
     
     # package together and return results
     # ADD REMAINING MEASURES LATER
-    results = {'promis_anx': promis_anx,
-               'promis_ang': promis_ang,
-               'promis_dep': promis_dep,
-               'promis_pos': promis_pos,
-               'bite': bite}
-               #'ders': ders,
-               #'dass': dass,
-               #'promis_sat': promis_sat,
-               #'vocab': vocab}
+    results = dict()
+    for n in range(8):
+        results['promis_anx_resp' + str(n + 1)] = promis_anx_resp[n]
+    results['promis_anx_sum'] = promis_anx_resp.sum()
+    results['promis_anx_std'] = promis_anx_resp.std()
+    results['promis_anx'] = promis_lookup(results['promis_anx_sum'], 'anx')
+    for n in range(5):
+        results['promis_ang_resp' + str(n + 1)] = promis_ang_resp[n]
+    results['promis_ang_sum'] = promis_ang_resp.sum()
+    results['promis_ang_std'] = promis_ang_resp.std()
+    results['promis_ang'] = promis_lookup(results['promis_ang_sum'], 'ang')
+    for n in range(8):
+        results['promis_dep_resp' + str(n + 1)] = promis_dep_resp[n]
+    results['promis_dep_sum'] = promis_dep_resp.sum()
+    results['promis_dep_std'] = promis_dep_resp.std()
+    results['promis_dep'] = promis_lookup(results['promis_dep_sum'], 'dep')
+    for n in range(15):
+        results['promis_pos_resp' + str(n + 1)] = promis_pos_resp[n]
+    results['promis_pos_sum'] = promis_pos_resp.sum()
+    results['promis_pos_std'] = promis_pos_resp.std()
+    results['promis_pos'] = promis_lookup(results['promis_pos_sum'], 'pos')
+    for n in range(5):
+        results['bite_resp' + str(n + 1)] = bite_resp[n]
+    results['bite'] = bite_resp.sum()
+        
     return results
 
 def process_testable(df):
     """
     Process survey data from a single Testable data file (that's already been import as a Pandas data frame).
     """
+    # duration of experiment (in minutes)
+    duration = df['timestamp'].max()/(1000*60)
+    
     # PROMIS anxiety
     index = df.responseRows == 'I felt fearful; I found it hard to focus on anything other than my anxiety; My worries overwhelmed me; I felt uneasy; I felt nervous; I felt like I needed help for my anxiety; I felt anxious; I felt tense'
-    responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    raw_promis_anx = responses.sum()
-    promis_anx = promis_lookup(raw_promis_anx, 'anx')
+    promis_anx_resp = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
 
     # PROMIS anger
     index = df.responseRows == 'I was irritated more than people knew; I felt angry; I felt like I was ready to explode; I was grouchy; I felt annoyed'
-    responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    raw_promis_ang = responses.sum()
-    promis_ang = promis_lookup(raw_promis_ang, 'ang')
+    promis_ang_resp = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
     
     # PROMIS depression
     index = df.responseRows == 'I felt worthless; I felt helpless; I felt depressed; I felt hopeless; I felt like a failure; I felt unhappy; I felt that I had nothing to look forward to; I felt that nothing could cheer me up'
-    responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    raw_promis_dep = responses.sum()
-    promis_dep = promis_lookup(raw_promis_dep, 'dep')
+    promis_dep_resp = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
 
     # PROMIS positive affect
     index = df.responseRows == 'I felt cheerful; I felt attentive; I felt delighted; I felt happy; I felt joyful; I felt enthusiastic; I felt determined; I felt interested; I was thinking creatively; I liked myself; I felt peaceful; I felt good-natured; I felt useful; I felt understood; I felt content'
-    responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    raw_promis_pos = responses.sum()
-    promis_pos = promis_lookup(raw_promis_pos, 'pos')
+    promis_pos_resp = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
 
     # BITE
     index = df.responseRows == 'I have been grumpy; I have been feeling like I might snap; Other people have been getting on my nerves; Things have been bothering me more than they normally do; I have been feeling irritable'
-    responses = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
-    bite = responses.sum()
+    bite_resp = np.array(df['responseCode'].loc[index].values[0].split('_'), dtype = 'float')
 
     # DERS-18
     # FIX BULLSHIT CHARACTERS
@@ -194,13 +228,29 @@ def process_testable(df):
 
     # package together and return results
     # ADD REMAINING MEASURES LATER
-    results = {'promis_anx': promis_anx,
-               'promis_ang': promis_ang,
-               'promis_dep': promis_dep,
-               'promis_pos': promis_pos,
-               'bite': bite}
-               #'ders': ders,
-               #'dass': dass,
-               #'promis_sat': promis_sat,
-               #'vocab': vocab}
+    results = dict()
+    for n in range(8):
+        results['promis_anx_resp' + str(n + 1)] = promis_anx_resp[n]
+    results['promis_anx_sum'] = promis_anx_resp.sum()
+    results['promis_anx_std'] = promis_anx_resp.std()
+    results['promis_anx'] = promis_lookup(results['promis_anx_sum'], 'anx')
+    for n in range(5):
+        results['promis_ang_resp' + str(n + 1)] = promis_ang_resp[n]
+    results['promis_ang_sum'] = promis_ang_resp.sum()
+    results['promis_ang_std'] = promis_ang_resp.std()
+    results['promis_ang'] = promis_lookup(results['promis_ang_sum'], 'ang')
+    for n in range(8):
+        results['promis_dep_resp' + str(n + 1)] = promis_dep_resp[n]
+    results['promis_dep_sum'] = promis_dep_resp.sum()
+    results['promis_dep_std'] = promis_dep_resp.std()
+    results['promis_dep'] = promis_lookup(results['promis_dep_sum'], 'dep')
+    for n in range(15):
+        results['promis_pos_resp' + str(n + 1)] = promis_pos_resp[n]
+    results['promis_pos_sum'] = promis_pos_resp.sum()
+    results['promis_pos_std'] = promis_pos_resp.std()
+    results['promis_pos'] = promis_lookup(results['promis_pos_sum'], 'pos')
+    for n in range(5):
+        results['bite_resp' + str(n + 1)] = bite_resp[n]
+    results['bite'] = bite_resp.sum()
+    
     return results
