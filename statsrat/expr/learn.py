@@ -185,7 +185,7 @@ class experiment:
         I also assume that all 'x_names' in the Python schedule object are lower case.
         I also assume that each stage has at most one trial type for any set of punctate cues.
         I also assume that the Python schedule object has exactly the right number of trials.
-        """
+        """        
         # list .csv files in the directory
         file_set = [file for file in glob.glob(path + "**/*.csv", recursive=True)]
         assert len(file_set) > 0, 'Cannot find any files in specified path.'
@@ -206,7 +206,7 @@ class experiment:
         for i in range(n_f):
             # import raw data
             try:
-                raw = pd.read_csv(file_set[i], error_bad_lines = False, header = header)
+                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header)
                 raw_full = raw.copy() # copy of 'raw' whose rows won't be dropped (used for importing 'other info', e.g. demographics)                
                 n_xc = len(x_col) # number of cue columns in raw data frame
                 n_rc = len(resp_col) # number of response columns in raw data frame

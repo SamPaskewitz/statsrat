@@ -53,7 +53,7 @@ def read_surveys(path, fun, ident_col = None, header = 'infer'):
     for i in range(n_f):
         try:
             # import raw data
-            raw = pd.read_csv(file_set[i], error_bad_lines = False, header = header)
+            raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header)
             results = fun(raw)
             if fun == process_testable:
                 # Get date from Testable files.

@@ -442,6 +442,8 @@ def fit_indv(model, ds, tau = None, max_time = 10):
     
     # maximize log-likelihood/posterior
     for i in range(n):
+        pct = np.round(100*(i + 1)/n, 1)
+        print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
         ds_i = ds.loc[{'ident' : ds.ident[i]}].squeeze()
         
         # define objective function
