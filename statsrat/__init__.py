@@ -169,8 +169,9 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         along with those maximum and minimum mean OAT scores and (if n > 1)
         their associated 95% confidence intervals.
         
-    mean_probs: data array
-        Relevant choice probabilities, averaged across individuals and trials.
+    mean_resp_max: dataframe
+        Relevant responses at OAT maximum (and minimum if applicable), averaged
+        across individuals and trials.
 
     Notes
     -----
@@ -189,7 +190,10 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         oat_used = experiment.oats[oat]
     
     # make a list of all schedules (groups) to simulate
-    s_list = oat_used.schedule_pos + oat_used.schedule_neg
+    if oat_used.schedule_neg is None:
+        s_list = oat_used.schedule_pos
+    else:
+        s_list = oat_used.schedule_pos + oat_used.schedule_neg
 
     # for each schedule, create a list of trial sequences to use in simulations
     trials_list = dict(keys = s_list)
@@ -231,6 +235,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     mid_pars = (free_pars['max'] + free_pars['min'])/2 # midpoint of each parameter's allowed interval
     
     # maximize the OAT score
+    print('Maximizing OAT score.')
     # global optimization (to find approximate optimum)
     gopt_max = nlopt.opt(algorithm, n_free)
     gopt_max.set_max_objective(f)
@@ -248,6 +253,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
 
     if minimize:
         # minimize the OAT score
+        print('Minimizing OAT score.')
         # global optimization
         gopt_min = nlopt.opt(algorithm, n_free)
         gopt_min.set_min_objective(f)
@@ -312,13 +318,18 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
             output_dict['value'] = [max_value]
             index = ['max']
     output = pd.DataFrame(output_dict, index)
-    # compute relevant mean choice probabilities
-    data_dict = max_data
+    # compute relevant mean responses
+    mean_resp_max = oat_used.mean_resp(data = max_data)
     if minimize:
-        data_dict.update(min_data)
-    mean_probs = oat_used.mean_choice_probs(data = data_dict)
+        mean_resp_min = oat_used.mean_resp(data = min_data)
+        mean_resp_max['parameters'] = 'max'
+        mean_resp_min['parameters'] = 'min'
+        mean_resp = pd.concat([mean_resp_min, mean_resp_max])
+    else:
+        mean_resp_min = None
+        mean_resp = mean_resp_max
     
-    return (output, mean_probs)
+    return (output, mean_resp)    
 
 def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = None, n = 20):
     """

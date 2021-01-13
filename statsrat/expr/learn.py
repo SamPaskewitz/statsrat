@@ -731,10 +731,10 @@ class oat:
         Compute total OAT score (contrast between schedules, i.e. groups).
     conf_interval(self, data, conf_level = 0.95)
         Compute OAT score confidence interval.
-    mean_choice_probs(self, data)
-        Compute means of the choice probabilities used in computing the OAT.
+    mean_resp(self, data)
+        Compute means of the responses used in computing the OAT.
     """
-    def __init__(self, schedule_pos, behav_score_pos, schedule_neg = [], behav_score_neg = None):
+    def __init__(self, schedule_pos, behav_score_pos, schedule_neg = None, behav_score_neg = None):
         """
         Parameters
         ----------
@@ -742,9 +742,9 @@ class oat:
             Schedules whose scores are counted as positive.
         behav_score_pos : behav_score object
             Behavioral score used for positive schedules.
-        schedule_neg : list, optional
+        schedule_neg : list or None, optional
             Schedules whose scores are counted as negative.
-            Defaults to an empty list.
+            Defaults to None.
         behav_score_neg : behav_score object or None, optional
             Behavioral score used for negative schedules.
             Defaults to None (if there are no negative schedules)
@@ -754,8 +754,7 @@ class oat:
         self.schedule_pos = schedule_pos
         self.behav_score_pos = behav_score_pos
         self.schedule_neg = schedule_neg
-        has_neg = len(schedule_neg) > 0
-        if has_neg:
+        if not schedule_neg is None:
             if behav_score_neg is None:
                 self.behav_score_neg = behav_score_pos
             else:
@@ -784,9 +783,8 @@ class oat:
         for s in self.schedule_pos:
             pos_scores = np.append(pos_scores, self.behav_score_pos.compute_scores(ds = data[s]))        
         pos_mean = np.mean(pos_scores)
-
-        has_neg = len(self.schedule_neg) > 0
-        if has_neg:
+        
+        if not self.schedule_neg is None:
         # negative schedules
             neg_scores = np.array([])
             for s in self.schedule_neg:
@@ -839,8 +837,7 @@ class oat:
         pos_var = np.var(pos_scores)
         pos_df = len(pos_scores) - 1
         alpha = 1 - conf_level
-        has_neg = len(self.schedule_neg) > 0
-        if has_neg:
+        if not self.schedule_neg is None:
             # two sample interval (mean difference)
             neg_scores = np.array([])
             for s in self.schedule_neg:
@@ -862,22 +859,22 @@ class oat:
         interval = {'lower' : lower, 'mean' : mu, 'upper' : upper}
         return interval
     
-    def mean_choice_probs(self, data):
+    def mean_resp(self, data):
         """
-        Compute means of the choice probabilities used in computing the OAT
+        Compute means of the behavior used in computing the OAT
         averaged across individuals and time steps.
         
         Parameters
         ----------
-        data: dataset or dict
+        data: dataframe or dict
             Either an xarray dataset from a single experimental schedule, or a dictionary of such
             datasets (with keys that are schedule names).
             
         Returns
         -------
-        mean_probs: data array or dict of data arrays
-            If the OAT only has positive schedules, then the data array containing relevant mean
-            choice probabilities.  Otherwise a dict containing such data arrays for positive and
+        mean_resp: dataframe or dict of dataframe
+            If the OAT only has positive schedules, then the dataframe containing relevant mean
+            responses.  Otherwise a dict containing such dataframes for positive and
             negative schedules.
         """
         # Deal with case where input is a single dataset, rather than a dictionary of datasets.
@@ -895,9 +892,9 @@ class oat:
             trial_name = self.behav_score_pos.trial_pos + self.behav_score_pos.trial_neg
         # relevant response (outcome) names
         if self.behav_score_pos.resp_neg is None:
-            u_name = self.behav_score_pos.resp_pos
+            u_name = np.unique(self.behav_score_pos.resp_pos)
         else:
-            u_name = self.behav_score_pos.resp_pos + self.behav_score_pos.resp_neg
+            u_name = np.unique(self.behav_score_pos.resp_pos + self.behav_score_pos.resp_neg)
         # set up data array
         n_s = len(self.schedule_pos) # number of schedules
         n_tn = len(trial_name) # number of trial names (i.e. trial types)
@@ -910,17 +907,17 @@ class oat:
         # loop through schedules
         for s in self.schedule_pos:
             df_s = data_dict[s].to_dataframe()
-            df_s.columns = df_s.columns.to_flat_index()
-            print(df_s)
+            df_s.reset_index(inplace=True)
             for tn in trial_name:
-                # FIGURE THIS STUFF OUT!!!
                 index_tn = np.array(df_s.trial_name == tn)
                 index_sn = np.array(df_s.stage_name == self.behav_score_pos.stage)
                 for un in u_name:
                     index_un = np.array(df_s.u_name == un)
                     index = index_tn*index_sn*index_un
-                    mean_prob = df_s['b'].loc[index].mean()
-                    da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_prob
+                    mean_resp = df_s['b'].loc[index].mean()
+                    da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
+            df_pos = da_pos.to_dataframe(name = 'mean_resp')
+            df_pos.reset_index(inplace = True)
        
         # ** negative schedules **
         
@@ -949,14 +946,16 @@ class oat:
                 for tn in trial_name:
                     for un in u_name:
                         index = ds_s.trial_name == tn
-                        mean_prob = ds_s['b'].loc[{'t': index, 'u_name': un}].mean()
-                        da_neg.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_prob
+                        mean_resp = ds_s['b'].loc[{'t': index, 'u_name': un}].mean()
+                        da_neg.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
+            df_neg = da_neg.to_dataframe(name = 'mean_resp')
+            df_neg.reset_index(inplace = True)
             # package data for output
-            mean_prob = {'pos': da_pos, 'neg': da_neg}
+            mean_resp = {'pos': df_pos, 'neg': df_neg}
         else:
-            mean_prob = da_pos
+            mean_resp = df_pos
             
-        return mean_prob
+        return mean_resp
         
 class behav_score:
     """
@@ -971,9 +970,9 @@ class behav_score:
         Trials whose scores are counted as positive.   
     resp_pos : list
         Response counted as positive for each trial type.
-    trial_neg : list
+    trial_neg : list of str or None
         Trials whose scores are counted as negative.
-    resp_neg : list
+    resp_neg : list of str or None
         Responses counted as negative for each trial type.
         
     Methods
@@ -982,7 +981,7 @@ class behav_score:
         Compute behavioral score for each individual in the data set.
     
     """
-    def __init__(self, stage, trial_pos, resp_pos, trial_neg = [], resp_neg = []):
+    def __init__(self, stage, trial_pos, resp_pos, trial_neg = None, resp_neg = None):
         """
         Parameters
         ----------
@@ -992,12 +991,12 @@ class behav_score:
             Trials whose scores are counted as positive.   
         resp_pos: list of str
             Response counted as positive for each trial type.
-        trial_neg: list of str, optional
+        trial_neg: list of str or None, optional
             Trials whose scores are counted as negative.
-            Defaults to an empty list.
-        resp_neg: list of str, optional
+            Defaults to None.
+        resp_neg: list of str or None, optional
             Responses counted as negative for each trial type.
-            Defaults to an empty list.
+            Defaults to None.
         """
         self.stage = stage
         self.trial_pos = trial_pos
@@ -1049,8 +1048,7 @@ class behav_score:
             pos_mean = pos_sum/pos_n
             
             # negative trials and responses
-            has_neg = len(self.trial_neg) > 0
-            if has_neg:
+            if not self.trial_neg is None:
                 # negative trials and responses
                 neg_sum = 0
                 n_ttype = len(self.trial_neg)
