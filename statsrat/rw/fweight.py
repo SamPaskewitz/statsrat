@@ -24,6 +24,7 @@ def from_aux_norm(aux, t, fbase, fweight, n_f, sim_pars):
     So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.
     '''
     atn_gain = aux.data['atn'][t, :]*fbase[t, :]
+    atn_gain[atn_gain < 0.01] = 0.01 # Added this in to make this consistent with the R code.
     norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
     new_fweight = atn_gain/norm
     return new_fweight

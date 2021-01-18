@@ -24,12 +24,10 @@ def from_aux_norm(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.
     '''
     atn_gain = aux.data['atn'][t, :]*fbase[t, :]
+    atn_gain[atn_gain < 0.01] = 0.01 # Added this in to make this consistent with the R code.
     norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
     norm_atn = atn_gain/norm
-    abv_min = norm_atn > 0.01
-    blw_max = norm_atn < 0.99
-    norm_atn_bounded = norm_atn*abv_min*blw_max + 0.01*(1 - abv_min) + 0.99*(1 - blw_max)
-    new_lrate = sim_pars['lrate']*norm_atn_bounded.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
+    new_lrate = sim_pars['lrate']*norm_atn.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
 from_aux_norm.par_names = ['lrate', 'metric']
 
