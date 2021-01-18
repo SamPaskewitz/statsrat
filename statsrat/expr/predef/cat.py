@@ -32,8 +32,8 @@ design = learn.schedule(name = 'design',
                             x_pn = [['t5', 'b6'], ['t6', 'b5'], ['t1', 'b2'], ['t2', 'b1'], ['t3', 'b4'], ['t4', 'b3']],
                             u_psb = ['cat3', 'cat4'],
                             lrn = False,
-                            n_rep = 2)
-                  ])
+                            n_rep = 2)],
+                   x_dims = {'non-threat': ['alpha', 'beta', 'theta', 'phi', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry': ['t1', 't2', 't3', 't4', 't5', 't6']})
 
 rel_irl = learn.oat(schedule_pos = ['design'],
                     behav_score_pos = learn.behav_score(stage = 'test',

@@ -135,7 +135,12 @@ class model:
         delta = np.zeros((n_t, n_u)) # prediction error
         w = np.zeros((n_t + 1, n_f, n_u))
         lrate = np.zeros((n_t, n_f, n_u))
-        aux = self.aux(sim_pars, n_t, n_f, n_u)
+        has_x_dims = 'x_dims' in list(trials.attrs.keys())
+        if has_x_dims:
+            x_dims = trials.attrs['x_dims']
+        else:
+            x_dims = None
+        aux = self.aux(sim_pars, n_t, n_f, n_u, f_names, x_dims)
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -205,7 +210,7 @@ par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2
 par_names += ['extra_counts']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0}]
 par_names += ['metric']; par_list += [{'min': 1, 'max': 10, 'default': 2}] # min is 0.1 in the R version, but this doesn't work here
 par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
-par_names += ['a0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
+par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis
 par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
 par_names += ['u_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter

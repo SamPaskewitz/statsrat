@@ -148,7 +148,9 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         Should the OAT score by minimized as well as maximized?
         Defaults to True.
 
-    oat: str, optional
+    oat: str or None, optional
+        Name of the OAT to use.  Defaults to None, in which
+        case the alphabetically first OAT in the experiment.
 
     n: int, optional
         Number of individuals to simulate.  Defaults to 5.

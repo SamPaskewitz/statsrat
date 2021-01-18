@@ -24,11 +24,8 @@ class experiment:
     -------
     make_trials(self)
         Create a time step level dataset for the whole experiment.
-    read_csv(self, path, x_col, resp_col, resp_map, schedule)
-        Import empirical data from a .csv file.
-    multi_read_csv(self, path, x_col, resp_col, resp_map, schedule)
-        Import empirical data from multiple .csv files in a given
-        directory.
+    read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', n_final = 8)
+        Import empirical data from .csv files.
 
     See Also
     --------
@@ -344,6 +341,7 @@ class experiment:
         try:
             ds = xr.combine_nested(ds_list, concat_dim = 'ident')
             ds.attrs['schedule'] = scd.name
+            ds.attrs['x_dims'] = scd.x_dims
         except Exception as e:
             print(e)
             print('There was a problem merging individual datasets together.')
@@ -388,23 +386,31 @@ class schedule:
 
     Attributes
     ----------
-    name : str
+    name: str
         The schedule's name.
-    stage_list : list
+    stage_list: list
         List of dictionaries defining the schedule's stages.
-    trial_def : data frame
+    trial_def: data frame
         Defines the trial types implied by 'stage_list'.
-    x_names : list
-        List of strings specifying the names of cues (stimulus attributes).
-    u_names : list
-        List of strings specifying the names of outcomes.
-    n_stage : int
+    x_names: list of str
+        List specifying the names of cues (stimulus attributes).
+    x_dims: dict or None
+            If not None, then a dictionary specifying the cues belonging to
+            each stimulus dimension.  Keys are dimension names and values
+            are cue names (i.e. 'x_names').
+    dim_names: list of str or None
+        Names of stimulus dimensions.
+    u_names: list of str
+        List specifying the names of outcomes.
+    n_stage: int
         The number of stages.
-    n_x : int
+    n_x: int
         The number of cues.
-    n_u : int
+    n_dim: int or None
+        The number of stimulus dimensions.
+    n_u: int
         The number of outcomes.
-    n_t : int
+    n_t: int
         The number of time steps in the entire schedule.
 
     Notes
@@ -417,6 +423,11 @@ class schedule:
 
     Each schedule is composed of several stages, as described in the
     documentation for the '__init__' method below.
+    
+    Stimulus dimensions (specified by the 'x_dims' attribute) are sets
+    of related cues, e.g. the cues 'red', 'blue' and 'yellow' might
+    all belong to the dimension 'color'.  This is optional information
+    that is used by certain learning models.
 
     In trial_def and trials dataset objects, 't' is the dimension that
     indicates time steps (it is simply an ascending integer).  't_name',
@@ -427,56 +438,60 @@ class schedule:
     variable instead of coordinates of the time dimension alongside 't'.
 
     Data variables of trial_def and trials dataset objects:
-    x : float
+    x: float
         Stimulus attributes, i.e. cues.  Absent cues are indicated by 0.0
         and present cues by 1.0.
-    u : float
+    u: float
         Outcomes, e.g. unconditioned stimuli or category labels.  A value
         of 0.0 indicates that an outcome does not occur.
-    u_psb : float
+    u_psb: float
         Indicates whether an outcome is possible (1.0) or not possible
         (0.0) as far as the learner knows.  The learner will not try to
         predict outcomes that it knows are not possible.
-    u_lrn : float
+    u_lrn: float
         Indicates whether learning about each outcome should occur (1.0) or
         not (0.0).  Should be 0.0 only for test stages without feedback in
         human experiments.
     
     Coordinate variables of trial_def and trials dataset objects:
-    t : int
+    t: int
         Time step dimension.
-    t_name : str
+    t_name: str
         Alternative coordinates for time steps (dimension t).
         Labels time steps as 'main' when at least one punctate cue is present
         and 'bg' ('background') otherwise (e.g. during the inter-trial
         interval).
-    trial : int
+    trial: int
         Alternative coordinates for time steps (dimension t).
         Each trial consists of one or more time steps.  This indicates
         which time steps correspond to each trial.  The ITI (inter-trial
         interval) is considered part of the trial that it precedes.
-    trial_name : str
+    trial_name: str
         Alternative coordinates for time steps (dimension t).
         Name of the trial type.  Has the form 'cues -> outcomes'.
     stage : int
         Alternative coordinates for time steps (dimension t).
         Indicates experimental stage by order.
-    stage_name : str
+    stage_name: str
         Alternative coordinates for time steps (dimension t).
         Indicates experimental stage by name.
-    u_name : str
+    u_name: str
         Outcome/CS/response dimension.
-    x_name : str
+    x_name: str
         Cue name dimension.
     """
-    def __init__(self, name, stage_list):
+    def __init__(self, name, stage_list, x_dims = None):
         """
         Parameters
         ----------
-        name : str
+        name: str
             The name of the schedule.
-        stage_list : list
+        stage_list: list
             List of experimental stages (stage objects).
+        x_dims: dict or None, optional
+            If not None, then a dictionary specifying the cues belonging to
+            each stimulus dimension.  Keys are dimension names and values
+            are cue names (i.e. 'x_names').  Defaults to None.
         """
         # assemble names; count things
         n_stage = len(stage_list)
@@ -553,7 +568,7 @@ class schedule:
                 else:
                     t_name += (iti + 1)*['bg']
                 # advance time step index
-                k += iti + 1
+                k += iti + 1                
 
         # create dataset for trial type definitions ('trial_def')
         trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x),
@@ -587,6 +602,17 @@ class schedule:
         self.n_x = n_x
         self.n_u = n_u
         self.n_t = n_t
+        
+        # record stimulus dimension info, if any
+        if not x_dims is None:
+            self.x_dims = x_dims
+            self.dim_names = list(x_dims.keys())
+            self.n_dim = len(self.dim_names)
+            trial_def.attrs = {'x_dims': self.x_dims}
+        else:
+            self.x_dims = None
+            self.dim_names = None
+            self.n_dim = None
 
 class stage:
     """
@@ -887,9 +913,9 @@ class oat:
         
         # relevant trial names (i.e. trial types)
         if self.behav_score_pos.trial_neg is None:
-            trial_name = self.behav_score_pos.trial_pos
+            trial_name = np.unique(self.behav_score_pos.trial_pos)
         else:
-            trial_name = self.behav_score_pos.trial_pos + self.behav_score_pos.trial_neg
+            trial_name = np.unique(self.behav_score_pos.trial_pos + self.behav_score_pos.trial_neg)
         # relevant response (outcome) names
         if self.behav_score_pos.resp_neg is None:
             u_name = np.unique(self.behav_score_pos.resp_pos)
