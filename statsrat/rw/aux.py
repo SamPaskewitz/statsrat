@@ -93,7 +93,9 @@ class grad_atn0:
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         atn0 = pd.Series(n_f*[0.5], index = f_names)
-        first_dim = list(x_dims.keys())[0] # first dimension (when names are in alphabetical order)
+        dim_names = list(x_dims.keys())
+        dim_names.sort()
+        first_dim = dim_names[0] # first dimension (when names are in alphabetical order)
         atn0[x_dims[first_dim]] = sim_pars['atn0']
         self.data['atn'][0] = atn0
 
@@ -124,7 +126,9 @@ class gradcomp_eta0:
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         eta0 = pd.Series(n_f*[1], index = f_names)
-        first_dim = list(x_dims.keys())[0] # first dimension (when names are in alphabetical order)
+        dim_names = list(x_dims.keys())
+        dim_names.sort()
+        first_dim = dim_names[0] # first dimension (when names are in alphabetical order)
         eta0[x_dims[first_dim]] = sim_pars['eta0']
         self.data['atn'][0] = eta0
 
