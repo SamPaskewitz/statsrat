@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 import nlopt
-from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, annotate, scale_x_continuous
+from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous
 
 def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zeros = False, only_main = False, stage_labels = True):
     """
