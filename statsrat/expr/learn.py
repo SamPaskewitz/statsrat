@@ -193,22 +193,36 @@ class experiment:
         else:
             scd = self.schedules[schedule]
 
-        # loop through files
+        # set up pct_correct
+        n_stage = len(scd.stage_list)
+        pct_correct = dict()
+        for i in range(n_stage):
+            not_test = scd.stage_list[i].lrn == True
+            if not_test:
+                stage_name = scd.stage_list[i].name
+                var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
+                pct_correct[var_name] = []
+            
+        # **** loop through files ****
         n_f = len(file_set)
         ds_list = []
         did_not_work_read = []
         did_not_work_ident = []
         did_not_work_b = []
         did_not_work_misc = []
+        n_xc = len(x_col) # number of cue columns in raw data frame
+        n_rc = len(resp_col) # number of response columns in raw data frame
+        if conf_col is None: 
+            usecols = x_col + resp_col # columns to import as the data frame 'raw'
+        else:
+            usecols = x_col + resp_col + [conf_col] # columns to import as the data frame 'raw'
         for i in range(n_f):
-            # import raw data
+            # **** import raw data ****
             try:
-                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header)
-                raw_full = raw.copy() # copy of 'raw' whose rows won't be dropped (used for importing 'other info', e.g. demographics)                
-                n_xc = len(x_col) # number of cue columns in raw data frame
-                n_rc = len(resp_col) # number of response columns in raw data frame
+                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, usecols = usecols)
                 raw.dropna(subset = x_col, thresh = 1, inplace = True) # drop rows without recorded cues ('x')
                 raw.dropna(subset = resp_col, thresh = 1, inplace = True) # drop rows without recorded responses
+                raw_full = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, na_filter = True) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
                 index = np.zeros(raw.shape[0])
                 # drop rows in which none of the response columns has one of the expected responses
                 for col in resp_col:
@@ -221,11 +235,14 @@ class experiment:
                 print(e)
                 did_not_work_read += [file_set[i]]
             if not file_set[i] in did_not_work_read:
+                # **** figure out 'ident' (participant ID) ****
                 if ident_col is None:
                     ident = file_set[i].replace('.csv', '').replace(path + '/', '') # participant ID is file name
                 else:
                     try:
-                        ident = raw[ident_col].dropna()[0]
+                        ident_col_vals = np.array(raw_full[ident_col].values, dtype = 'str')
+                        lengths = np.char.str_len(ident_col_vals)
+                        ident = ident_col_vals[np.argmax(lengths)]
                         if not isinstance(ident, str): # change participant ID to string if it's not already a string
                             if ident.dtype == float:
                                 ident = ident.astype(int)
@@ -235,8 +252,7 @@ class experiment:
                         did_not_work_ident += [file_set[i]]    
             if not file_set[i] in (did_not_work_read + did_not_work_ident + did_not_work_misc):   
                 try:
-                    # loop through raw data rows (assuming one row corresponds to one trial)
-                    # determine b (response) from raw data
+                    # **** determine b (response) from raw data ****
                     b = xr.DataArray(0, coords = [range(scd.n_t), scd.u_names], dims = ['t', 'u_name']) # observed responses
                     for m in range(scd.n_t):
                         for k in range(n_rc):
@@ -250,13 +266,13 @@ class experiment:
                     did_not_work_b += [file_set[i]]
             if not file_set[i] in (did_not_work_read + did_not_work_ident + did_not_work_b + did_not_work_misc):     
                 try:
-                    # loop through raw data rows (assuming one row corresponds to one trial)
+                    # **** determine trial type from raw data ****
                     t_order = [] # list of time steps to produce the 'trials' data frame
                     trial_list = []
                     m = 0 # index for trials
-                    for i in range(scd.n_stage):
-                        iti = scd.stage_list[i].iti
-                        n_stage_trials = scd.stage_list[i].n_trial * scd.stage_list[i].n_rep
+                    for s in range(scd.n_stage):
+                        iti = scd.stage_list[s].iti
+                        n_stage_trials = scd.stage_list[s].n_trial * scd.stage_list[s].n_rep
                         for j in range(n_stage_trials):
                             # determine x (stimulus vector) from raw data
                             raw_x = pd.Series(0, index = scd.x_names)
@@ -267,13 +283,13 @@ class experiment:
                                         raw_x[raw_x_name] = 1
                             # find corresponding trial definition (will only work if ITI = 0)
                             match_raw_x = (scd.trial_def['x'] == np.array(raw_x)).all(axis = 1)
-                            match_stage = scd.trial_def['stage'] == i
+                            match_stage = scd.trial_def['stage'] == s
                             trial_def_bool = match_stage & match_raw_x
                             trial_def_index = list(scd.trial_def['t'].loc[{'t' : trial_def_bool}])
                             if np.sum(trial_def_bool) == 0:
                                 print('cue combination found that is not in schedule definition for stage:') # for debugging
                                 print('stage')
-                                print(i)
+                                print(s)
                                 print('trial')
                                 print(m)
                                 print('cue combination')
@@ -282,17 +298,17 @@ class experiment:
                             t_order += trial_def_index
                             trial_list += (iti + 1)*[m]
                             m += 1
-                    # make new dataset
+                    # **** make new dataset **** 
                     ds_new = scd.trial_def.loc[{'t' : t_order}]
                     ds_new = ds_new.assign_coords({'t' : range(len(t_order)), 'trial' : range(len(t_order))})
                     ds_new = ds_new.assign(b = b)
                     ds_new = ds_new.expand_dims(ident = [ident])
-                    # add confidence ratings
+                    # **** add confidence ratings ****
                     if not conf_col is None:
                         conf_val = np.array(raw[conf_col].values, dtype = 'float')
                         conf = xr.DataArray(conf_val, coords = [range(scd.n_t)], dims = ['t'])
                         ds_new = ds_new.assign(conf = conf)
-                    # add other information (e.g. demographics)
+                    # **** add other information (e.g. demographics) ****
                     if not other_info is None:
                         other_dict = dict()
                         for var_name in other_info:
@@ -302,12 +318,20 @@ class experiment:
                             other_dict[var_name] = (['ident'], np.array([var]))
                         ds_other = xr.Dataset(data_vars = other_dict, coords = {'ident': [ident]})
                         ds_new = ds_new.merge(ds_other)
-                    # code each trial as correct (u matches b) or incorrect; add to dataset
+                    # **** code each trial as correct (u matches b) or incorrect ****
                     u = ds_new['u'].squeeze()
                     b = ds_new['b'].squeeze()
                     correct = np.all(u == b, axis = 1)
                     ds_new = ds_new.assign(correct = correct)
-                    # add dataset to list
+                    # **** calculate percent correct per stage (excluding test stages) ****
+                    for s in range(n_stage):
+                        not_test = scd.stage_list[s].lrn == True
+                        if not_test:
+                            stage_name = scd.stage_list[s].name
+                            index = np.array(ds_new.stage_name == stage_name)
+                            var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
+                            pct_correct[var_name] += [100*ds_new['correct'].loc[{'t': index}][-n_final:].mean().values]    
+                    # **** add dataset to list ****
                     ds_list += [ds_new]
                 except Exception as e:
                     print(e)
@@ -337,7 +361,7 @@ class experiment:
             for i in range(n_dnw_m):
                 print(did_not_work_misc[i])   
 
-        # merge datasets together
+        # **** merge datasets together ****
         try:
             ds = xr.combine_nested(ds_list, concat_dim = 'ident')
             ds.attrs['schedule'] = scd.name
@@ -346,29 +370,23 @@ class experiment:
             print(e)
             print('There was a problem merging individual datasets together.')
             
-        # create summary data frame (each row corresponds to a participant)
-        summary = ds.drop_dims(['t', 'trial', 'x_name', 'u_name']).to_dataframe()         
-        # calculate percent correct per stage (excluding test stages)
-        n_stage = len(scd.stage_list)
-        for i in range(n_stage):
-            not_test = scd.stage_list[i].lrn == True
+        # **** create summary data frame (each row corresponds to a participant) ****
+        summary = ds.drop_dims(['t', 'trial', 'x_name', 'u_name']).to_dataframe()
+        # **** add pct_correct ****
+        for s in range(n_stage):
+            not_test = scd.stage_list[s].lrn == True
             if not_test:
-                stage_name = scd.stage_list[i].name
-                pct_correct = []
-                # I'm having trouble with 'groupby', so I'm using a 'for' loop instead.
-                for ident in ds.ident:
-                    index = np.array(ds.stage_name == stage_name)
-                    pct_correct += [100*ds['correct'].loc[{'t': index, 'ident': ident}][-n_final:].mean()]
-                var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct' 
-                summary[var_name] = np.array(pct_correct)
-        # calculate behavioral scores
+                stage_name = scd.stage_list[s].name
+                var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
+                summary[var_name] = pct_correct[var_name]            
+        # **** calculate behavioral scores ****
         n_oats = len(self.oats)
         if conf_col is None:
             has_conf = False
         else:
             has_conf = True
-        for i in range(n_oats):
-            oat_name = list(self.oats.keys())[i]
+        for oat in range(n_oats):
+            oat_name = list(self.oats.keys())[oat]
             oat = self.oats[oat_name]
             if scd.name in oat.schedule_pos:
                 summary[oat_name] = oat.behav_score_pos.compute_scores(ds, has_conf)
@@ -1057,39 +1075,42 @@ class behav_score:
         # loop through replications ('ident')
         scores = []
         for name in ds.ident:
-            ds_name = ds.loc[{'ident' : name}] # dataset for current individual
-            # positive trials and responses
-            pos_sum = 0
-            n_ttype = len(self.trial_pos)
-            pos_n = 0
-            for i in range(n_ttype):
-                pos_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_pos[i])
-                b = ds_name['b'].loc[{'t' : pos_index, 'u_name' : self.resp_pos[i]}]
-                if use_conf:
-                    conf = ds_name['conf'].loc[{'t' : pos_index}]
-                    pos_sum += np.sum(conf*b)
-                else:
-                    pos_sum += np.sum(b)
-                pos_n += pos_index.sum()
-            pos_mean = pos_sum/pos_n
-            
-            # negative trials and responses
-            if not self.trial_neg is None:
-                # negative trials and responses
-                neg_sum = 0
-                n_ttype = len(self.trial_neg)
-                neg_n = 0
+            try:
+                ds_name = ds.loc[{'ident' : name}] # dataset for current individual
+                # positive trials and responses
+                pos_sum = 0
+                n_ttype = len(self.trial_pos)
+                pos_n = 0
                 for i in range(n_ttype):
-                    neg_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_neg[i])
-                    b = ds_name['b'].loc[{'t' : neg_index, 'u_name' : self.resp_neg[i]}]
+                    pos_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_pos[i])
+                    b = ds_name['b'].loc[{'t' : pos_index, 'u_name' : self.resp_pos[i]}]
                     if use_conf:
-                        conf = ds_name['conf'].loc[{'t' : neg_index}]
-                        neg_sum += np.sum(conf*b)
+                        conf = ds_name['conf'].loc[{'t' : pos_index}]
+                        pos_sum += np.sum(conf*b)
                     else:
-                        neg_sum += np.sum(b)
-                    neg_n += neg_index.sum()
-                neg_mean = neg_sum/neg_n
-                scores += [pos_mean - neg_mean]
-            else:
-                scores += [pos_mean]
-        return np.array(scores)
+                        pos_sum += np.sum(b)
+                    pos_n += pos_index.sum()
+                pos_mean = pos_sum/pos_n
+
+                # negative trials and responses
+                if not self.trial_neg is None:
+                    # negative trials and responses
+                    neg_sum = 0
+                    n_ttype = len(self.trial_neg)
+                    neg_n = 0
+                    for i in range(n_ttype):
+                        neg_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_neg[i])
+                        b = ds_name['b'].loc[{'t' : neg_index, 'u_name' : self.resp_neg[i]}]
+                        if use_conf:
+                            conf = ds_name['conf'].loc[{'t' : neg_index}]
+                            neg_sum += np.sum(conf*b)
+                        else:
+                            neg_sum += np.sum(b)
+                        neg_n += neg_index.sum()
+                    neg_mean = neg_sum/neg_n
+                    scores += [pos_mean - neg_mean]
+                else:
+                    scores += [pos_mean]
+            except:
+                scores += ['nan']
+        return np.array(scores, dtype = 'float')
