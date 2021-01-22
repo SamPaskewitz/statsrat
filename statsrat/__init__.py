@@ -3,9 +3,9 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 import nlopt
-from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap
+from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, annotate, scale_x_continuous
 
-def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zeros = False, only_main = False):
+def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zeros = False, only_main = False, stage_labels = True):
     """
     Plots learning simulation data as a function of time.
     
@@ -29,6 +29,9 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     only_main : boolean, optional
         Only keep rows where 't_name' is 'main', i.e. time steps with
         punctate cues and/or non-zero outcomes.  Defaults to False.
+    stage_labels : boolean, optional
+        Whether the x-axis should be labeled with 'stage_name' (if True) or
+        't', i.e. time step (if False).  Defaults to True.
         
     Returns
     -------
@@ -52,7 +55,7 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     else:
         ds_var = ds[var].loc[sel].squeeze()    
     dims = list(ds_var.dims)
-    dims.remove('t') # dimensions other than time ('t')
+    dims.remove('t') # remove dimensions other than time ('t')
     n_dims = len(dims)
     df = ds_var.to_dataframe()
     df = df.reset_index()
@@ -71,6 +74,19 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
             if facet_var is None:
                 facet_var = dims[1]
             plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line() + facet_wrap('~' + facet_var))
+    
+    if stage_labels:
+        # add labels for stage names
+        n_stage = len(np.unique(ds.stage_name))
+        stage_start = []
+        stage_labels = []
+        for s in range(n_stage):
+            t = ds.t.loc[ds.stage == s].values
+            start_point = t.min()
+            stage_start += [start_point]
+            stage_labels += [ds.stage_name.loc[{'t': start_point}].values]
+        plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
+    
     return plot
 
 def multi_sim(model, trials_list, resp_type, par_val, random_resp = False):
