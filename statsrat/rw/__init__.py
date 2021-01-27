@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
-from . import fbase, fweight, aux, lrate
+from . import fbase, fweight, aux, lrate, drate
 
 class model:
     '''
@@ -19,6 +19,8 @@ class model:
         Attentional weights for features.
     lrate: function
         Determines learning rates.
+    drate: function
+        Determines decay rates.
     aux: object
         Auxilliary learning, e.g. attention or weight covariance.
     par_names: list
@@ -30,7 +32,7 @@ class model:
         Simulate a trial sequence once with known model parameters.
     '''
 
-    def __init__(self, name, fbase, fweight, lrate, aux):
+    def __init__(self, name, fbase, fweight, lrate, drate, aux):
         """
         Parameters
         ----------
@@ -42,6 +44,8 @@ class model:
             Attentional weights for features.
         lrate: function
             Determines learning rates.
+        drate: function
+            Determines decay rates.
         aux: object
             Auxilliary learning, e.g. attention or weight covariance.
         """
@@ -50,9 +54,10 @@ class model:
         self.fbase = fbase
         self.fweight = fweight
         self.lrate = lrate
+        self.drate = drate
         self.aux = aux
         # determine model's parameter space
-        par_names = list(np.unique(fbase.par_names + fweight.par_names + lrate.par_names + aux.par_names))
+        par_names = list(np.unique(fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names))
         self.pars = pars.loc[par_names + ['resp_scale']]
  
     def simulate(self, trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim'):
@@ -135,6 +140,7 @@ class model:
         delta = np.zeros((n_t, n_u)) # prediction error
         w = np.zeros((n_t + 1, n_f, n_u))
         lrate = np.zeros((n_t, n_f, n_u))
+        drate = np.zeros((n_t, n_f, n_u))
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
@@ -157,7 +163,8 @@ class model:
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
             aux.update(sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
             lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_u, sim_pars) # learning rates for this time step
-            w[t+1, :, :] = w[t, :, :] + u_lrn[t, :] * lrate[t, :, :] * delta[t, :].reshape((1, n_u)) # association learning
+            drate[t, :, :] = self.drate(aux, t, n_f, n_u, sim_pars) # decay rates for this time step
+            w[t+1, :, :] = w[t, :, :] + u_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_u)) - drate[t, :, :]*w[t, :, :] # association learning
 
         # generate simulated responses
         if random_resp is False:
@@ -184,7 +191,8 @@ class model:
                                      'b' : (['t', 'u_name'], b),
                                      'w' : (['t', 'f_name', 'u_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
                                      'delta' : (['t', 'u_name'], delta),
-                                     'lrate' : (['t', 'f_name', 'u_name'], lrate)},
+                                     'lrate' : (['t', 'f_name', 'u_name'], lrate),
+                                     'drate' : (['t', 'f_name', 'u_name'], drate)},
                         coords = {'t' : range(n_t),
                                   't_name' : ('t', trials.t_name),
                                   'trial' : ('t', trials.trial),
@@ -206,6 +214,7 @@ class model:
 
 par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
+par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
 par_names += ['extra_counts']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0}]
 par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # min is 0.1 in the R version, but this doesn't work here
