@@ -499,12 +499,13 @@ def fit_indv(model, ds, tau = None, max_time = 10):
                 return prop_log_post
         
         # global optimization (to find approximate optimum)
+        mid_pars = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
         gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
         gopt.set_max_objective(f)
         gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
         gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
         gopt.set_maxtime(max_time/2)
-        gxopt = gopt.optimize(np.array(model.pars['default']))
+        gxopt = gopt.optimize(np.array(mid_pars))
         # local optimization (to refine answer)
         lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
         lopt.set_max_objective(f)

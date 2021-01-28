@@ -11,18 +11,20 @@ def promis_lookup(raw_sum, scale):
     raw_sum: list-like
         Raw sums of scores from promis short forms.
     scale: str
-        Name of the scale ('anx', 'pos', 'ang' or 'dep').
+        Name of the scale ('anx', 'pos', 'ang', 'dep8a' or 'dep8b').
     """
-    anx_table = pd.Series([37.1, 43.2, 45.9, 47.8, 49.4, 50.8, 52.1, 53.2, 54.3, 55.4, 56.4, 57.4, 58.4, 59.4, 60.4, 61.4, 62.5, 63.5, 64.5, 65.6, 66.6, 67.7, 68.7, 69.8, 70.8, 71.9, 73.0, 74.1, 75.4, 76.7, 78.2, 80.0, 83.1],
-                          index = np.arange(8, 40 + 1))
-    pos_table = pd.Series([14.4, 15.7, 17.3, 18.7, 20.1, 21.3, 22.5, 23.5, 24.5, 25.4, 26.3, 27.1, 27.9, 28.7, 29.4, 30.2, 30.9, 31.6, 32.3, 33.0, 33.7, 34.4, 35.0, 35.7, 36.4, 37.0, 37.7, 38.3, 39.0, 39.6, 40.3, 40.9, 41.6, 42.2, 42.9, 43.5, 44.2, 44.8, 45.5, 46.2, 46.9, 47.5, 48.2, 48.9, 49.6, 50.3, 51.1, 51.8, 52.6, 53.4, 54.2, 55.0, 55.9, 56.9, 58.0, 59.2, 60.5, 62.1, 63.9, 66.3, 69.9],
-                          index = np.arange(15, 75 + 1))
-    ang_table = pd.Series([32.9, 38.1, 41.3, 44.0, 46.3, 48.4, 50.6, 52.7, 54.7, 56.8, 58.8, 60.8, 62.9, 65.0, 67.2, 69.4, 71.7, 74.1, 76.8, 79.6, 82.9],
-                          index = np.arange(5, 25 + 1))
-    dep_table = pd.Series([38.2, 44.7, 47.5, 49.4, 50.9, 52.1, 53.2, 54.1, 55.1, 55.9, 56.8, 57.7, 58.5, 59.4, 60.3, 61.2, 62.1, 63.0, 63.9, 64.9, 65.8, 66.8, 67.7, 68.7, 69.7, 70.7, 71.7, 72.8, 73.9, 75.0, 76.4, 78.2, 81.3],
-                          index = np.arange(8, 40 + 1))
-    table_dict = {'anx': anx_table, 'pos': pos_table, 'ang': ang_table, 'dep': dep_table}
-    return table_dict[scale].loc[raw_sum]
+    anx_table = pd.Series([np.NaN, 37.1, 43.2, 45.9, 47.8, 49.4, 50.8, 52.1, 53.2, 54.3, 55.4, 56.4, 57.4, 58.4, 59.4, 60.4, 61.4, 62.5, 63.5, 64.5, 65.6, 66.6, 67.7, 68.7, 69.8, 70.8, 71.9, 73.0, 74.1, 75.4, 76.7, 78.2, 80.0, 83.1],
+                          index = [np.NaN] + list(np.arange(8, 40 + 1)))
+    pos_table = pd.Series([np.NaN, 14.4, 15.7, 17.3, 18.7, 20.1, 21.3, 22.5, 23.5, 24.5, 25.4, 26.3, 27.1, 27.9, 28.7, 29.4, 30.2, 30.9, 31.6, 32.3, 33.0, 33.7, 34.4, 35.0, 35.7, 36.4, 37.0, 37.7, 38.3, 39.0, 39.6, 40.3, 40.9, 41.6, 42.2, 42.9, 43.5, 44.2, 44.8, 45.5, 46.2, 46.9, 47.5, 48.2, 48.9, 49.6, 50.3, 51.1, 51.8, 52.6, 53.4, 54.2, 55.0, 55.9, 56.9, 58.0, 59.2, 60.5, 62.1, 63.9, 66.3, 69.9],
+                          index = [np.NaN] + list(np.arange(15, 75 + 1)))
+    ang_table = pd.Series([np.NaN, 32.9, 38.1, 41.3, 44.0, 46.3, 48.4, 50.6, 52.7, 54.7, 56.8, 58.8, 60.8, 62.9, 65.0, 67.2, 69.4, 71.7, 74.1, 76.8, 79.6, 82.9],
+                          index = [np.NaN] + list(np.arange(5, 25 + 1)))
+    dep8a_table = pd.Series([np.NaN, 38.2, 44.7, 47.5, 49.4, 50.9, 52.1, 53.2, 54.1, 55.1, 55.9, 56.8, 57.7, 58.5, 59.4, 60.3, 61.2, 62.1, 63.0, 63.9, 64.9, 65.8, 66.8, 67.7, 68.7, 69.7, 70.7, 71.7, 72.8, 73.9, 75.0, 76.4, 78.2, 81.3],
+                          index = [np.NaN] + list(np.arange(8, 40 + 1)))
+    dep8b_table = pd.Series([np.NaN, 37.1, 43.3, 46.2, 48.2, 49.8, 51.2, 52.3, 53.4, 54.3, 55.3, 56.2, 57.1, 57.9, 58.8, 59.7, 60.7, 61.6, 62.5, 63.5, 64.4, 65.4, 66.4, 67.4, 68.3, 69.3, 70.4, 71.4, 72.5, 73.6, 74.8, 76.2, 77.9, 81.1],
+                          index = [np.NaN] + list(np.arange(8, 40 + 1)))
+    table_dict = {'anx': anx_table, 'pos': pos_table, 'ang': ang_table, 'dep8a': dep8a_table, 'dep8b': dep8b_table}
+    return table_dict[scale].loc[raw_sum].values
 
 def read_surveys(path, fun, ident_col = None, header = 'infer'):
     """
@@ -134,7 +136,7 @@ def process_psychopy(df):
         results['promis_dep_resp' + str(n + 1)] = promis_dep_resp[n]
     results['promis_dep_sum'] = promis_dep_resp.sum()
     results['promis_dep_std'] = promis_dep_resp.std()
-    results['promis_dep'] = promis_lookup(results['promis_dep_sum'], 'dep')
+    results['promis_dep'] = promis_lookup(results['promis_dep_sum'], 'dep8a')
     for n in range(15):
         results['promis_pos_resp' + str(n + 1)] = promis_pos_resp[n]
     results['promis_pos_sum'] = promis_pos_resp.sum()
@@ -243,7 +245,7 @@ def process_testable(df):
         results['promis_dep_resp' + str(n + 1)] = promis_dep_resp[n]
     results['promis_dep_sum'] = promis_dep_resp.sum()
     results['promis_dep_std'] = promis_dep_resp.std()
-    results['promis_dep'] = promis_lookup(results['promis_dep_sum'], 'dep')
+    results['promis_dep'] = promis_lookup(results['promis_dep_sum'], 'dep8a')
     for n in range(15):
         results['promis_pos_resp' + str(n + 1)] = promis_pos_resp[n]
     results['promis_pos_sum'] = promis_pos_resp.sum()
