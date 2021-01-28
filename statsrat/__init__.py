@@ -281,7 +281,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         par_min_aprx = gopt_min.optimize(mid_pars)
         # local optimization (to refine answer)
         lopt_min = nlopt.opt(nlopt.LN_SBPLX, n_free)
-        lopt_min.set_max_objective(f)
+        lopt_min.set_min_objective(f)
         lopt_min.set_lower_bounds(np.array(free_pars['min'] + 0.001))
         lopt_min.set_upper_bounds(np.array(free_pars['max'] - 0.001))
         lopt_min.set_maxtime(max_time/2)
