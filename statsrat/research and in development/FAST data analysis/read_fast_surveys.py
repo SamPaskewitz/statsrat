@@ -24,7 +24,7 @@ def promis_lookup(raw_sum, scale):
     dep8b_table = pd.Series([np.NaN, 37.1, 43.3, 46.2, 48.2, 49.8, 51.2, 52.3, 53.4, 54.3, 55.3, 56.2, 57.1, 57.9, 58.8, 59.7, 60.7, 61.6, 62.5, 63.5, 64.4, 65.4, 66.4, 67.4, 68.3, 69.3, 70.4, 71.4, 72.5, 73.6, 74.8, 76.2, 77.9, 81.1],
                           index = [np.NaN] + list(np.arange(8, 40 + 1)))
     table_dict = {'anx': anx_table, 'pos': pos_table, 'ang': ang_table, 'dep8a': dep8a_table, 'dep8b': dep8b_table}
-    return table_dict[scale].loc[raw_sum].values
+    return table_dict[scale].loc[raw_sum]
 
 def read_surveys(path, fun, ident_col = None, header = 'infer'):
     """

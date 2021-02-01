@@ -578,14 +578,14 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
     rel_change = np.zeros(max_em_iter)
     
     # initialize (using MLE, i.e. uniform priors)
-    print('initial estimation with uniform prior')
+    print('initial estimation with uniform priors')
     result = fit_indv(model, ds, None, max_time)
     est_psych_par = np.array(result.loc[:, par_names])
     
     # See the following:
     # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
     mu0 = 0
-    nu = 10 # 10 "virtual observations" in prior
+    nu = 1 # 1 "virtual observation" in prior (i.e. weak prior)
     alpha = 5
     beta = 5
 

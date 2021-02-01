@@ -37,8 +37,14 @@ design = learn.schedule(name = 'design',
 
 rel_irl = learn.oat(schedule_pos = ['design'],
                     behav_score_pos = learn.behav_score(stage = 'test',
-                                                      trial_pos = ['t1.b2 -> nothing', 't2.b1 -> nothing', 't3.b4 -> nothing', 't4.b3 -> nothing'],
-                                                      trial_neg = ['t1.b2 -> nothing', 't2.b1 -> nothing', 't3.b4 -> nothing', 't4.b3 -> nothing'],
+                                                      trial_pos = ['t1.b2 -> nothing', 
+                                                                   't2.b1 -> nothing', 
+                                                                   't3.b4 -> nothing', 
+                                                                   't4.b3 -> nothing'],
+                                                      trial_neg = ['t1.b2 -> nothing', 
+                                                                   't2.b1 -> nothing', 
+                                                                   't3.b4 -> nothing', 
+                                                                   't4.b3 -> nothing'],
                                                       resp_pos = ['cat4', 'cat3', 'cat3', 'cat4'],
                                                       resp_neg = ['cat3', 'cat4', 'cat4', 'cat3'])
                   )
@@ -51,20 +57,32 @@ threat_benign_os = learn.oat(schedule_pos = ['design'],
                                                                  resp_neg = ['cat4', 'cat3'])
                            )
 
-threat_benign_ri = learn.oat(schedule_pos = ['design'],
+threat_benign_brel = learn.oat(schedule_pos = ['design'],
                              behav_score_pos = learn.behav_score(stage = 'test',
-                                                                 trial_pos = ['t1.b2 -> nothing', 't2.b1 -> nothing', 't3.b4 -> nothing', 't4.b3 -> nothing'],
-                                                                 trial_neg = ['t1.b2 -> nothing', 't2.b1 -> nothing', 't3.b4 -> nothing', 't4.b3 -> nothing'],
-                                                                 resp_pos = ['cat3', 'cat4', 'cat3', 'cat4'],
-                                                                 resp_neg = ['cat4', 'cat3', 'cat4', 'cat3'])
-                           )
+                                                                 trial_pos = ['t1.b2 -> nothing', 
+                                                                              't2.b1 -> nothing'],
+                                                                 trial_neg = ['t1.b2 -> nothing', 
+                                                                              't2.b1 -> nothing'],
+                                                                 resp_pos = ['cat3', 'cat4'],
+                                                                 resp_neg = ['cat4', 'cat3']))
+threat_benign_trel = learn.oat(schedule_pos = ['design'],
+                             behav_score_pos = learn.behav_score(stage = 'test',
+                                                                 trial_pos = ['t3.b4 -> nothing', 
+                                                                              't4.b3 -> nothing'],
+                                                                 trial_neg = ['t3.b4 -> nothing', 
+                                                                              't4.b3 -> nothing'],
+                                                                 resp_pos = ['cat3', 'cat4'],
+                                                                 resp_neg = ['cat4', 'cat3']))
 
 fast = learn.experiment(resp_type = 'choice',
                   schedules = {'design': design},
-                  oats = {'rel_irl' : rel_irl, 'threat_benign_os' : threat_benign_os, 'threat_benign_ri' : threat_benign_ri},
-                  notes = 'Facial Affect Salience Task.  Cues b1, b2 etc. represent benign faces; cues t1, t2 etc. represent threatening faces.  In the "training" stage, b1, b2, t3 and t4 are relevant, while all other cues are irrelevant.  In the "transfer" stage, b5, b6, t5 and t6 form an embedded overshadowing design.  The OAT "rel_irl" measures attentional transfer toward relevant cues opposed to irrelevant ones.  The OATs "threat_benign_os" (overshadowing, b4, b5, t5 and t6) and "threat_benign_ri" (other cues) measure the salience of threatening faces relative to benign faces.')
+                  oats = {'rel_irl': rel_irl, 
+                          'threat_benign_os': threat_benign_os, 
+                          'threat_benign_brel': threat_benign_brel, 
+                          'threat_benign_trel': threat_benign_trel},
+                  notes = 'Facial Affect Salience Task.  Cues b1, b2 etc. represent benign faces; cues t1, t2 etc. represent threatening faces.  In the "training" stage, b1, b2, t3 and t4 are relevant, while all other cues are irrelevant.  In the "transfer" stage, b5, b6, t5 and t6 form an embedded overshadowing design.  The OAT "rel_irl" measures attentional transfer toward relevant cues opposed to irrelevant ones.  The OAT "threat_benign_os" measures threat salience in overshadowing trials (b4, b5, t5 and t6); "threat_benign_brel" measures threat salience after the benign cues were relevant (b1, b2, t1 and t2) and "threat_benign_trel" measures threat salience after threat cues were relevant (b3, b4, t3 and t4).  Names of OAT scores in RO1 proposal: measure1 = threat_benign_os, measure2 = threat_benign_brel, and measure3 = threat_benign_trel.')
 
-del design; rel_irl; threat_benign_os; threat_benign_ri
+del design; rel_irl; threat_benign_os; threat_benign_brel; threat_benign_trel
 
 # Kruschke 1996, Experiment 1 (inverse base rate effect)
 # I'm missing some of the test trial types.
