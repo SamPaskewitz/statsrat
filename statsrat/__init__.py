@@ -424,7 +424,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, tau = None, max_time = 10):
+def fit_indv(model, ds, x0 = None, tau = None, max_time = 10):
     """
     Fit the model to time step data by individual MLE/MAP.
     
@@ -437,9 +437,18 @@ def fit_indv(model, ds, tau = None, max_time = 10):
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
 
+    x0: data frame/array-like of floats or None, optional
+        Start points for each individual in the dataset.
+        If None, then parameter search starts at the midpoint
+        of each parameter's allowed interval.  Defaults to None
+
     tau: array-like of floats or None, optional
         Natural parameters of the log-normal prior.
         Defaults to None (don't use log-normal prior).
+        
+    max_time: int, optional
+        Maximum time (in seconds) per individual.
+        Defaults to 10.
 
     Returns
     -------
@@ -499,13 +508,16 @@ def fit_indv(model, ds, tau = None, max_time = 10):
                 return prop_log_post
         
         # global optimization (to find approximate optimum)
-        mid_pars = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
+        if x0 is None:
+            x0_i = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
+        else:
+            x0_i = np.array(x0.iloc[i])
         gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
         gopt.set_max_objective(f)
         gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
         gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
         gopt.set_maxtime(max_time/2)
-        gxopt = gopt.optimize(np.array(mid_pars))
+        gxopt = gopt.optimize(x0_i)
         # local optimization (to refine answer)
         lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
         lopt.set_max_objective(f)
@@ -537,6 +549,10 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
     max_em_iter: int, optional
         Maximum number of EM algorithm iterations.
         Defaults to 5.
+        
+    max_time: int, optional
+        Maximum time (in seconds) per individual per EM iteration.
+        Defaults to 10.
 
     Returns
     -------
@@ -578,8 +594,8 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
     rel_change = np.zeros(max_em_iter)
     
     # initialize (using MLE, i.e. uniform priors)
-    print('initial estimation with uniform priors')
-    result = fit_indv(model, ds, None, max_time)
+    print('\n initial estimation with uniform priors')
+    result = fit_indv(model, ds, None, None, max_time)
     est_psych_par = np.array(result.loc[:, par_names])
     
     # See the following:
@@ -591,7 +607,7 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
 
     # loop through EM algorithm
     for i in range(max_em_iter):
-        print('EM iteration ' + str(i + 1))
+        print('\n EM iteration ' + str(i + 1))
         # E step (posterior means of hyperparameters given current estimates of psych_par)
         for j in range(n_p):
             y = np.log(np.sign(est_psych_par[:, j] - lower[j]))
@@ -605,7 +621,8 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
             E_tau0 = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
             E_tau1 = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
-        result = fit_indv(model, ds, [E_tau0, E_tau1], max_time)
+        x0 = result.drop(columns = 'prop_log_post')
+        result = fit_indv(model, ds, x0, [E_tau0, E_tau1], max_time)
         new_est_psych_par = np.array(result.loc[:, par_names])
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
