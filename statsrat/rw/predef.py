@@ -101,3 +101,11 @@ Kalman = rw.model(name = 'Kalman',
                   lrate = rw.lrate.from_aux_direct,
                   drate = rw.drate.zero,
                   aux = rw.aux.Kalman)
+
+# Kalman filter Rescorla-Wagner (with intercept term).
+Kalman_intercept = rw.model(name = 'Kalman_intercept',
+                            fbase = rw.fbase.elem_intercept,
+                            fweight = rw.fweight.none,
+                            lrate = rw.lrate.from_aux_direct,
+                            drate = rw.drate.zero,
+                            aux = rw.aux.Kalman)
