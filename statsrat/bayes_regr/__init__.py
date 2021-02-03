@@ -208,7 +208,7 @@ class model:
                     # compute mean_w
                     P_inv = np.diag(1/np.diag(hpar1_w[t, :, :, j])) # Jacobi preconditioning matrix
                     shrink_cond[t, j] = cond(P_inv@hpar1_w[t, :, :, j]) # condition number
-                    mean_w[t:n_t, :, j] = solve(P_inv@hpar1_w[t, :, :, j], P_inv@hpar0_w[t, :, j], assume_a = 'pos')
+                    mean_w[t:n_t, :, j] = solve(P_inv@hpar1_w[t, :, :, j], P_inv@hpar0_w[t, :, j])
                     # compute var_w and mean_wsq
                     var_w[t:n_t, :, j] = 1/np.diag(hpar1_w[t, :, :, j])
                     mean_wsq[t:n_t, :, j] = var_w[t, :, j] + mean_w[t, :, j]**2
