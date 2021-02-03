@@ -273,8 +273,8 @@ class model:
         return ds
 
 ########## PARAMETERS ##########  
-par_names = ['prior_tausq_inv_hpar0']; par_list = [{'min' : -5.0, 'max' : 0.0, 'default' : -2.0}] # hyperparameter for tausq_inv
-par_names += ['prior_tausq_inv_hpar1']; par_list += [{'min' : 1.0, 'max' : 6.0, 'default' : 3.0}] # other hyperparameter for tausq_inv
+par_names = ['prior_tausq_inv_hpar0']; par_list = [{'min' : -10.0, 'max' : 0.0, 'default' : -2.0}] # hyperparameter for tausq_inv
+par_names += ['prior_tausq_inv_hpar1']; par_list += [{'min' : 1.0, 'max' : 11.0, 'default' : 3.0}] # other hyperparameter for tausq_inv
 par_names += ['u_var']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 0.1}] # outcome variance
 par_names += ['tausq_inv']; par_list += [{'min' : 0.01, 'max' : 100.0, 'default' : 1}] # prior precision of regression weights, if treated as fixed and known
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]

@@ -389,7 +389,10 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
         oat_used = experiment.oats[oat]
     
     # make a list of all schedules (groups) to simulate
-    s_list = oat_used.schedule_pos + oat_used.schedule_neg
+    if oat_used.schedule_neg is None:
+        s_list = oat_used.schedule_pos
+    else:
+        s_list = oat_used.schedule_pos + oat_used.schedule_neg
 
     # for each schedule, create a list of trial sequences to use in simulations
     trials_list = dict(keys = s_list)
