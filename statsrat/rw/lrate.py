@@ -37,10 +37,7 @@ def from_aux_feature(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     Depends only on feature.
     '''
     atn = aux.data['atn'][t, :] # current attention ('atn')
-    abv_min = atn > 0.01
-    blw_max = atn < 0.99
-    atn_bounded = atn*abv_min*blw_max + 0.01*(1 - abv_min) + 0.99*(1 - blw_max)
-    new_lrate = sim_pars['lrate']*atn_bounded.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
+    new_lrate = sim_pars['lrate']*atn.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
 from_aux_feature.par_names = ['lrate']
 
@@ -50,10 +47,6 @@ def from_aux_direct(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     Does not depend on any 'lrate' model parameter.
     Depends on both features and outcomes.
     '''
-    atn = aux.data['gain'][t, :, :]
-    abv_min = atn > 0.01
-    blw_max = atn < 0.99
-    new_lrate = atn*abv_min*blw_max + 0.01*(1 - abv_min) + 0.99*(1 - blw_max)
-    return new_lrate
+    return aux.data['gain'][t, :, :]
 from_aux_direct.par_names = []
     
