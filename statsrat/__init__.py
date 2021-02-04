@@ -77,14 +77,14 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     
     if stage_labels:
         # add labels for stage names
-        n_stage = len(np.unique(ds.stage_name))
+        n_stage = len(np.unique(ds_var.stage_name))
         stage_start = []
         stage_labels = []
         for s in range(n_stage):
-            t = ds.t.loc[ds.stage == s].values
+            t = ds_var.t.loc[ds_var.stage == s].values
             start_point = t.min()
             stage_start += [start_point]
-            stage_labels += [ds.stage_name.loc[{'t': start_point}].values]
+            stage_labels += [ds_var.stage_name.loc[{'t': start_point}].values]
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
     return plot

@@ -1,4 +1,7 @@
 from statsrat.expr import learn
+'''
+Category learning tasks.
+'''
 
 # FAST (Joel Stoddard collab)
 design = learn.schedule(name = 'design',

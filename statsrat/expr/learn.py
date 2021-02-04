@@ -1035,11 +1035,13 @@ class behav_score:
             Trials whose scores are counted as positive.   
         resp_pos: list of str
             Response counted as positive for each trial type.
+            Should be the same length as trial_pos.
         trial_neg: list of str or None, optional
             Trials whose scores are counted as negative.
             Defaults to None.
         resp_neg: list of str or None, optional
-            Responses counted as negative for each trial type.
+            Response counted as negative for each trial type.
+            Should be the same length as trial_neg.
             Defaults to None.
         """
         self.stage = stage

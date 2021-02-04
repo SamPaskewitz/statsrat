@@ -32,7 +32,6 @@ class ard:
         self.prior_hpar1 = sim_pars['prior_tausq_inv_hpar1']
         self.hpar0 = np.array(n_f*n_u*[sim_pars['prior_tausq_inv_hpar0']], dtype='float').reshape((n_f, n_u))
         self.hpar1 = sim_pars['prior_tausq_inv_hpar1']
-        self.u_psb_so_far = np.zeros(n_u)
         
     def update(self, mean_wsq, u_psb):
         # update hyperparameters
