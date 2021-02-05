@@ -150,7 +150,7 @@ def log_lik(model, ds, par_val):
     ll = np.sum(log_prob*resp) # log-likelihood of choice sequence
     return ll
 
-def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time = 60, algorithm = nlopt.GN_ORIG_DIRECT):
+def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time = 60, verbose = False, algorithm = nlopt.GN_ORIG_DIRECT):
     """
     Perform an ordinal adequacy test (OAT).
     
@@ -176,7 +176,11 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         about half the maximum total time running the whole OAT should take.
         Defaults to 60.
         
-    algorithm: object
+    verbose: boolean, optional
+        Should the parameter values be printed as the search is going on?
+        Defaults to False.
+        
+    algorithm: object, optional
         NLopt algorithm to use for optimization.
         Defaults to nlopt.GN_ORIG_DIRECT.
 
@@ -226,28 +230,50 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     if 'resp_scale' in free_names:
         free_names.remove('resp_scale') # modifies list in place
         # define objective function
-        def f(x, grad = None):
-                if grad.size > 0:
-                    grad = None
-                par_val = np.append(x, 5)
-                print(par_val)
-                sim_data = {}
-                for s in s_list:
-                    sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
-                oat_total = oat_used.compute_total(data = sim_data)
-                return oat_total
+        if verbose:
+            def f(x, grad = None):
+                    if grad.size > 0:
+                        grad = None
+                    par_val = np.append(x, 5)
+                    print(par_val)
+                    sim_data = {}
+                    for s in s_list:
+                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                    oat_total = oat_used.compute_total(data = sim_data)
+                    return oat_total
+        else:
+            def f(x, grad = None):
+                    if grad.size > 0:
+                        grad = None
+                    par_val = np.append(x, 5)
+                    sim_data = {}
+                    for s in s_list:
+                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                    oat_total = oat_used.compute_total(data = sim_data)
+                    return oat_total
     else:
         # define objective function
-        def f(x, grad = None):
-                if grad.size > 0:
-                    grad = None
-                par_val = x
-                print(par_val)
-                sim_data = {}
-                for s in s_list:
-                    sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
-                oat_total = oat_used.compute_total(data = sim_data)
-                return oat_total
+        if verbose:
+            def f(x, grad = None):
+                    if grad.size > 0:
+                        grad = None
+                    par_val = x
+                    print(par_val)
+                    sim_data = {}
+                    for s in s_list:
+                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                    oat_total = oat_used.compute_total(data = sim_data)
+                    return oat_total
+        else:
+            def f(x, grad = None):
+                    if grad.size > 0:
+                        grad = None
+                    par_val = x
+                    sim_data = {}
+                    for s in s_list:
+                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                    oat_total = oat_used.compute_total(data = sim_data)
+                    return oat_total
     n_free = len(free_names) # number of free parameters
     free_pars = model.pars.loc[free_names] # free parameters
     mid_pars = (free_pars['max'] + free_pars['min'])/2 # midpoint of each parameter's allowed interval

@@ -568,10 +568,10 @@ class schedule:
                                   (False, False): 'background'}
                 new_trial_name = possible_names[(has_x_pn, has_u)]
                 trial_name += (iti + 1)*[new_trial_name]
-                x.loc[{'row' : range(k, k + iti + 1), 'x_name' : stage_list[i].x_bg}] = 1.0
-                u_psb.loc[{'row' : range(k, k + iti + 1), 'u_name' : stage_list[i].u_psb}] = 1.0
+                x.loc[{'row': range(k, k + iti + 1), 'x_name': stage_list[i].x_bg}] = 1.0
+                u_psb.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
                 if stage_list[i].lrn == True:
-                    u_lrn.loc[{'row' : range(k, k + iti + 1), 'u_name' : stage_list[i].u_psb}] = 1.0
+                    u_lrn.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
                 has_main = has_x_pn or has_u # indicates whether there is a 'main' time step
                 if has_main:
                     if iti > 0:
@@ -580,9 +580,9 @@ class schedule:
                     t_name += ['main']
                     # set up 'main', i.e. time step with punctate cues/outcomes
                     if has_x_pn:
-                        x.loc[{'row' : k + iti, 'x_name' : stage_list[i].x_pn[j]}] = 1.0
+                        x.loc[{'row': k + iti, 'x_name': stage_list[i].x_pn[j]}] = 1.0
                     if has_u:
-                        u.loc[{'row' : k + iti, 'u_name' : stage_list[i].u[j]}] = 1.0
+                        u.loc[{'row': k + iti, 'u_name': stage_list[i].u[j]}] = stage_list[i].u_value.loc[stage_list[i].u[j]]
                 else:
                     t_name += (iti + 1)*['bg']
                 # advance time step index
@@ -668,6 +668,9 @@ class stage:
     u_psb : list
         Strings specifying outcomes the learner considers
         possible during the stage.
+    u_value : Series (Pandas) or None, optional
+        Indicates the value or intensity of each outcome, e.g.
+        varying amounts of money, shock or food.
     lrn : logical
         Indicates whether learning is possible during this
         stage.
@@ -682,7 +685,7 @@ class stage:
         that outcomes cannot occur during the ITI, as in most
         human category learning experiments.
     """
-    def __init__(self, name, n_rep, x_pn, x_bg = [], freq = None, u = None, u_psb = None, lrn = True, order_fixed = False, iti = 0):
+    def __init__(self, name, n_rep, x_pn, x_bg = [], freq = None, u = None, u_psb = None, u_value = None, lrn = True, order_fixed = False, iti = 0):
         """
         Parameters
         ----------
@@ -711,6 +714,12 @@ class stage:
             Strings specifying outcomes the learner considers
             possible during the stage.  Defaults to None, which
             means that all outcomes are considered possible.
+        u_value : Series (Pandas) or None, optional
+            Indicates the value or intensity of each outcome, e.g.
+            varying amounts of money, shock or food.  Series values
+            should be floats and the series index should be the names
+            of all possible outcomes.  Defaults to None, which produces
+            a Series where each outcome has a value of 1.0.
         lrn : logical, optional
             Indicates whether learning is possible during this
             stage.  Typically True except for test stages of human
@@ -738,18 +747,29 @@ class stage:
             order += self.freq[j]*[j]
         self.order = order
         self.n_trial = len(order)
+        # set u
         if u is None:
             self.u = self.n_trial_type*[[]]
-            self.u_psb = []
         else:
             self.u = u
+        # set u_psb
         if (u_psb is None) and not (u is None):
+            # automatically make all outcomes possible if u_psb is not specified
             u_names = []
-            for tt in u:
-                u_names += tt
-            self.u_psb = np.unique(u_names)
+            for trial_type in u:
+                u_names += trial_type
+            self.u_psb = list(np.unique(u_names))
         else:
-            self.u_psb = u_psb
+            # set u_psb as specified by the user
+            self.u_psb = list(u_psb)
+        # set u_value
+        n_u = len(self.u_psb)
+        if (u_value is None) and not (u is None):
+            # automatically make all outcomes have a value if 1.0 if u_value is not specified
+            self.u_value = pd.Series(n_u*[1.0], index = self.u_psb)
+        else:
+            # set u_value as specified by the user
+            self.u_value = u_value
         self.lrn = lrn
         self.order_fixed = order_fixed
         self.iti = iti

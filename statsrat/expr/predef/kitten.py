@@ -1,3 +1,4 @@
+import pandas as pd
 from statsrat.expr import learn
 '''
 Simplified category learning tasks (smaller versions of the tasks like those in 'cat' -> 'kitten').
@@ -9,12 +10,10 @@ design = learn.schedule(name = 'design',
                                   learn.stage(name = 'training',
                                         x_pn = [['a', 'x'], ['a', 'y'], ['b', 'x'], ['b', 'y']],
                                         u = [['cat1'], ['cat1'], ['cat2'], ['cat2']],
-                                        u_psb = ['cat1', 'cat2'],
                                         n_rep = 10),
                                   learn.stage(name = 'transfer',
                                         x_pn = [['a', 'x'], ['b', 'y']],
                                         u = [['cat3'], ['cat4']],
-                                        u_psb = ['cat3', 'cat4'],
                                         n_rep = 5),
                                   learn.stage(name = 'test',
                                         x_pn = [['a', 'y'], ['b', 'x']],
@@ -41,12 +40,10 @@ design = learn.schedule(name = 'design',
                               learn.stage(name = 'single_cue',
                                     x_pn = [['a'], ['b']],
                                     u = [['cat1'], ['cat2']],
-                                    u_psb = ['cat1', 'cat2'],
                                     n_rep = 20),
                               learn.stage(name = 'double_cue',
                                     x_pn = [['a', 'x'], ['b', 'y']],
                                     u = [['cat1'], ['cat2']],
-                                    u_psb = ['cat1', 'cat2'],
                                     n_rep = 20),
                               learn.stage(name = 'blocking_test',
                                     x_pn = [['a', 'y'], ['b', 'x']],
@@ -56,7 +53,6 @@ design = learn.schedule(name = 'design',
                               learn.stage(name = 'transfer',
                                     x_pn = [['a', 'x'], ['b', 'y']],
                                     u = [['cat3'], ['cat4']],
-                                    u_psb = ['cat3', 'cat4'],
                                     n_rep = 5),
                               learn.stage(name = 'inattention_test',
                                     x_pn = [['a', 'y'], ['b', 'x']],
@@ -83,24 +79,52 @@ blk_inatn = learn.experiment(resp_type = 'choice',
 
 del design; del blocking; del inattention
 
+# value effect on salience
+design = learn.schedule(name = 'design',
+                      stage_list = [
+                                  learn.stage(name = 'value',
+                                        x_pn = [['a'], ['b'], ['x'], ['y']],
+                                        u = [['cat1'], ['cat1'], ['cat2'], ['cat2']],
+                                        u_value = pd.Series({'cat1': 1, 'cat2': 0.1}),
+                                        n_rep = 10),
+                                  learn.stage(name = 'transfer',
+                                        x_pn = [['a', 'x'], ['b', 'y']],
+                                        u = [['cat3'], ['cat4']],
+                                        n_rep = 5),
+                                  learn.stage(name = 'test',
+                                        x_pn = [['a', 'y'], ['b', 'x']],
+                                        u_psb = ['cat3', 'cat4'],
+                                        lrn = False,
+                                        n_rep = 1)])
+
+value = learn.oat(schedule_pos = ['design'],
+                  behav_score_pos = learn.behav_score(stage = 'test',
+                                                    trial_pos = ['a.y -> nothing', 'b.x -> nothing'],
+                                                    trial_neg = ['a.y -> nothing', 'b.x -> nothing'],
+                                                    resp_pos = ['cat3', 'cat4'],
+                                                    resp_neg = ['cat4', 'cat3']))
+value_sal = learn.experiment(resp_type = 'choice',
+                             schedules = {'design': design},
+                             oats = {'value': value})
+
+del design; del value
+
 # simple backwards blocking
 design = learn.schedule(name = 'design',
-                  stage_list = [
-                              learn.stage(name = 'double_cue',
-                                    x_pn = [['a', 'x'], ['b', 'y']],
-                                    u = [['cat1'], ['cat2']],
-                                    u_psb = ['cat1', 'cat2'],
-                                    n_rep = 20),
-                              learn.stage(name = 'single_cue',
-                                    x_pn = [['a'], ['b']],
-                                    u = [['cat1'], ['cat2']],
-                                    u_psb = ['cat1', 'cat2'],
-                                    n_rep = 20),
-                              learn.stage(name = 'test',
-                                    x_pn = [['a', 'y'], ['b', 'x']],
-                                    u_psb = ['cat1', 'cat2'],
-                                    lrn = False,
-                                    n_rep = 1)])
+                      stage_list = [
+                                  learn.stage(name = 'double_cue',
+                                        x_pn = [['a', 'x'], ['b', 'y']],
+                                        u = [['cat1'], ['cat2']],
+                                        n_rep = 20),
+                                  learn.stage(name = 'single_cue',
+                                        x_pn = [['a'], ['b']],
+                                        u = [['cat1'], ['cat2']],
+                                        n_rep = 20),
+                                  learn.stage(name = 'test',
+                                        x_pn = [['a', 'y'], ['b', 'x']],
+                                        u_psb = ['cat1', 'cat2'],
+                                        lrn = False,
+                                        n_rep = 1)])
 
 blocking = learn.oat(schedule_pos = ['design'],
                           behav_score_pos = learn.behav_score(stage = 'test',
