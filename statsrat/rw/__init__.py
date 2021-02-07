@@ -208,6 +208,10 @@ class model:
                                  'schedule' : trials.attrs['schedule'],
                                  'resp_type' : resp_type,
                                  'sim_pars' : sim_pars})
+        
+        # add extra data from aux
+        ds = aux.add_data(ds)
+        
         return ds
 
 ########## PARAMETERS ##########

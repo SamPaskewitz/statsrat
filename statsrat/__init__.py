@@ -3,9 +3,9 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 import nlopt
-from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous
+from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text
 
-def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zeros = False, only_main = False, stage_labels = True):
+def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
     """
     Plots learning simulation data as a function of time.
     
@@ -32,6 +32,8 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     stage_labels : boolean, optional
         Whether the x-axis should be labeled with 'stage_name' (if True) or
         't', i.e. time step (if False).  Defaults to True.
+    text_size : float, optional
+        Specifies text size.  Defaults to 10.0.
         
     Returns
     -------
@@ -86,6 +88,8 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
             stage_start += [start_point]
             stage_labels += [ds_var.stage_name.loc[{'t': start_point}].values]
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
+    
+    plot += theme(text=element_text(size = text_size)) # set text size
     
     return plot
 

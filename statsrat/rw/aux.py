@@ -18,10 +18,15 @@ class drva:
         self.data = {'atn': np.zeros((n_t, n_f))}
 
     def update(self, sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w):
-        new_atn = np.sum(abs(w[t, :]), axis = 1)
-        abv_min = new_atn >= sim_pars['atn_min']
-        new_atn = new_atn*abv_min + sim_pars['atn_min']*(1 - abv_min)
+        abs_w_sum = np.sum(abs(w[t, :]), axis = 1)
+        abv_min = abs_w_sum >= sim_pars['atn_min']
+        blw_max = abs_w_sum < 1
+        new_atn = abs_w_sum*abv_min*blw_max + sim_pars['atn_min']*(1 - abv_min) + 1*(1 - blw_max)
         self.data['atn'][t, :] = new_atn
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn']))
+    
 drva.par_names = ['atn_min']
 
 class grad:
