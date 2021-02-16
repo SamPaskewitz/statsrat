@@ -10,6 +10,9 @@ class basic:
 
     def update(self, sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w):
         self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[0:(t+1), :] > 0)
+        
+    def add_data(self, ds):
+        return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
 basic.par_names = []
         
 class drva:
@@ -32,6 +35,7 @@ drva.par_names = ['atn_min']
 class grad:
     '''Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).'''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         self.data['atn'][0, :] = 0.5
 
@@ -44,11 +48,15 @@ class grad:
         blw_max = new_atn < 1
         new_atn = new_atn*abv_min*blw_max + 0.01*(1 - abv_min) + 1*(1 - blw_max)
         self.data['atn'][t + 1, :] = new_atn
+        
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))  
 grad.par_names = ['lrate_atn']
 
 class gradcomp:
     '''Competitive attention learning from gradient descent (i.e. CompAct's learning rule).'''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         self.data['atn'][0, :] = 1
 
@@ -62,14 +70,19 @@ class gradcomp:
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
         ngrad = delta[t, :].reshape((1, n_u)) @ u_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
 gradcomp.par_names = ['lrate_atn', 'metric']
 
 class Kalman:
     '''Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).'''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
         self.data = {'gain' : np.zeros((n_t + 1, n_f, n_u)), 'Sigma' : np.zeros((n_t + 1, n_u, n_f, n_f))}
         for i in range(n_u):
             self.data['Sigma'][0, i, :, :] = sim_pars['w_var0']*np.identity(n_f) # initialize weight covariance matrix
+    
     def update(self, sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w):
         for i in range(n_u):
             f = fbase[t, :].reshape((n_f, 1))
@@ -78,8 +91,12 @@ class Kalman:
             denominator = f.transpose()@numerator + sim_pars['u_var']
             self.data['gain'][t, :, i] = numerator/denominator
             self.data['Sigma'][t + 1, i, :, :] += drift_mat - self.data['gain'][t, :, i].reshape((n_f, 1))@f.transpose()@(self.data['Sigma'][t, i, :, :] + drift_mat) # update weight covariance matrix
+
+    def add_data(self, ds):
+        # possibly add Sigma and the diagonal of Sigma later
+        return ds.assign(gain = (['t', 'f_name', 'u_name'], self.data['gain'][range(self.n_t), :, :])) 
 Kalman.par_names = ['w_var0', 'u_var', 'drift_var']
-                   
+    
 ##### FREE INITIAL ATTENTION PARAMETER(S) #####
 # My goal in creating this is to model the FAST (face task) and similar designs.
 
@@ -96,6 +113,7 @@ class grad_atn0:
     Does not work if 'x_dims' is not specified in 'trials' (i.e. is not None).
     '''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         atn0 = pd.Series(n_f*[0.5], index = f_names)
         dim_names = list(x_dims.keys())
@@ -113,7 +131,9 @@ class grad_atn0:
         blw_max = new_atn < 1
         new_atn = new_atn*abv_min*blw_max + 0.01*(1 - abv_min) + 1*(1 - blw_max)
         self.data['atn'][t + 1, :] = new_atn
-
+    
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))
 grad_atn0.par_names = ['lrate_atn', 'atn0']
 
 class gradcomp_eta0:
@@ -129,6 +149,7 @@ class gradcomp_eta0:
     Does not work if 'x_dims' is not specified in 'trials' (i.e. is not None).
     '''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         eta0 = pd.Series(n_f*[1], index = f_names)
         dim_names = list(x_dims.keys())
@@ -147,5 +168,7 @@ class gradcomp_eta0:
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
         ngrad = delta[t, :].reshape((1, n_u)) @ u_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
-        
+    
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))    
 gradcomp_eta0.par_names = ['lrate_atn', 'metric', 'eta0']

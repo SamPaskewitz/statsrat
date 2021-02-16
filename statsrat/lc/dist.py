@@ -14,13 +14,17 @@ class discrete:
         self.n_tau = 2 # number of hyperparameters (including one for "sample size")
         
     def suf_stat(self, obs):
+        '''Sufficient statistic(s) of the observation.'''
         return obs
     
     def expected_obs(self, tau):
+        '''Expected observation.'''
         return (tau[0] + 1)/(tau[1] + 2)
         # FINISH
     
     def expected_eta(self, tau):
+        '''Expected natural parameters.'''
+        
         # FINISH
         
     def expected_a_eta(self, tau):

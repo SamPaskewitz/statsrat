@@ -79,10 +79,12 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     
     if stage_labels:
         # add labels for stage names
-        n_stage = len(np.unique(ds_var.stage_name))
+        stage = ds_var.stage.values
+        s_min = stage.min()
+        s_max = stage.max()
         stage_start = []
         stage_labels = []
-        for s in range(n_stage):
+        for s in range(s_min, s_max + 1):
             t = ds_var.t.loc[ds_var.stage == s].values
             start_point = t.min()
             stage_start += [start_point]
@@ -372,10 +374,11 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         mean_resp_min = oat_used.mean_resp(data = min_data)
         mean_resp_max['parameters'] = 'max'
         mean_resp_min['parameters'] = 'min'
-        mean_resp = pd.concat([mean_resp_min, mean_resp_max])
+        mean_resp = pd.DataFrame([mean_resp_min, mean_resp_max])
     else:
         mean_resp_min = None
         mean_resp = mean_resp_max
+        # FIGURE THIS BULLSHIT OUT
     
     return (output, mean_resp)    
 

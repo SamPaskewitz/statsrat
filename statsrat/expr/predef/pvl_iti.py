@@ -421,8 +421,8 @@ renewal = learn.experiment(resp_type = 'exct',
 reinstatement = learn.experiment(resp_type = 'exct',
                                  schedules = {'experimental': extn_extra_us, 'control': extn_extra_time},
                                  oats = {'reinstatement': learn.oat(schedule_pos = ['experimental'],
-                                                                         schedule_neg = ['control'],
-                                                                         behav_score_pos = test_score)
+                                                                    schedule_neg = ['control'],
+                                                                    behav_score_pos = test_score)
 })
 
 # basic latent inhibition

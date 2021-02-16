@@ -1,5 +1,0 @@
-subjectGroup,browser,version,OS,OS_lang,GMT_timestamp,local_timestamp,link,calibration
-"10",Chrome,86.0.4240.80,MacOS,en-US,2020-11-25_12:47:47,2020-11-25_05:47:47,https://www.testable.org/experiment/4058/666579/start?sona_id=65362,0.99
-
-rowNo,randomBlock,if,then,stim1,type,stimFormat,button1,button2,subjectGroup,timestamp,response,RT
-4873,"0",1;2,end;+1,ugrad_consent3,test,.png,Do not agree,Agree,"10",132978,"1",1480

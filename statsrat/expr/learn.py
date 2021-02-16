@@ -1001,6 +1001,7 @@ class oat:
             n_tn = len(trial_name) # number of trial names (i.e. trial types)
             n_u = len(u_name) # number of outcomes
             da_neg = xr.DataArray(data = np.zeros((n_s, n_tn, n_u)),
+                                  dims = ['schedule', 'trial_name', 'u_name'],
                                   coords = {'schedule': self.schedule_neg,
                                             'trial_name': trial_name,
                                             'u_name': u_name})

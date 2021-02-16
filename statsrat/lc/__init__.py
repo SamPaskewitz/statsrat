@@ -11,7 +11,7 @@ class model:
     
     Attributes
     ----------
-    name : str
+    name: str
         Model name.
     u_dist: object
         Distribution of the outcome vector.
@@ -19,7 +19,7 @@ class model:
         Distribution of the stimulus vector.
     prior: function
         Prior on latent causes.
-    par_names : list
+    par_names: list
         Names of the model's free parameters (strings).
           
     Methods
@@ -46,7 +46,7 @@ class model:
         '''
         Parameters
         ----------
-        name : str
+        name: str
             Model name.
         u_dist: object
             Distribution of the outcome vector.
@@ -69,17 +69,17 @@ class model:
         
         Parameters
         ----------
-        trials : dataset (xarray)
+        trials: dataset (xarray)
             Time step level experimental data (cues, outcomes etc.).
 
-        resp_type : str, optional
+        resp_type: str, optional
             Type of behavioral response: one of 'choice', 'exct' or 'supr'.
             Defaults to 'choice'.
 
-        par_val : list, optional
+        par_val: list, optional
             Learning model parameters (floats or ints).
 
-        random_resp : str, optional
+        random_resp: str, optional
             Whether or not simulated responses should be random.  Defaults
             to false, in which case behavior (b) is identical to expected
             behavior (b_hat); this saves some computation time.  If true
@@ -88,12 +88,12 @@ class model:
             'exct' or 'supr' then a small amount of normally distributed
             noise (sd = 0.01) is added to b_hat.
 
-        ident : str, optional
+        ident: str, optional
             Individual participant identifier.  Defaults to 'sim'.
 
         Returns
         -------
-        ds : dataset
+        ds: dataset
             Simulation data.
 
         Notes
@@ -151,7 +151,7 @@ class model:
         u_dist = self.u_dist(sim_pars, n_t, n_u, max_z) # outcome distribution
         x_dist = self.x_dist(sim_pars, n_t, n_x, max_z) # stimulus distribution
         tau_u = np.zeros((n_t, max_z, u_dist.n_tau)) # natural hyperparameters of outcome distribution
-        tau_x = np.zeros(n_t, max_z, x_dist.n_tau)) # natural hyperparameters of stimulus distribution
+        tau_x = np.zeros((n_t, max_z, x_dist.n_tau)) # natural hyperparameters of stimulus distribution
         prior = np.zeros((n_t, max_z)) # prior on latent causes
         post_x = np.zeros((n_t, max_z)) # posterior of latent causes after observing x, but before observing u
         post_xu = np.zeros((n_t, max_z)) # posterior of latent causes after observing both x and u
@@ -172,9 +172,14 @@ class model:
             # calculate posterior on latent causes before observing outcome (u)
             prior[t, :] = self.prior(sim_pars, t, z_est, z_counts, max_z) # prior on latent causes
             x_obs_sofar[x[t, :] > 0] = 1 # keep track of stimulus attributes (x) observed so far
-            x_lik[t, :] = x_dist.lik(obs = x[t, :], use = x_obs_sofar) # likelihood of x (based on attributes observed so far)
+            #x_lik[t, :] = x_dist.lik(obs = x[t, :], use = x_obs_sofar) # likelihood of x (based on attributes observed so far)
+            
+            x_lik_array = np.zeros(n_x)
+            for i in range(n_x):
+                x_lik_array[i] = np.exp(np.inner(x_dist.suf_stat(x[t, :]), x_dist.expected_eta)) # FIX!!!
+            x_lik[t, :] = np.prod(x_lik_array) # unnormalized likelihood of x using variational means of parameters
             numerator = prior[t, :]*x_lik[t, :]
-            post_x[t, :] = numerator/numerator.sum() # posterior on latent causes after observing only x
+            post_x[t, :] = numerator/numerator.sum() # posterior on latent causes after observing only x (using variational means)
             
             # reward prediction, before feedback
             #u_hat[t, :] = u_dist.predict(sim_pars, t, x[t, :], u_psb[t, :], post_x[t, :]) # prediction
@@ -185,14 +190,16 @@ class model:
             # calculate posterior on latent causes after observing outcome (u)
             u_obs_sofar[u[t, :] > 0] = 1 # keep track of outcomes (u) observed so far
             #u_lik[t, :] = u_dist.lik(obs = u[t, :], use = u_psb[t, :]*u_obs_sofar) # likelihood of u
-            u_lik[t, :] = np.exp() # FINISH
+            u_lik[t, :] = np.exp() # unnormalized likelihood of u using variational means of parameters
             new_numerator = numerator*u_lik[t, :]
-            post_xu[t, :] = new_numerator/new_numerator.sum() # posterior on latent causes after observing both x and u
+            post_xu[t, :] = new_numerator/new_numerator.sum() # posterior on latent causes after observing both x and u (using variational means)
                          
             # update x and u distribution parameters
             # ADD EFFECT OF u_lrn
-            x_dist.update(x[t, :], post_xu[t, :])
-            u_dist.update(u[t, :], post_xu[t, :])
+            tau_u[t, :, :] += post_xu[t, :]@(u_lrn[t, :]*u_dist.suf_stat(u[t, :]))
+            tau_x[t, :, :] += post_xu[t, :]@(x_obs_sofar*x_dist.suf_stat(x[t, :]))
+            #x_dist.update(x[t, :], post_xu[t, :])
+            #u_dist.update(u[t, :], post_xu[t, :])
             
         # generate simulated responses
         if random_resp is False:
