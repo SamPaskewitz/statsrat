@@ -411,15 +411,17 @@ class schedule:
     trial_def: data frame
         Defines the trial types implied by 'stage_list'.
     x_names: list of str
-        List specifying the names of cues (stimulus attributes).
+        Names of cues (stimulus attributes).
     x_dims: dict or None
-            If not None, then a dictionary specifying the cues belonging to
-            each stimulus dimension.  Keys are dimension names and values
-            are cue names (i.e. 'x_names').
+        If not None, then a dictionary specifying the cues belonging to
+        each stimulus dimension.  Keys are dimension names and values
+        are cue names (i.e. 'x_names').
     dim_names: list of str or None
         Names of stimulus dimensions.
     u_names: list of str
-        List specifying the names of outcomes.
+        Names of outcomes.
+    ex_names: list of str
+        Names of exemplars (unique cue combinations).
     n_stage: int
         The number of stages.
     n_x: int
@@ -430,6 +432,8 @@ class schedule:
         The number of outcomes.
     n_t: int
         The number of time steps in the entire schedule.
+    n_ex: int
+        The number of exemplars (unique cue combinations).
 
     Notes
     -----
@@ -475,23 +479,27 @@ class schedule:
     t: int
         Time step dimension.
     t_name: str
-        Alternative coordinates for time steps (dimension t).
+        Alternative coordinate for time steps (dimension t).
         Labels time steps as 'main' when at least one punctate cue is present
         and 'bg' ('background') otherwise (e.g. during the inter-trial
         interval).
+    ex_name: str
+        Alternative coordinate for time steps (dimension t).
+        Specifies the combination of cues (both background and punctate)
+        present during that time step.
     trial: int
-        Alternative coordinates for time steps (dimension t).
+        Alternative coordinate for time steps (dimension t).
         Each trial consists of one or more time steps.  This indicates
         which time steps correspond to each trial.  The ITI (inter-trial
         interval) is considered part of the trial that it precedes.
     trial_name: str
-        Alternative coordinates for time steps (dimension t).
+        Alternative coordinate for time steps (dimension t).
         Name of the trial type.  Has the form 'cues -> outcomes'.
     stage : int
-        Alternative coordinates for time steps (dimension t).
+        Alternative coordinate for time steps (dimension t).
         Indicates experimental stage by order.
     stage_name: str
-        Alternative coordinates for time steps (dimension t).
+        Alternative coordinate for time steps (dimension t).
         Indicates experimental stage by name.
     u_name: str
         Outcome/CS/response dimension.
@@ -551,6 +559,7 @@ class schedule:
         trial_name = []
         t = []
         t_name = []
+        ex_name = []
         
         k = 0 # time step index
         for i in range(n_stage):
@@ -567,24 +576,31 @@ class schedule:
                                   (False, True): 'nothing' + ' -> ' + '.'.join(stage_list[i].u[j]),
                                   (False, False): 'background'}
                 new_trial_name = possible_names[(has_x_pn, has_u)]
-                trial_name += (iti + 1)*[new_trial_name]
+                trial_name += (iti + 1)*[new_trial_name]                
+                # other information
                 x.loc[{'row': range(k, k + iti + 1), 'x_name': stage_list[i].x_bg}] = 1.0
                 u_psb.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
                 if stage_list[i].lrn == True:
                     u_lrn.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
                 has_main = has_x_pn or has_u # indicates whether there is a 'main' time step
                 if has_main:
+                    # set up time steps before 'main' (if there are any)
                     if iti > 0:
                         t_name += (iti - 1)*['bg']
                         t_name += ['pre_main']
-                    t_name += ['main']
+                        ex_name += iti*['.'.join(stage_list[i].x_bg)]
                     # set up 'main', i.e. time step with punctate cues/outcomes
+                    t_name += ['main']
                     if has_x_pn:
                         x.loc[{'row': k + iti, 'x_name': stage_list[i].x_pn[j]}] = 1.0
+                        ex_name += ['.'.join(stage_list[i].x_bg + stage_list[i].x_pn[j])]
+                    else:
+                        ex_name += ['.'.join(stage_list[i].x_bg)]
                     if has_u:
                         u.loc[{'row': k + iti, 'u_name': stage_list[i].u[j]}] = stage_list[i].u_value.loc[stage_list[i].u[j]]
                 else:
                     t_name += (iti + 1)*['bg']
+                    ex_name += (iti + 1)*['.'.join(stage_list[i].x_bg)]
                 # advance time step index
                 k += iti + 1                
 
@@ -595,6 +611,7 @@ class schedule:
                                             'u_lrn': (['t', 'u_name'], u_lrn)},
                                coords = {'t': range(len(stage)),
                                          't_name': ('t', t_name),
+                                         'ex_name': ('t', ex_name),
                                          'trial': ('t', trial),
                                          'trial_name': ('t', trial_name),
                                          'stage': ('t', stage),
@@ -609,17 +626,19 @@ class schedule:
             trial_names = trial_def.loc[{'t' : indexer}].trial_name
             all_unique = len(trial_names) == len(np.unique(trial_names))
             assert all_unique, 'Duplicate trial definition found in stage "{}" of schedule "{}".'.format(stage_list[i].name, name)
-
+                    
         # record information in new object ('self')
         self.name = name
         self.stage_list = stage_list
         self.trial_def = trial_def
         self.x_names = x_names
         self.u_names = u_names
+        self.ex_names = np.unique(trial_def['ex_name'])
         self.n_stage = n_stage        
         self.n_x = n_x
         self.n_u = n_u
         self.n_t = n_t
+        self.n_ex = len(self.ex_names)
         
         # record stimulus dimension info, if any
         if not x_dims is None:

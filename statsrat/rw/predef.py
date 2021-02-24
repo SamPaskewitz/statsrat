@@ -26,13 +26,21 @@ intercept = rw.model(name = 'intercept',
                      drate = rw.drate.zero,
                      aux = rw.aux.basic)
 
-# Rescorla-Wagner model with added binary configural features.
+# Rescorla-Wagner model with binary configural features.
 cfg2 = rw.model(name = 'cfg2',
                 fbase = rw.fbase.cfg2,
                 fweight = rw.fweight.none,
                 lrate = rw.lrate.cnst,
                 drate = rw.drate.zero,
                 aux = rw.aux.basic)
+
+# Rescorla-Wagner model with binary configural features and intercept.
+cfg2_intercept = rw.model(name = 'cfg2_intercept',
+                          fbase = rw.fbase.cfg2_intercept,
+                          fweight = rw.fweight.none,
+                          lrate = rw.lrate.cnst,
+                          drate = rw.drate.zero,
+                          aux = rw.aux.basic)
 
 # Rescorla-Wagner model with harmonically decaying learning rate.
 hrmn = rw.model(name = 'hrmn',

@@ -395,72 +395,72 @@ test_score = expr.behav_score(stage = 'test',
 
 # basic conditioning, i.e. acquistion of a conditioned response
 conditioning = expr.experiment(resp_type = 'exct',
-                                schedules = {'control': no_cond, 'experimental': cond},
-                                oats = {'acquistion_of_cr': expr.oat(schedule_pos = ['experimental'],
-                                                                      schedule_neg = ['control'],
-                                                                      behav_score_pos = test_score)
-})
-
-# basic extinction of a conditioned response
-extinction = expr.experiment(resp_type = 'exct',
-                              schedules = {'control': cond, 'experimental': extn},
-                              oats = {'extinction_of_cr': expr.oat(schedule_pos = ['control'],
-                                                                    schedule_neg = ['experimental'],
-                                                                    behav_score_pos = test_score)
-})
-
-# context dependence of extinction (i.e. ABC renewal)
-renewal = expr.experiment(resp_type = 'exct',
-                           schedules = {'experimental': extn_abc, 'control': extn},
-                           oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
-                                                        schedule_neg = ['control'],
-                                                        behav_score_pos = test_score)
-})
-
-# reinstatement
-reinstatement = expr.experiment(resp_type = 'exct',
-                                 schedules = {'experimental': extn_extra_us, 'control': extn_extra_time},
-                                 oats = {'reinstatement': expr.oat(schedule_pos = ['experimental'],
+                               schedules = {'control': no_cond, 'experimental': cond},
+                               oats = {'acquistion_of_cr': expr.oat(schedule_pos = ['experimental'],
                                                                     schedule_neg = ['control'],
                                                                     behav_score_pos = test_score)
 })
 
+# basic extinction of a conditioned response
+extinction = expr.experiment(resp_type = 'exct',
+                             schedules = {'control': cond, 'experimental': extn},
+                             oats = {'extinction_of_cr': expr.oat(schedule_pos = ['control'],
+                                                                  schedule_neg = ['experimental'],
+                                                                  behav_score_pos = test_score)
+})
+
+# context dependence of extinction (i.e. ABC renewal)
+renewal = expr.experiment(resp_type = 'exct',
+                          schedules = {'experimental': extn_abc, 'control': extn},
+                          oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
+                                                      schedule_neg = ['control'],
+                                                      behav_score_pos = test_score)
+})
+
+# reinstatement
+reinstatement = expr.experiment(resp_type = 'exct',
+                                schedules = {'experimental': extn_extra_us, 'control': extn_extra_time},
+                                oats = {'reinstatement': expr.oat(schedule_pos = ['experimental'],
+                                                                  schedule_neg = ['control'],
+                                                                  behav_score_pos = test_score)
+})
+
 # basic latent inhibition
 latent_inhib = expr.experiment(resp_type = 'exct',
-                                schedules = {'control': cond, 'experimental': pre_exp},
-                                oats = {'latent_inhibition': expr.oat(schedule_pos = ['control'],
-                                                                       schedule_neg = ['experimental'],
-                                                                       behav_score_pos = test_score)
+                               schedules = {'control': cond, 'experimental': pre_exp},
+                               oats = {'latent_inhibition': expr.oat(schedule_pos = ['control'],
+                                                                     schedule_neg = ['experimental'],
+                                                                     behav_score_pos = test_score)
 })
 
 # context dependence of latent inhibition
 ctx_li = expr.experiment(resp_type = 'exct',
-                          schedules = {'experimental': pre_exp_abc, 'control': pre_exp},
-                          oats = {'ctx_dependence_li': expr.oat(schedule_pos = ['experimental'],
-                                                                 schedule_neg = ['control'],
-                                                                 behav_score_pos = test_score)
+                         schedules = {'experimental': pre_exp_abc, 'control': pre_exp},
+                         oats = {'ctx_dependence_li': expr.oat(schedule_pos = ['experimental'],
+                                                               schedule_neg = ['control'],
+                                                               behav_score_pos = test_score)
 })
 
 # overshadowing
 overshadowing = expr.experiment(resp_type = 'exct',
-                                 schedules = {'control': cond, 'experimental': two_cue},
-                                 oats = {'overshadowing': expr.oat(schedule_pos = ['control'],
-                                                                    schedule_neg = ['experimental'],
-                                                                    behav_score_pos = test_score)
+                                schedules = {'control': cond, 'experimental': two_cue},
+                                oats = {'overshadowing': expr.oat(schedule_pos = ['control'],
+                                                                  schedule_neg = ['experimental'],
+                                                                  behav_score_pos = test_score)
 })
 
 # blocking
 blocking = expr.experiment(resp_type = 'exct',
-                            schedules = {'control': two_cue, 'experimental': blocking},
-                            oats = {'blocking': expr.oat(schedule_pos = ['control'],
+                           schedules = {'control': two_cue, 'experimental': blocking},
+                           oats = {'blocking': expr.oat(schedule_pos = ['control'],
                                                           schedule_neg = ['experimental'],
                                                           behav_score_pos = test_score)
 })
 
 # spontaneous recovery
 spont_rec = expr.experiment(resp_type = 'exct',
-                             schedules = {'experimental': extn_delay, 'control': extn},
-                             oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
+                            schedules = {'experimental': extn_delay, 'control': extn},
+                            oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
                                                                        schedule_neg = ['control'],
                                                                        behav_score_pos = test_score)
 })

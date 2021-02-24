@@ -3,63 +3,51 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
-from . import fbase, fweight, aux, lrate, drate
 
 class model:
     '''
-    Class for Rescorla-Wagner family learning models.
+    Class for exemplar models.
 
     Attributes
     ----------
     name: str
         Model name.
-    fbase: function
-        Base mapping between cues (x) and features (f_x).
-    fweight: function
-        Attentional weights for features.
-    lrate: function
-        Determines learning rates.
-    drate: function
-        Determines decay rates.
-    aux: object
-        Auxilliary learning, e.g. attention or weight covariance.
+    sim: function
+        Similarity function.
+    atn: object
+        Determines how attention is updated.
     par_names: list
         Names of the model's free parameters (strings).
-
+    lrate: function
+        Determines learning rates for exemplars.
     Methods
     -------
     simulate(trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim')
         Simulate a trial sequence once with known model parameters.
     '''
-
-    def __init__(self, name, fbase, fweight, lrate, drate, aux):
+    
+    def __init__(self, name, sim, atn):
         """
         Parameters
         ----------
         name: str
             Model name.
-        fbase: function
-            Base mapping between cues (x) and features (f_x).
-        fweight: function
-            Attentional weights for features.
+        sim: function
+            Similarity function.
+        atn: object
+            Determines how attention is updated.
         lrate: function
-            Determines learning rates.
-        drate: function
-            Determines decay rates.
-        aux: object
-            Auxilliary learning, e.g. attention or weight covariance.
+            Determines learning rates for exemplars.
         """
         # add attributes to object ('self')
         self.name = name
-        self.fbase = fbase
-        self.fweight = fweight
+        self.sim = sim
+        self.atn = atn
         self.lrate = lrate
-        self.drate = drate
-        self.aux = aux
         # determine model's parameter space
-        par_names = list(np.unique(fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names))
+        par_names = list(np.unique(sim.par_names + atn.par_names + lrate.par_names))
         self.pars = pars.loc[par_names + ['resp_scale']]
- 
+        
     def simulate(self, trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim'):
         """
         Simulate a trial sequence once with known model parameters.
@@ -109,6 +97,7 @@ class model:
 
         Here :math:`\phi` represents the 'resp_scale' parameter.
         """
+        # FINISH UPDATING.
         # use default parameters unless others are given
         if par_val is None:
             sim_pars = self.pars['default']
@@ -126,45 +115,43 @@ class model:
         u = np.array(trials['u'], dtype = 'float64')
         u_psb = np.array(trials['u_psb'], dtype = 'float64')
         u_lrn = np.array(trials['u_lrn'], dtype = 'float64')
+        ex = np.unique(x, axis = 0) # exemplar locations
         x_names = list(trials.x_name.values)
         u_names = list(trials.u_name.values)
-        (fbase, f_names) = self.fbase(x, x_names).values() # features and feature names
-        n_t = fbase.shape[0] # number of time points
-        n_f = fbase.shape[1] # number of features
+        ex_names = trials['t_name']
+        n_t = x.shape[0] # number of time points
+        n_x = x.shape[1] # number of features
         n_u = u.shape[1] # number of outcomes/response options
-        fweight = np.zeros((n_t, n_f))
-        f_x = np.zeros((n_t, n_f))
-        u_hat = np.zeros((n_t, n_u)) # outcome predictions
-        b_hat = np.zeros((n_t, n_u)) # expected behavior
-        delta = np.zeros((n_t, n_u)) # prediction error
-        w = np.zeros((n_t + 1, n_f, n_u))
-        lrate = np.zeros((n_t, n_f, n_u))
-        drate = np.zeros((n_t, n_f, n_u))
+        n_ex = ex.shape[0] # number of exemplars
+        sim = np.zeros((n_t, n_ex)) # similarity to exemplars
+        rtrv = np.zeros((n_t, n_ex)) # retrieval strength, i.e. normalized similarity
+        u_ex = np.zeros((n_t + 1, n_ex, n_u)) # outcomes (u) associated with each exemplar
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
+        # DO I NEED THIS?
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
         else:
             x_dims = None
-        aux = self.aux(sim_pars, n_t, n_f, n_u, f_names, x_dims)
+        atn = self.atn(sim_pars, n_t, n_x, n_ex, f_names, x_dims)
+        ex_seen_yet = np.zeros(n_ex) # keeps track of which exemplars have been observed yet
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
-                     'supr': resp_fun.supr}
+                     'supr': reasp_fun.supr}
         sim_resp_fun = resp_dict[resp_type]
 
         # loop through time steps
         for t in range(n_t):
-            fweight[t, :] = self.fweight(aux, t, fbase, fweight, n_f, sim_pars)
-            f_x[t, :] = fbase[t, :] * fweight[t, :] # weight base features
-            u_hat[t, :] = u_psb[t, :] * (f_x[t, :] @ w[t, :, :]) # prediction
+            # ADD SOMETHING TO KEEP TRACK OF WHICH EXEMPLARS HAVE BEEN OBSERVED YET.
+            sim[t, :] = ex_seen_yet*u_psb[t, ;]*self.sim(x[t, :], ex, atn) # similarity of current stimulus to exemplars
+            rtrv[t, :] = sim[t, :]/sim[t, :].sum()
+            u_hat[t, :] = rtrv[t, :]*u_ex[t, :] # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
-            aux.update(sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
-            lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_u, sim_pars) # learning rates for this time step
-            drate[t, :, :] = self.drate(aux, t, n_f, n_u, sim_pars) # decay rates for this time step
-            w[t+1, :, :] = w[t, :, :] + u_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_u)) - drate[t, :, :]*w[t, :, :] # association learning
-
+            u_ex[t + 1, :, :] = u_ex[t, :, :] + u_lrn[t, :]*self.lrate(rtrv[t, :])*delta[t, :].reshape((1, n_u)) # update u_ex
+            atn.update(sim_pars, u_psb, u_hat, delta, u_ex) # update attention
+            
         # generate simulated responses
         if random_resp is False:
             b = b_hat
@@ -183,15 +170,11 @@ class model:
                                      'u' : (['t', 'u_name'], u),
                                      'u_psb' : (['t', 'u_name'], u_psb),
                                      'u_lrn' : (['t', 'u_name'], u_lrn),
-                                     'fbase' : (['t', 'f_name'], fbase),
-                                     'f_x' : (['t', 'f_name'], f_x),
                                      'u_hat' : (['t', 'u_name'], u_hat),
                                      'b_hat' : (['t', 'u_name'], b_hat),
                                      'b' : (['t', 'u_name'], b),
-                                     'w' : (['t', 'f_name', 'u_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
-                                     'delta' : (['t', 'u_name'], delta),
-                                     'lrate' : (['t', 'f_name', 'u_name'], lrate),
-                                     'drate' : (['t', 'f_name', 'u_name'], drate)},
+                                     'u_ex' : (['t', 'ex_name', 'u_name'], u_ex[range(n_t), :, :]), # remove unnecessary last row
+                                     'delta' : (['t', 'u_name'], delta)},
                         coords = {'t' : range(n_t),
                                   't_name' : ('t', trials.t_name),
                                   'trial' : ('t', trials.trial),
@@ -199,7 +182,7 @@ class model:
                                   'stage' : ('t', trials.stage),
                                   'stage_name' : ('t', trials.stage_name),
                                   'x_name' : x_names,
-                                  'f_name' : f_names,
+                                  'ex_name' : ex_names,
                                   'u_name' : u_names,
                                   'ident' : [ident]},
                         attrs = {'model': self.name,
@@ -214,18 +197,4 @@ class model:
         return ds
 
 ########## PARAMETERS ##########
-
-par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
-par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
-par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
-par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
-par_names += ['extra_counts']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0}]
-par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # min is 0.1 in the R version, but this doesn't work here
-par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
-par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
-par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis
-par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
-par_names += ['u_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
-par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter
-pars = pd.DataFrame(par_list, index = par_names)
-del par_names; del par_list
+# FILL THIS OUT.
