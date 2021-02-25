@@ -3,6 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
+from . import sim, atn, lrate
 
 class model:
     '''
@@ -16,17 +17,18 @@ class model:
         Similarity function.
     atn: object
         Determines how attention is updated.
-    par_names: list
-        Names of the model's free parameters (strings).
     lrate: function
         Determines learning rates for exemplars.
+    par_names: list
+        Names of the model's free parameters (strings).
+
     Methods
     -------
     simulate(trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim')
         Simulate a trial sequence once with known model parameters.
     '''
     
-    def __init__(self, name, sim, atn):
+    def __init__(self, name, sim, atn, lrate):
         """
         Parameters
         ----------
@@ -118,7 +120,7 @@ class model:
         ex = np.unique(x, axis = 0) # exemplar locations
         x_names = list(trials.x_name.values)
         u_names = list(trials.u_name.values)
-        ex_names = trials['t_name']
+        ex_names = list() # FIGURE THIS OUT (NEED RIGHT ORDER)
         n_t = x.shape[0] # number of time points
         n_x = x.shape[1] # number of features
         n_u = u.shape[1] # number of outcomes/response options
@@ -127,7 +129,6 @@ class model:
         rtrv = np.zeros((n_t, n_ex)) # retrieval strength, i.e. normalized similarity
         u_ex = np.zeros((n_t + 1, n_ex, n_u)) # outcomes (u) associated with each exemplar
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
-        # DO I NEED THIS?
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
         else:
@@ -143,9 +144,12 @@ class model:
 
         # loop through time steps
         for t in range(n_t):
+            for i in range(n_ex):
+                if 
+                ex_seen_yet[]
             # ADD SOMETHING TO KEEP TRACK OF WHICH EXEMPLARS HAVE BEEN OBSERVED YET.
             sim[t, :] = ex_seen_yet*u_psb[t, ;]*self.sim(x[t, :], ex, atn) # similarity of current stimulus to exemplars
-            rtrv[t, :] = sim[t, :]/sim[t, :].sum()
+            rtrv[t, :] = sim[t, :]/sim[t, :].sum() # retrieval strength (normalized similarity)
             u_hat[t, :] = rtrv[t, :]*u_ex[t, :] # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error

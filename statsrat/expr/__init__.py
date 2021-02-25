@@ -618,7 +618,13 @@ class schedule:
                                          'stage_name': ('t', stage_name),
                                          'x_name': x_names,
                                          'u_name': u_names,
-                                         'schedule': name})                                      
+                                         'schedule': name})
+        
+        # create a dataframe for exemplars, and attach to trial type dataset as an attribute
+        ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
+        ex_names = trial_def['ex_name'].loc[{'t': ex_index}].values
+        ex_df = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
+        trial_def = trial_def.assign_attrs(ex = ex_df)
 
         # make sure that no trial type is duplicated within any stage
         for i in range(n_stage):
@@ -633,7 +639,7 @@ class schedule:
         self.trial_def = trial_def
         self.x_names = x_names
         self.u_names = u_names
-        self.ex_names = np.unique(trial_def['ex_name'])
+        self.ex_names = ex_names
         self.n_stage = n_stage        
         self.n_x = n_x
         self.n_u = n_u
