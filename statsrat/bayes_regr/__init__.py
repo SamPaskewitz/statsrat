@@ -26,6 +26,8 @@ class model:
             Determines distribution of tausq_inv (prior precision for regression weights).
     par_names: list
         Names of the model's free parameters (strings).
+    pars: dict
+        Information about model parameters.
 
     Methods
     -------
@@ -79,8 +81,8 @@ class model:
         self.link = link
         self.tausq_inv_dist = tausq_inv_dist
         # determine model's parameter space
-        par_names = list(np.unique(fbase.par_names + link.par_names + tausq_inv_dist.par_names))
-        self.pars = pars.loc[par_names + ['resp_scale']]
+        self.par_names = list(np.unique(fbase.par_names + link.par_names + tausq_inv_dist.par_names))
+        self.pars = pars.loc[self.par_names + ['resp_scale']]
  
     def simulate(self, trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim'):
         """

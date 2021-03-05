@@ -25,6 +25,8 @@ class model:
         Auxilliary learning, e.g. attention or weight covariance.
     par_names: list
         Names of the model's free parameters (strings).
+    pars: dict
+        Information about model parameters.
 
     Methods
     -------
@@ -57,8 +59,8 @@ class model:
         self.drate = drate
         self.aux = aux
         # determine model's parameter space
-        par_names = list(np.unique(fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names))
-        self.pars = pars.loc[par_names + ['resp_scale']]
+        self.par_names = list(np.unique(fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names))
+        self.pars = pars.loc[self.par_names + ['resp_scale']]
  
     def simulate(self, trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim'):
         """

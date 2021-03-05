@@ -28,8 +28,7 @@ class drva:
         self.data['atn'][t, :] = new_atn
 
     def add_data(self, ds):
-        return ds.assign(atn = (['t', 'f_name'], self.data['atn']))
-    
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'])) 
 drva.par_names = ['atn_min']
 
 class grad:
