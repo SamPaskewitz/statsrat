@@ -33,7 +33,7 @@ class experiment:
     
     See 'predef.pvl' for Pavlovian conditioning examples.
     """
-    def __init__(self, resp_type, schedules, oats, notes = None):
+    def __init__(self, resp_type, schedules, oats = None, notes = None):
         """
         Parameters
         ----------
@@ -42,8 +42,9 @@ class experiment:
         schedules : dict
             A dictionary of the experiment's schedules (sequences of stimuli and feedback etc
             that typically correspond to groups in the experimental design).
-        oats : dict
-            A dictionary of the experiment's ordinal adequacy tests (OATs).
+        oats : dict or None, optional
+            A dictionary of the experiment's ordinal adequacy tests (OATs), or
+            else None (experiment has no OATs).  Defaults to None.
         notes : str or None, optional
             Notes on the experiment (e.g. explanation of design, references).
             Defaults to None (i.e. no notes).
@@ -53,12 +54,13 @@ class experiment:
         for s in schedules:
             is_scd += [isinstance(s, schedule)]
         assert False in is_scd, 'Non-schedule object input as schedule.'
-        # check that everything in the 'oat' argument is an oat object
-        if len(oats) > 0:
-            is_oat = []
-            for o in oats:
-                is_oat += [isinstance(o, oat)]
-            assert False in is_oat, 'Non-oat object input as oat.'
+        if not oats is None:
+            # check that everything in the 'oat' argument is an oat object
+            if len(oats) > 0:
+                is_oat = []
+                for o in oats:
+                    is_oat += [isinstance(o, oat)]
+                assert False in is_oat, 'Non-oat object input as oat.'
         # add stuff to 'self'
         self.resp_type = resp_type
         self.schedules = schedules
@@ -527,18 +529,22 @@ class schedule:
         u_names = []
         n_t = 0 # total number of time steps in the whole experiment
         n_t_trial_def = 0 # total number of time steps with one trial of each type
+        # loop through stages
+        has_varying_x_value = [] # cues that have x_value which varies (more accurately is sometimes different from 0 or 1)
         for i in range(n_stage):
             n_t_trial_def += (stage_list[i].iti + 1)*stage_list[i].n_trial_type
             n_t += (stage_list[i].iti + 1)*np.sum(stage_list[i].freq)*stage_list[i].n_rep
             stage_names += [stage_list[i].n_trial_type*stage_list[i].name]
             stage_number += [stage_list[i].n_trial_type*i]
-            x_names += stage_list[i].x_bg
+            x_names += stage_list[i].x_names
             u_names += stage_list[i].u_psb
             for j in range(stage_list[i].n_trial_type):
-                x_new = stage_list[i].x_pn[j]
                 u_new = stage_list[i].u[j]
-                x_names += x_new
                 u_names += u_new
+            for xn in stage_list[i].x_names:
+                if not stage_list[i].x_value[xn] in [0.0, 1.0]:
+                    has_varying_x_value += [xn]
+        has_varying_x_value = list(np.unique(has_varying_x_value))
         x_names = list(np.unique(x_names))
         u_names = list(np.unique(u_names))
         n_x = len(x_names)
@@ -559,13 +565,22 @@ class schedule:
         trial_name = []
         t = []
         t_name = []
-        ex_name = []
+        ex_name = []           
         
         k = 0 # time step index
+        # loop through stages
         for i in range(n_stage):
             iti = stage_list[i].iti
             stage += (iti + 1)*stage_list[i].n_trial_type*[i]
             stage_name += (iti + 1)*stage_list[i].n_trial_type*[stage_list[i].name]
+            # figure out cue names for use in exemplar naming (may include x_value if that is not only 0.0 or 1.0)
+            x_names_ex = pd.Series('', index = stage_list[i].x_names)
+            for xn in stage_list[i].x_names:
+                if xn in has_varying_x_value:
+                    x_names_ex[xn] = xn + str(stage_list[i].x_value[xn])
+                else:
+                    x_names_ex[xn] = xn
+            # loop through trial types
             for j in range(stage_list[i].n_trial_type):
                 trial += (iti + 1)*[j]
                 # figure out trial name
@@ -578,29 +593,30 @@ class schedule:
                 new_trial_name = possible_names[(has_x_pn, has_u)]
                 trial_name += (iti + 1)*[new_trial_name]                
                 # other information
-                x.loc[{'row': range(k, k + iti + 1), 'x_name': stage_list[i].x_bg}] = 1.0
+                x.loc[{'row': range(k, k + iti + 1), 'x_name': stage_list[i].x_bg}] = stage_list[i].x_value.loc[stage_list[i].x_bg] # background cues (x_bg)
                 u_psb.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
                 if stage_list[i].lrn == True:
                     u_lrn.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
+                # yet more information
                 has_main = has_x_pn or has_u # indicates whether there is a 'main' time step
                 if has_main:
                     # set up time steps before 'main' (if there are any)
                     if iti > 0:
                         t_name += (iti - 1)*['bg']
                         t_name += ['pre_main']
-                        ex_name += iti*['.'.join(stage_list[i].x_bg)]
+                        ex_name += iti*['.'.join(x_names_ex[stage_list[i].x_bg])]
                     # set up 'main', i.e. time step with punctate cues/outcomes
                     t_name += ['main']
                     if has_x_pn:
-                        x.loc[{'row': k + iti, 'x_name': stage_list[i].x_pn[j]}] = 1.0
-                        ex_name += ['.'.join(stage_list[i].x_bg + stage_list[i].x_pn[j])]
+                        x.loc[{'row': k + iti, 'x_name': stage_list[i].x_pn[j]}] = stage_list[i].x_value.loc[stage_list[i].x_pn[j]] # punctate cues (x_pn)
+                        ex_name += ['.'.join(x_names_ex[stage_list[i].x_bg + stage_list[i].x_pn[j]])]
                     else:
-                        ex_name += ['.'.join(stage_list[i].x_bg)]
+                        ex_name += ['.'.join(x_names_ex[stage_list[i].x_bg])]
                     if has_u:
                         u.loc[{'row': k + iti, 'u_name': stage_list[i].u[j]}] = stage_list[i].u_value.loc[stage_list[i].u[j]]
                 else:
                     t_name += (iti + 1)*['bg']
-                    ex_name += (iti + 1)*['.'.join(stage_list[i].x_bg)]
+                    ex_name += (iti + 1)*['.'.join(x_names_ex[stage_list[i].x_bg])]
                 # advance time step index
                 k += iti + 1                
 
@@ -683,6 +699,11 @@ class stage:
         throughout stage).
         Can leave blank, e.g. for most human cat. learning
         tasks.
+    x_value : series (Pandas)
+        Indicates numerical values that cues take when present in the stage,
+        e.g. different values of height.
+    x_names: list of str
+        Names of cues (stimulus attributes).
     freq : list
         Should have one list for each trial type of integers
         specifying the number of times each trial type is
@@ -693,7 +714,7 @@ class stage:
     u_psb : list
         Strings specifying outcomes the learner considers
         possible during the stage.
-    u_value : Series (Pandas) or None, optional
+    u_value : series (Pandas) or None, optional
         Indicates the value or intensity of each outcome, e.g.
         varying amounts of money, shock or food.
     lrn : logical
@@ -710,7 +731,7 @@ class stage:
         that outcomes cannot occur during the ITI, as in most
         human category learning experiments.
     """
-    def __init__(self, name, n_rep, x_pn, x_bg = [], freq = None, u = None, u_psb = None, u_value = None, lrn = True, order_fixed = False, iti = 0):
+    def __init__(self, name, n_rep, x_pn, x_bg = [], x_value = None, freq = None, u = None, u_psb = None, u_value = None, lrn = True, order_fixed = False, iti = 0):
         """
         Parameters
         ----------
@@ -727,6 +748,10 @@ class stage:
             throughout stage).  Defaults to an empty list (no background
             cues), which is suitable for most human category learning
             tasks.
+        x_value : series (Pandas) or None, optional
+            Indicates numerical values that cues take when present in the stage,
+            e.g. different values of height.  If None (default), then
+            cues are indicated by 1.0 when present.
         freq : list or None, optional
             List of integers specifying the number of times each trial
             type is presented during each repetition (i.e. block).
@@ -763,6 +788,15 @@ class stage:
         self.n_trial_type = len(x_pn) # number of trial types
         self.x_pn = x_pn
         self.x_bg = x_bg
+        x_names = []
+        for xi in x_pn:
+            x_names += xi
+        x_names += x_bg
+        self.x_names = list(np.unique(x_names))
+        if x_value is None:
+            self.x_value = pd.Series(1.0, index = self.x_names)
+        else:
+            self.x_value = x_value
         if freq is None:
             self.freq = self.n_trial_type*[1]
         else:
