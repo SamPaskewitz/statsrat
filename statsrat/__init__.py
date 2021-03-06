@@ -231,8 +231,11 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
             new += [experiment.make_trials(schedule = s)]
         trials_list[s] = new
 
-    # set up ordinary (non-task dependent) parameters
-    free_names = model.pars.index.tolist()# get rid of resp_scale as a free parameter (it's fixed at 5)
+    # set up parameter space
+    par_names = model.pars.index.tolist()
+    free_names = par_names.copy()
+    if 'resp_scale' in free_names: # get rid of resp_scale as a free parameter (it's fixed at 5)
+        free_names.remove('resp_scale') # modifies list in place
     n_free = len(free_names) # number of free parameters
     free_pars = model.pars.loc[free_names] # free parameters
     mid_pars = (free_pars['max'] + free_pars['min'])/2 # midpoint of each parameter's allowed interval
@@ -259,8 +262,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     #        overall_pars[s] += 
     
     # set up objective function
-    if 'resp_scale' in free_names:
-        free_names.remove('resp_scale') # modifies list in place
+    if 'resp_scale' in par_names:
         # define objective function
         if verbose:
             def f(x, grad = None):

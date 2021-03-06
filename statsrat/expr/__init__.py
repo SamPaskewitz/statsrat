@@ -911,7 +911,7 @@ class oat:
         # negative schedules
             neg_scores = np.array([])
             for s in self.schedule_neg:
-                neg_scores = np.append(neg_scores, self.behav_score_pos.compute_scores(ds = data[s]))
+                neg_scores = np.append(neg_scores, self.behav_score_neg.compute_scores(ds = data[s]))
             neg_mean = np.mean(neg_scores)
             total = pos_mean - neg_mean
         else:
@@ -964,7 +964,7 @@ class oat:
             # two sample interval (mean difference)
             neg_scores = np.array([])
             for s in self.schedule_neg:
-                neg_scores = np.append(neg_scores, self.behav_score_pos.compute_scores(ds = data[s]))
+                neg_scores = np.append(neg_scores, self.behav_score_neg.compute_scores(ds = data[s]))
             neg_mean = np.mean(neg_scores)
             neg_var = np.var(neg_scores)
             neg_df = len(neg_scores) - 1
@@ -1047,14 +1047,14 @@ class oat:
         if not self.schedule_neg is None:
             # relevant trial names (i.e. trial types)
             if self.behav_score_neg.trial_neg is None:
-                trial_name = self.behav_score_neg.trial_pos
+                trial_name = np.unique(self.behav_score_neg.trial_pos)
             else:
-                trial_name = self.behav_score_neg.trial_pos + self.behav_score_neg.trial_neg
+                trial_name = np.unique(self.behav_score_neg.trial_pos + self.behav_score_neg.trial_neg)
             # relevant response (outcome) names
             if self.behav_score_neg.resp_neg is None:
-                u_name = self.behav_score_neg.resp_pos
+                u_name = np.unique(self.behav_score_neg.resp_pos)
             else:
-                u_name = self.behav_score_neg.resp_pos + self.behav_score_neg.resp_neg
+                u_name = np.unique(self.behav_score_neg.resp_pos + self.behav_score_neg.resp_neg)
             # set up data array
             n_s = len(self.schedule_neg) # number of positive schedules
             n_tn = len(trial_name) # number of trial names (i.e. trial types)
@@ -1066,16 +1066,20 @@ class oat:
                                             'u_name': u_name})
             # loop through schedules
             for s in self.schedule_neg:
-                ds_s = data_dict[s].loc[{'t': data_dict[s].stage_name == self.behav_score_neg.stage}]
+                df_s = data_dict[s].to_dataframe()
+                df_s.reset_index(inplace=True)
                 for tn in trial_name:
+                    index_tn = np.array(df_s.trial_name == tn)
+                    index_sn = np.array(df_s.stage_name == self.behav_score_neg.stage)
                     for un in u_name:
-                        index = ds_s.trial_name == tn
-                        mean_resp = ds_s['b'].loc[{'t': index, 'u_name': un}].mean()
+                        index_un = np.array(df_s.u_name == un)
+                        index = index_tn*index_sn*index_un
+                        mean_resp = df_s['b'].loc[index].mean()
                         da_neg.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
             df_neg = da_neg.to_dataframe(name = 'mean_resp')
             df_neg.reset_index(inplace = True)
             # package data for output
-            mean_resp = {'pos': df_pos, 'neg': df_neg}
+            mean_resp = pd.concat([df_pos, df_neg])
         else:
             mean_resp = df_pos
             

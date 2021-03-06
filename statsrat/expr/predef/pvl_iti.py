@@ -385,10 +385,18 @@ extn_delay = expr.schedule(name = 'extinction_delay',
                                              n_rep = 5)
                                    ])
 
-##### DEFINE BEHAVIORAL SCORE #####
-test_score = expr.behav_score(stage = 'test',
-                               trial_pos = ['cs -> nothing', 'cs1 -> nothing'],
-                               resp_pos = 2*['us'])
+##### DEFINE BEHAVIORAL SCORES #####
+cs_score = expr.behav_score(stage = 'test',
+                            trial_pos = ['cs -> nothing'],
+                            resp_pos = 2*['us'])
+
+cs1_score = expr.behav_score(stage = 'test',
+                             trial_pos = ['cs1 -> nothing'],
+                             resp_pos = 2*['us'])
+
+cs2_score = expr.behav_score(stage = 'test',
+                             trial_pos = ['cs2 -> nothing'],
+                             resp_pos = 2*['us'])
 
 
 ##### DEFINE OATS AND EXPERIMENTS #####
@@ -398,7 +406,8 @@ conditioning = expr.experiment(resp_type = 'exct',
                                schedules = {'control': no_cond, 'experimental': cond},
                                oats = {'acquistion_of_cr': expr.oat(schedule_pos = ['experimental'],
                                                                     schedule_neg = ['control'],
-                                                                    behav_score_pos = test_score)
+                                                                    behav_score_pos = cs_score,
+                                                                    behav_score_neg = cs_score)
 })
 
 # basic extinction of a conditioned response
@@ -406,7 +415,8 @@ extinction = expr.experiment(resp_type = 'exct',
                              schedules = {'control': cond, 'experimental': extn},
                              oats = {'extinction_of_cr': expr.oat(schedule_pos = ['control'],
                                                                   schedule_neg = ['experimental'],
-                                                                  behav_score_pos = test_score)
+                                                                  behav_score_pos = cs_score,
+                                                                  behav_score_neg = cs_score)
 })
 
 # context dependence of extinction (i.e. ABC renewal)
@@ -414,7 +424,8 @@ renewal = expr.experiment(resp_type = 'exct',
                           schedules = {'experimental': extn_abc, 'control': extn},
                           oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                       schedule_neg = ['control'],
-                                                      behav_score_pos = test_score)
+                                                      behav_score_pos = cs_score,
+                                                      behav_score_neg = cs_score)
 })
 
 # reinstatement
@@ -422,7 +433,8 @@ reinstatement = expr.experiment(resp_type = 'exct',
                                 schedules = {'experimental': extn_extra_us, 'control': extn_extra_time},
                                 oats = {'reinstatement': expr.oat(schedule_pos = ['experimental'],
                                                                   schedule_neg = ['control'],
-                                                                  behav_score_pos = test_score)
+                                                                  behav_score_pos = cs_score,
+                                                                  behav_score_neg = cs_score)
 })
 
 # basic latent inhibition
@@ -430,7 +442,8 @@ latent_inhib = expr.experiment(resp_type = 'exct',
                                schedules = {'control': cond, 'experimental': pre_exp},
                                oats = {'latent_inhibition': expr.oat(schedule_pos = ['control'],
                                                                      schedule_neg = ['experimental'],
-                                                                     behav_score_pos = test_score)
+                                                                     behav_score_pos = cs_score,
+                                                                     behav_score_neg = cs_score)
 })
 
 # context dependence of latent inhibition
@@ -438,7 +451,8 @@ ctx_li = expr.experiment(resp_type = 'exct',
                          schedules = {'experimental': pre_exp_abc, 'control': pre_exp},
                          oats = {'ctx_dependence_li': expr.oat(schedule_pos = ['experimental'],
                                                                schedule_neg = ['control'],
-                                                               behav_score_pos = test_score)
+                                                               behav_score_pos = cs_score,
+                                                               behav_score_neg = cs_score)
 })
 
 # overshadowing
@@ -446,21 +460,24 @@ overshadowing = expr.experiment(resp_type = 'exct',
                                 schedules = {'control': cond, 'experimental': two_cue},
                                 oats = {'overshadowing': expr.oat(schedule_pos = ['control'],
                                                                   schedule_neg = ['experimental'],
-                                                                  behav_score_pos = test_score)
+                                                                  behav_score_pos = cs1_score,
+                                                                  behav_score_neg = cs1_score)
 })
 
 # blocking
 blocking = expr.experiment(resp_type = 'exct',
                            schedules = {'control': two_cue, 'experimental': blocking},
                            oats = {'blocking': expr.oat(schedule_pos = ['control'],
-                                                          schedule_neg = ['experimental'],
-                                                          behav_score_pos = test_score)
+                                                        schedule_neg = ['experimental'],
+                                                        behav_score_pos = cs2_score,
+                                                        behav_score_neg = cs2_score)
 })
 
 # spontaneous recovery
 spont_rec = expr.experiment(resp_type = 'exct',
                             schedules = {'experimental': extn_delay, 'control': extn},
                             oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
-                                                                       schedule_neg = ['control'],
-                                                                       behav_score_pos = test_score)
+                                                                     schedule_neg = ['control'],
+                                                                     behav_score_pos = cs_score,
+                                                                     behav_score_neg = cs_score)
 })

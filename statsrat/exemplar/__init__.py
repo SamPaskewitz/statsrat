@@ -143,7 +143,6 @@ class model:
         n_u = u.shape[1] # number of outcomes/response options
         n_ex = len(ex_names) # number of exemplars
         sim = np.zeros((n_t, n_ex)) # similarity to exemplars
-        rtrv = np.zeros((n_t, n_ex)) # retrieval strength, i.e. normalized similarity
         u_ex = np.zeros((n_t + 1, n_ex, n_u)) # outcomes (u) associated with each exemplar
         lrate = np.zeros((n_t, n_ex)) # learning rates for exemplars
         atn = np.zeros((n_t + 1, n_ex, n_x)) # attention (can be different for each exemplar, but doesn't need to be)
@@ -168,13 +167,12 @@ class model:
         for t in range(n_t):
             ex_seen_yet[ex[t]] = 1 # note that current exemplar has been seen
             sim[t, :] = ex_seen_yet*self.sim(x[t, :], x_ex, atn[t, :, :], sim_pars) # similarity of current stimulus to exemplars
-            rtrv[t, :] = sim[t, :]/sim[t, :].sum() # retrieval strength (normalized similarity)
-            u_hat[t, :] = rtrv[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
+            u_hat[t, :] = sim[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
-            lrate[t, :] = self.lrate(rtrv[t, :], n_ex, sim_pars) # learning rates for exemplars
+            lrate[t, :] = self.lrate(sim[t, :], n_ex, sim_pars) # learning rates for exemplars
             u_ex[t + 1, :, :] = u_ex[t, :, :] + np.outer(lrate[t, :], u_lrn[t, :]*delta[t, :]) # update
-            atn[t + 1, :, :] = atn[t, :] + self.atn_update(rtrv[t, :], delta[t, :], n_x, n_u, n_ex, sim_pars) # update attention
+            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], delta[t, :], n_x, n_u, n_ex, sim_pars) # update attention
             
         # generate simulated responses
         if random_resp is False:
@@ -201,8 +199,7 @@ class model:
                                      'delta' : (['t', 'u_name'], delta),
                                      'lrate': (['t', 'ex_name'], lrate),
                                      'atn': (['t', 'ex_name', 'x_name'], atn[range(n_t), :, :]),
-                                     'sim': (['t', 'ex_name'], sim),
-                                     'rtrv': (['t', 'ex_name'], rtrv)},
+                                     'sim': (['t', 'ex_name'], sim)},
                         coords = {'t' : range(n_t),
                                   't_name' : ('t', trials.t_name),
                                   'trial' : ('t', trials.trial),
