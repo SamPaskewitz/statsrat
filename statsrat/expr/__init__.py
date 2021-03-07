@@ -11,7 +11,9 @@ class experiment:
     Attributes
     ----------
     resp_type : str
-        The type of behavioral response made by the learner.
+        The type of behavioral response made by the learner.  Must be the same for
+        all schedules in the experiment.  Can be either 'choice' (discrete responses),
+        'exct' (excitatory) or 'supr' (suppression of an ongoing activity).
     schedules : dict
         A dictionary of the experiment's schedules (sequences of stimuli and feedback etc
         that typically correspond to groups in the experimental design).
@@ -31,14 +33,12 @@ class experiment:
     --------
     See 'predef.cat' for category learning examples.
     
-    See 'predef.pvl' for Pavlovian conditioning examples.
+    See 'predef.pvl_iti' for Pavlovian conditioning examples.
     """
-    def __init__(self, resp_type, schedules, oats = None, notes = None):
+    def __init__(self, schedules, oats = None, notes = None):
         """
         Parameters
         ----------
-        resp_type : str
-            The type of behavioral response made by the learner.
         schedules : dict
             A dictionary of the experiment's schedules (sequences of stimuli and feedback etc
             that typically correspond to groups in the experimental design).
@@ -51,18 +51,24 @@ class experiment:
         """
         # check that everything in the 'schedules' argument is a schedule object
         is_scd = []
-        for s in schedules:
+        for s in schedules.values():
             is_scd += [isinstance(s, schedule)]
-        assert False in is_scd, 'Non-schedule object input as schedule.'
+        assert not (False in is_scd), 'Non-schedule object input as schedule.'
+        # check that everything in the 'oat' argument is an oat object
         if not oats is None:
-            # check that everything in the 'oat' argument is an oat object
             if len(oats) > 0:
                 is_oat = []
-                for o in oats:
+                for o in oats.values():
                     is_oat += [isinstance(o, oat)]
-                assert False in is_oat, 'Non-oat object input as oat.'
-        # add stuff to 'self'
-        self.resp_type = resp_type
+                assert not (False in is_oat), 'Non-oat object input as oat.'
+        # check that that all schedules have the same response type
+        self.resp_type = schedules[list(schedules.keys())[0]].resp_type
+        if len(schedules) > 1:
+            match_resp_type = []
+            for s in schedules.values():
+                match_resp_type += [self.resp_type == s.resp_type]
+            assert not (False in match_resp_type), 'Schedules have non-matching response types (resp_type).'
+        # add other data to 'self'        
         self.schedules = schedules
         self.oats = oats
         self.notes = notes
@@ -408,6 +414,10 @@ class schedule:
     ----------
     name: str
         The schedule's name.
+    resp_type : str
+        The type of behavioral response made by the learner.  Can
+        be either 'choice' (discrete responses), 'exct' (excitatory)
+        or 'supr' (suppression of an ongoing activity).
     stage_list: list
         List of dictionaries defining the schedule's stages.
     trial_def: data frame
@@ -506,14 +516,18 @@ class schedule:
     u_name: str
         Outcome/CS/response dimension.
     x_name: str
-        Cue name dimension.
+        Cue name dimension.        
     """
-    def __init__(self, name, stage_list, x_dims = None):
+    def __init__(self, name, resp_type, stage_list, x_dims = None):
         """
         Parameters
         ----------
         name: str
             The name of the schedule.
+        resp_type: str
+            The type of behavioral response made by the learner.  Can
+            be either 'choice' (discrete responses), 'exct' (excitatory)
+            or 'supr' (suppression of an ongoing activity).
         stage_list: list
             List of experimental stages (stage objects).
         x_dims: dict or None, optional
@@ -648,10 +662,12 @@ class schedule:
             trial_names = trial_def.loc[{'t' : indexer}].trial_name
             all_unique = len(trial_names) == len(np.unique(trial_names))
             assert all_unique, 'Duplicate trial definition found in stage "{}" of schedule "{}".'.format(stage_list[i].name, name)
-                    
+                
         # record information in new object ('self')
         self.name = name
+        self.resp_type = resp_type
         self.stage_list = stage_list
+        trial_def = trial_def.assign_attrs(resp_type = self.resp_type)
         self.trial_def = trial_def
         self.x_names = x_names
         self.u_names = u_names
@@ -667,7 +683,7 @@ class schedule:
             self.x_dims = x_dims
             self.dim_names = list(x_dims.keys())
             self.n_dim = len(self.dim_names)
-            trial_def.attrs = {'x_dims': self.x_dims}
+            self.trial_def = trial_def.assign_attrs(x_dims = self.x_dims)
         else:
             self.x_dims = None
             self.dim_names = None

@@ -26,7 +26,7 @@ class model:
 
     Methods
     -------
-    simulate(trials, resp_type = 'choice', par_val = None, init_atn = None, random_resp = False, ident = 'sim')
+    simulate(trials, par_val = None, init_atn = None, random_resp = False, ident = 'sim')
         Simulate a trial sequence once with known model parameters.
         
     Notes
@@ -60,7 +60,7 @@ class model:
         self.par_names = list(np.unique(sim.par_names + atn_update.par_names + lrate.par_names))
         self.pars = pars.loc[self.par_names + ['resp_scale']]
         
-    def simulate(self, trials, resp_type = 'choice', par_val = None, init_atn = 1.0, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, init_atn = 1.0, random_resp = False, ident = 'sim'):
         """
         Simulate a trial sequence once with known model parameters.
         
@@ -68,10 +68,6 @@ class model:
         ----------
         trials: dataset (xarray)
             Time step level experimental data (cues, outcomes etc.).
-
-        resp_type: str, optional
-            Type of behavioral response: one of 'choice', 'exct' or 'supr'.
-            Defaults to 'choice'.
 
         par_val: list, optional
             Learning model parameters (floats or ints).
@@ -102,7 +98,9 @@ class model:
 
         Notes
         -----
-        Use the response type 'choice' for discrete response options.  This
+        The response type is determined by the 'resp_type' attribute of the 'trials' object.
+        
+        The response type 'choice' is used for discrete response options.  This
         produces response probabilities using a softmax function:
         .. math:: \text{resp}_i = \frac{ e^{\phi \hat{u}_i} }{ \sum_j e^{\phi \hat{u}_j} }
 
@@ -161,7 +159,7 @@ class model:
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
                      'supr': resp_fun.supr}
-        sim_resp_fun = resp_dict[resp_type]
+        sim_resp_fun = resp_dict[trials.resp_type]
 
         # loop through time steps
         for t in range(n_t):
@@ -214,7 +212,7 @@ class model:
                         attrs = {'model': self.name,
                                  'model_class' : 'rw',
                                  'schedule' : trials.attrs['schedule'],
-                                 'resp_type' : resp_type,
+                                 'resp_type' : trials.attrs['resp_type'],
                                  'sim_pars' : sim_pars})
         
         return ds

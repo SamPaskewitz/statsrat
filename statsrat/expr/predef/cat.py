@@ -5,6 +5,7 @@ Category learning tasks.
 
 # FAST (Joel Stoddard collab)
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                   stage_list = [
                       expr.stage(name = 'tutorial_0a',
                             x_pn = [['alpha'], ['beta']],
@@ -77,7 +78,7 @@ threat_benign_trel = expr.oat(schedule_pos = ['design'],
                                                                  resp_pos = ['cat3', 'cat4'],
                                                                  resp_neg = ['cat4', 'cat3']))
 
-fast = expr.experiment(resp_type = 'choice',
+fast = expr.experiment(
                   schedules = {'design': design},
                   oats = {'rel_irl': rel_irl, 
                           'threat_benign_os': threat_benign_os, 
@@ -90,6 +91,7 @@ del design; rel_irl; threat_benign_os; threat_benign_brel; threat_benign_trel
 # Kruschke 1996, Experiment 1 (inverse base rate effect)
 # I'm missing some of the test trial types.
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                   stage_list = [
                       expr.stage(name = 'training',
                             freq = [3, 1, 3, 1],
@@ -112,15 +114,15 @@ pc_pr = expr.oat(schedule_pos = ['design'],
                                           resp_neg = ['c1', 'c2'])
             )
 
-ibre = expr.experiment(resp_type = 'choice',
-                schedules = {'design': design},
-                oats = {'pc_pr': pc_pr})
+ibre = expr.experiment(schedules = {'design': design},
+                       oats = {'pc_pr': pc_pr})
 
 del design; del pc_pr
 
 # Le Pelley and McLaren 2003 (learned predictiveness)
 # Test responses were really rating scales for both response options instead of choices.
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                   stage_list = [
                       expr.stage(name = 'training',
                             x_pn = [['a', 'v'], ['b', 'v'], ['a', 'w'], ['b', 'w'], ['c', 'x'], ['d', 'x'], ['c', 'y'], ['d', 'y']],
@@ -147,9 +149,8 @@ rel_irl = expr.oat(schedule_pos = ['design'],
                                                     resp_neg = ['cat3', 'cat4'])
              )
 
-lrn_pred = expr.experiment(resp_type = 'choice',
-                      schedules = {'design': design},
-                      oats = {'rel_irl': rel_irl})
+lrn_pred = expr.experiment(schedules = {'design': design},
+                           oats = {'rel_irl': rel_irl})
 
 del design; del rel_irl
 
@@ -157,6 +158,7 @@ del design; del rel_irl
 # stages 0a, 0b and 0c constitute a tutorial
 # cue position changes in stage 0b (it's constant in stage 0a), but now we're not representing cue position
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                   stage_list = [
                       expr.stage(name = '0a',
                             x_pn = [['alpha'], ['beta']],
@@ -198,14 +200,14 @@ design = expr.schedule(name = 'design',
 
 # ADD OAT LATER
 
-kids_pred = expr.experiment(resp_type = 'choice',
-                             schedules = {'design': design},
-                             oats = {})
+kids_pred = expr.experiment(schedules = {'design': design},
+                            oats = {})
 
 del design
 
 # NIMH kids simplified angry vs. neutral face overshadowing task
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                   stage_list = [
                       expr.stage(name = 'overshadowing',
                             x_pn = [['t1', 'b1'], ['t2', 'b2'], ['t3', 'b3'], ['t4', 'b4']],
@@ -231,8 +233,7 @@ design = expr.schedule(name = 'design',
 
 # ADD OAT LATER
 
-kids_os = expr.experiment(resp_type = 'choice',
-                           schedules = {'design': design},
-                           oats = {})
+kids_os = expr.experiment(schedules = {'design': design},
+                          oats = {})
 
 del design

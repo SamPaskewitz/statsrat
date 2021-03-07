@@ -95,7 +95,7 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     
     return plot
 
-def multi_sim(model, trials_list, resp_type, par_val, random_resp = False):
+def multi_sim(model, trials_list, par_val, random_resp = False):
     """
     Simulate one or more trial sequences from the same schedule with known parameters.
 
@@ -105,9 +105,6 @@ def multi_sim(model, trials_list, resp_type, par_val, random_resp = False):
         List of time step level experimental data (cues, outcomes
         etc.) for each participant.  These should be generated from
         the same experimental schedule.
-
-    resp_type : str
-        Type of behavioral response: one of 'choice', 'exct' or 'supr'.
 
     par_val : list
         Learning model parameters (floats or ints).
@@ -120,7 +117,6 @@ def multi_sim(model, trials_list, resp_type, par_val, random_resp = False):
     ds_list = []
     for i in range(n_sim):
         ds_new = model.simulate(trials = trials_list[i],
-                                resp_type = resp_type,
                                 par_val = par_val,
                                 random_resp = random_resp,
                                 ident = 'sim_' + str(i))
@@ -272,7 +268,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
                     print(par_val)
                     sim_data = {}
                     for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
                     oat_total = oat_used.compute_total(data = sim_data)
                     return oat_total
         else:
@@ -282,7 +278,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
                     par_val = np.append(x, 5)
                     sim_data = {}
                     for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
                     oat_total = oat_used.compute_total(data = sim_data)
                     return oat_total
     else:
@@ -295,7 +291,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
                     print(par_val)
                     sim_data = {}
                     for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
                     oat_total = oat_used.compute_total(data = sim_data)
                     return oat_total
         else:
@@ -305,7 +301,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
                     par_val = x
                     sim_data = {}
                     for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_val, random_resp = False)
+                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
                     oat_total = oat_used.compute_total(data = sim_data)
                     return oat_total    
     
@@ -350,14 +346,14 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         min_data = dict(keys = s_list)
         max_data = dict(keys = s_list)
         for s in s_list:
-            max_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_max, 5), random_resp = False)
+            max_data[s] = multi_sim(model, trials_list[s], np.append(par_max, 5), random_resp = False)
             if minimize:
-                min_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, np.append(par_min, 5), random_resp = False)
+                min_data[s] = multi_sim(model, trials_list[s], np.append(par_min, 5), random_resp = False)
     else:
         for s in s_list:
-            max_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_max, random_resp = False)
+            max_data[s] = multi_sim(model, trials_list[s], par_max, random_resp = False)
             if minimize:
-                min_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, par_min, random_resp = False)
+                min_data[s] = multi_sim(model, trials_list[s], par_min, random_resp = False)
     # package results for output
     output_dict = dict()
     if n > 1:
@@ -477,7 +473,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
         # loop through schedules to simulate behavior
         sim_data = dict(keys = s_list)
         for s in s_list:
-            sim_data[s] = multi_sim(model, trials_list[s], experiment.resp_type, df.iloc[i], random_resp = False)
+            sim_data[s] = multi_sim(model, trials_list[s], df.iloc[i], random_resp = False)
         oat_score[i] = oat_used.compute_total(data = sim_data)
         
     # package data together for output

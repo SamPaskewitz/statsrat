@@ -6,6 +6,7 @@ Simplified category learning tasks (smaller versions of the tasks like those in 
 
 # simple learned predictiveness
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                       stage_list = [
                                   expr.stage(name = 'relevance',
                                         x_pn = [['a', 'x'], ['a', 'y'], ['b', 'x'], ['b', 'y']],
@@ -28,14 +29,14 @@ rel_irl = expr.oat(schedule_pos = ['design'],
                                                     resp_pos = ['cat3', 'cat4'],
                                                     resp_neg = ['cat4', 'cat3']))
 
-lrn_pred = expr.experiment(resp_type = 'choice',
-                            schedules = {'design': design},
-                            oats = {'rel_irl': rel_irl})
+lrn_pred = expr.experiment(schedules = {'design': design},
+                           oats = {'rel_irl': rel_irl})
 
 del design; del rel_irl
 
 # simple blocking and inattention after blocking
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                   stage_list = [
                               expr.stage(name = 'single_cue',
                                     x_pn = [['a'], ['b']],
@@ -73,14 +74,14 @@ inattention = expr.oat(schedule_pos = ['design'],
                                                             trial_neg = ['a.y -> nothing', 'b.x -> nothing'],
                                                             resp_pos = ['cat3', 'cat4'],
                                                             resp_neg = ['cat4', 'cat3']))
-blk_inatn = expr.experiment(resp_type = 'choice',
-                            schedules = {'design': design},
+blk_inatn = expr.experiment(schedules = {'design': design},
                             oats = {'blocking': blocking, 'inattention': inattention})
 
 del design; del blocking; del inattention
 
 # value effect on salience
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                       stage_list = [
                                   expr.stage(name = 'value',
                                         x_pn = [['a'], ['b'], ['x'], ['y']],
@@ -103,14 +104,14 @@ value = expr.oat(schedule_pos = ['design'],
                                                     trial_neg = ['a.y -> nothing', 'b.x -> nothing'],
                                                     resp_pos = ['cat3', 'cat4'],
                                                     resp_neg = ['cat4', 'cat3']))
-value_sal = expr.experiment(resp_type = 'choice',
-                             schedules = {'design': design},
-                             oats = {'value': value})
+value_sal = expr.experiment(schedules = {'design': design},
+                            oats = {'value': value})
 
 del design; del value
 
 # simple backwards blocking
 design = expr.schedule(name = 'design',
+                       resp_type = 'choice',
                       stage_list = [
                                   expr.stage(name = 'double_cue',
                                         x_pn = [['a', 'x'], ['b', 'y'], ['e', 'f'], ['g', 'h']],
@@ -132,8 +133,7 @@ blocking = expr.oat(schedule_pos = ['design'],
                                                             trial_neg = ['e.y -> nothing', 'g.x -> nothing'],
                                                             resp_pos = ['cat1', 'cat2'],
                                                             resp_neg = ['cat2', 'cat1']))
-bkwd_blk = expr.experiment(resp_type = 'choice',
-                            schedules = {'design': design},
-                            oats = {'blocking': blocking})
+bkwd_blk = expr.experiment(schedules = {'design': design},
+                           oats = {'blocking': blocking})
 
 del design; del blocking
