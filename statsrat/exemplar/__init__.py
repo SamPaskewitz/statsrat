@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
-from . import sim, atn_update, lrate
+from . import sim, atn_update, u_ex_update
 
 class model:
     '''
@@ -17,8 +17,8 @@ class model:
         Similarity function.
     atn_update: function
         Determines how attention is updated.
-    lrate: function
-        Determines learning rates for exemplars.
+    u_ex_update: function
+        Determines how exemplar associations are updated.
     par_names: list
         Names of the model's free parameters (strings).
     pars: dict
@@ -38,7 +38,7 @@ class model:
     model fitting (the programming is a bit tricky to figure out).
     '''
     
-    def __init__(self, name, sim, atn_update, lrate):
+    def __init__(self, name, sim, atn_update, u_ex_update):
         """
         Parameters
         ----------
@@ -48,16 +48,16 @@ class model:
             Similarity function.
         atn_update: function
             Determines how attention is updated.
-        lrate: function
-            Determines learning rates for exemplars.
+        u_ex_update: function
+            Determines how exemplar associations are updated.
         """
         # add attributes to object ('self')
         self.name = name
         self.sim = sim
         self.atn_update = atn_update
-        self.lrate = lrate
+        self.u_ex_update = u_ex_update
         # determine model's parameter space
-        self.par_names = list(np.unique(sim.par_names + atn_update.par_names + lrate.par_names))
+        self.par_names = list(np.unique(sim.par_names + atn_update.par_names + u_ex_update.par_names))
         self.pars = pars.loc[self.par_names + ['resp_scale']]
         
     def simulate(self, trials, par_val = None, init_atn = 1.0, random_resp = False, ident = 'sim'):
@@ -142,18 +142,17 @@ class model:
         n_ex = len(ex_names) # number of exemplars
         sim = np.zeros((n_t, n_ex)) # similarity to exemplars
         u_ex = np.zeros((n_t + 1, n_ex, n_u)) # outcomes (u) associated with each exemplar
-        lrate = np.zeros((n_t, n_ex)) # learning rates for exemplars
         atn = np.zeros((n_t + 1, n_ex, n_x)) # attention (can be different for each exemplar, but doesn't need to be)
         atn[0, :, :] = init_atn
         u_hat = np.zeros((n_t, n_u)) # outcome predictions
         b_hat = np.zeros((n_t, n_u)) # expected behavior
-        delta = np.zeros((n_t, n_u)) # prediction error
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
         else:
             x_dims = None
-        ex_seen_yet = pd.Series(n_ex*[0], index = ex_names) # FIX THIS keeps track of which exemplars have been observed yet
+        ex_seen_yet = pd.Series(n_ex*[0], index = ex_names) # keeps track of which exemplars have been observed yet
+        ex_counts = pd.Series(n_ex*[0], index = ex_names) # number of times each exemplar has been observed
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -164,13 +163,12 @@ class model:
         # loop through time steps
         for t in range(n_t):
             ex_seen_yet[ex[t]] = 1 # note that current exemplar has been seen
-            sim[t, :] = ex_seen_yet*self.sim(x[t, :], x_ex, atn[t, :, :], sim_pars) # similarity of current stimulus to exemplars
+            ex_counts[ex[t]] += 1
+            sim[t, :] = ex_seen_yet*self.sim(x[t, :], x_ex, atn[t, :, :], sim_pars) # similarity
             u_hat[t, :] = sim[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
-            delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
-            lrate[t, :] = self.lrate(sim[t, :], n_ex, sim_pars) # learning rates for exemplars
-            u_ex[t + 1, :, :] = u_ex[t, :, :] + np.outer(lrate[t, :], u_lrn[t, :]*delta[t, :]) # update
-            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], delta[t, :], n_x, n_u, n_ex, sim_pars) # update attention
+            u_ex[t + 1, :, :] = u_ex[t, :, :] + self.u_ex_update(sim[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], ex_counts, n_ex, sim_pars) # update u_ex
+            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], n_x, n_u, ex_counts, n_ex, sim_pars) # update attention
             
         # generate simulated responses
         if random_resp is False:
@@ -194,8 +192,6 @@ class model:
                                      'b_hat' : (['t', 'u_name'], b_hat),
                                      'b' : (['t', 'u_name'], b),
                                      'u_ex' : (['t', 'ex_name', 'u_name'], u_ex[range(n_t), :, :]), # remove unnecessary last row
-                                     'delta' : (['t', 'u_name'], delta),
-                                     'lrate': (['t', 'ex_name'], lrate),
                                      'atn': (['t', 'ex_name', 'x_name'], atn[range(n_t), :, :]),
                                      'sim': (['t', 'ex_name'], sim)},
                         coords = {'t' : range(n_t),

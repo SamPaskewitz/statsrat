@@ -1,5 +1,9 @@
 from statsrat import rw
 
+'''
+Contains pre-defined Rescorla-Wagner family models.
+'''
+
 ########## EXAMPLES OF RESCORLA-WAGNER FAMILY MODELS ##########
 
 # Basic Rescorla-Wagner model with elemental features.

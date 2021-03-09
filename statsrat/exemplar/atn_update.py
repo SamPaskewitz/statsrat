@@ -1,6 +1,6 @@
 import numpy as np
 
-def null(sim, delta, n_x, n_u, n_ex, sim_pars):
+def null(sim, u, u_hat, u_lrn, u_ex, n_x, n_u, ex_counts, n_ex, sim_pars):
     '''
     Don't update attention (it remains constant).
     '''
