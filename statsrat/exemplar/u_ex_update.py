@@ -35,3 +35,14 @@ def ex_mean(sim, u, u_hat, u_lrn, u_ex, ex_counts, n_ex, sim_pars):
     delta = u - u_ex[np.argmax(sim)] # prediction error (only for current exemplar)
     return np.outer(lrate, u_lrn*delta)
 ex_mean.par_names = ['lrate_par']
+
+def ex_sum(sim, u, u_hat, u_lrn, u_ex, ex_counts, n_ex, sim_pars):
+    """
+    Each u_ex is the sum of u values observed when that exemplar is present.
+    This is equivalent to instance based learning: instances with the same cues (x)
+    are simply grouped together as a single exemplar.
+    """
+    selector = np.zeros(n_ex)
+    selector[np.argmax(sim)] = 1
+    return np.outer(selector, u)
+ex_sum.par_names = []

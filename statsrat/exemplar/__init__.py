@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
-from . import sim, atn_update, u_ex_update
+from . import sim, rtrv, atn_update, u_ex_update
 
 class model:
     '''
@@ -15,6 +15,8 @@ class model:
         Model name.
     sim: function
         Similarity function.
+    rtrv: function
+        Determines retrieval strength based on similarity.
     atn_update: function
         Determines how attention is updated.
     u_ex_update: function
@@ -38,7 +40,7 @@ class model:
     model fitting (the programming is a bit tricky to figure out).
     '''
     
-    def __init__(self, name, sim, atn_update, u_ex_update):
+    def __init__(self, name, sim, rtrv, atn_update, u_ex_update):
         """
         Parameters
         ----------
@@ -46,6 +48,8 @@ class model:
             Model name.
         sim: function
             Similarity function.
+        rtrv: function
+            Determines retrieval strength based on similarity.
         atn_update: function
             Determines how attention is updated.
         u_ex_update: function
@@ -54,10 +58,11 @@ class model:
         # add attributes to object ('self')
         self.name = name
         self.sim = sim
+        self.rtrv = rtrv
         self.atn_update = atn_update
         self.u_ex_update = u_ex_update
         # determine model's parameter space
-        self.par_names = list(np.unique(sim.par_names + atn_update.par_names + u_ex_update.par_names))
+        self.par_names = list(np.unique(sim.par_names + rtrv.par_names + atn_update.par_names + u_ex_update.par_names))
         self.pars = pars.loc[self.par_names + ['resp_scale']]
         
     def simulate(self, trials, par_val = None, init_atn = 1.0, random_resp = False, ident = 'sim'):
@@ -141,6 +146,7 @@ class model:
         n_u = u.shape[1] # number of outcomes/response options
         n_ex = len(ex_names) # number of exemplars
         sim = np.zeros((n_t, n_ex)) # similarity to exemplars
+        rtrv = np.zeros((n_t, n_ex)) # exemplar retrieval strength
         u_ex = np.zeros((n_t + 1, n_ex, n_u)) # outcomes (u) associated with each exemplar
         atn = np.zeros((n_t + 1, n_ex, n_x)) # attention (can be different for each exemplar, but doesn't need to be)
         atn[0, :, :] = init_atn
@@ -165,7 +171,8 @@ class model:
             ex_seen_yet[ex[t]] = 1 # note that current exemplar has been seen
             ex_counts[ex[t]] += 1
             sim[t, :] = ex_seen_yet*self.sim(x[t, :], x_ex, atn[t, :, :], sim_pars) # similarity
-            u_hat[t, :] = sim[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
+            rtrv[t, :] = self.rtrv(sim[t, :], sim_pars) # retrieval strength
+            u_hat[t, :] = rtrv[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             u_ex[t + 1, :, :] = u_ex[t, :, :] + self.u_ex_update(sim[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], ex_counts, n_ex, sim_pars) # update u_ex
             atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], n_x, n_u, ex_counts, n_ex, sim_pars) # update attention
@@ -193,7 +200,8 @@ class model:
                                      'b' : (['t', 'u_name'], b),
                                      'u_ex' : (['t', 'ex_name', 'u_name'], u_ex[range(n_t), :, :]), # remove unnecessary last row
                                      'atn': (['t', 'ex_name', 'x_name'], atn[range(n_t), :, :]),
-                                     'sim': (['t', 'ex_name'], sim)},
+                                     'sim': (['t', 'ex_name'], sim),
+                                     'rtrv': (['t', 'ex_name'], rtrv)},
                         coords = {'t' : range(n_t),
                                   't_name' : ('t', trials.t_name),
                                   'trial' : ('t', trials.trial),

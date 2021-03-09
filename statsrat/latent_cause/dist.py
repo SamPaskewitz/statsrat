@@ -33,5 +33,7 @@ class discrete:
         
     def E_a_eta(self, tau, n):
         
-    def post_pred(self, tau, n):
+        
+    def E_pred_mean(self, tau, n):
+        '''Mean of the posterior predictive distribution.'''
     
