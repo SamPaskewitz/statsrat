@@ -395,7 +395,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
         mean_resp_min = oat_used.mean_resp(data = min_data)
         mean_resp_max['parameters'] = 'max'
         mean_resp_min['parameters'] = 'min'
-        mean_resp = pd.DataFrame([mean_resp_min, mean_resp_max])
+        mean_resp = pd.concat([mean_resp_min, mean_resp_max])
     else:
         mean_resp_min = None
         mean_resp = mean_resp_max
