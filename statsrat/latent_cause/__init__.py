@@ -46,10 +46,10 @@ class model:
         '''
         self.name = 'basic (Bernoulli)'
         # determine the model's parameter space
-        par_names = [''] # SPECIFY BETA HYPERPARAMETERS
+        par_names = ['tilde_tau', 'tilde_n']
         self.pars = pars.loc[par_names + ['gamma', 'alpha', 'resp_scale']]
         
-    def simulate(self, trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
         '''
         Simulate a trial sequence once with known model parameters.
         
@@ -57,10 +57,6 @@ class model:
         ----------
         trials: dataset (xarray)
             Time step level experimental data (cues, outcomes etc.).
-
-        resp_type: str, optional
-            Type of behavioral response: one of 'choice', 'exct' or 'supr'.
-            Defaults to 'choice'.
 
         par_val: list, optional
             Learning model parameters (floats or ints).
@@ -136,9 +132,9 @@ class model:
         u_hat = np.zeros((n_t, n_u)) # outcome predictions
         b_hat = np.zeros((n_t, n_u)) # expected behavior
         
-        tau_u = np.zeros((n_t, n_x, max_z) # natural hyperparameters of outcome distribution
-        tau_x = np.zeros((n_t, n_u, max_z)) # natural hyperparameters of stimulus distribution
-        n = np.zeros((n_t, max_z)) # estimated number of observations assigned to each latent cause
+        tau_x = sim_pars['tilde_tau']*np.ones((n_t, max_z, n_x)) # natural hyperparameters of outcome distribution
+        tau_y = sim_pars['tilde_tau']*np.ones((n_t, max_z, n_u)) # natural hyperparameters of stimulus distribution
+        n = sim_pars['tilde_n']*np.ones((n_t, max_z)) # estimated number of observations assigned to each latent cause
         N = 1 # estimated number of latent causes
                          
         E_log_lik_x = np.zeros((n_t, max_z)) # expected log-likelihood of x
@@ -147,50 +143,61 @@ class model:
         
         phi_x = np.zeros((n_t, max_z)) # posterior of latent causes after observing x, but before observing u
         phi = np.zeros((n_t, max_z)) # posterior of latent causes after observing both x and y (i.e. u)
+        x_sofar = np.zeros(n_x) # keep track of cues (x) observed so far
         
-        # FIGURE OUT INITIALIZATION
-        E_r = # mean recency
-        V_r = # variance of recency
-        sum_r = # sum of recencies across latent causes
-        
+        # FIGURE OUT INITIALIZATION (IS THIS RIGHT?)
+        E_r = np.zeros(max_z) # mean recency
+        V_r = np.zeros(max_z) # variance of recency
+        sum_r = 0 # sum of recencies across latent causes
+        for i in range(int(sim_pars['tilde_n'])):
+            E_r[range(2)] = np.exp(-sim_pars['gamma'])*(0.5 + E_r[range(2)])
+            V_r[range(2)] = np.exp(-2*sim_pars['gamma'])*(0.25 + V_r[range(2)])
+            sum_r = np.exp(-sim_pars['gamma'])*(1 + sum_r)
+                         
         # set up response function (depends on response type)
-        # UPDATE THIS TO READ FROM TRIALS OBJECT
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
                      'supr': resp_fun.supr}
-        sim_resp_fun = resp_dict[resp_type]
+        sim_resp_fun = resp_dict[trials.resp_type]
         
         # loop through time steps
         for t in range(n_t):
+            # preliminary stuff
+            x_sofar[x[t, :] > 0] = 1 # keep track of cues observed so far
+            ind = range(N + 1) # indicates latent causes to be used for most computations
+            n_for_x = np.repeat(n[t, ind], n_x).reshape((N + 1, n_x)) # used in computations involving x
+            n_for_y = np.repeat(n[t, ind], n_u).reshape((N + 1, n_u)) # used in computations involving y (i.e. u)
+            
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-            x_sofar[x[t, :]] = 1 # keep track of cues observed so far
-            E_eta_x = digamma(tau_x[t, :, :]) - digamma(n[t, :] - tau_x[t, :, :] + 1) # expected natural parameter (eta)
-            E_a_eta_x = digamma(n[t, :] - tau_x[t, :, :] + 1) - digamma(n[t, :] + 2) # expected log partition function (a(eta))
+            E_eta_x = digamma(tau_x[t, ind, :]) - digamma(n_for_x - tau_x[t, ind, :] + 1) # expected natural parameter (eta)
+            E_a_eta_x = digamma(n_for_x - tau_x[t, ind, :] + 1) - digamma(n_for_x + 2) # expected log partition function (a(eta))
             b_x = 0 # log base measure (b(x))
             T_x = x[t, :] # sufficient statistic (T(x))
             foo = E_eta_x*T_x - E_a_eta_x - b_x
-            E_log_lik_x[t, range(N + 1)] = np.sum(foo, axis = 0) # cues assumed independent -> add log_lik across cues
+            E_log_lik_x[t, range(N + 1)] = np.sum(x_sofar*foo, axis = 1) # cues assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
             E_log_prior[t, range(N)] = np.log(E_r[range(N)] - V_r[range(N)]/(2*(E_r[range(N)])**2)) - np.log(sum_r + sim_pars['alpha'])
-            E_log_prior[t, N + 1] = np.log(sim_pars['alpha'] - np.log(sum_r + sim_pars['alpha'])
+            E_log_prior[t, N + 1] = np.log(sim_pars['alpha']) - np.log(sum_r + sim_pars['alpha'])
             
-            # compute phi based on x
-            s = np.exp(E_log_lik_x + E_log_prior)
+            # compute E_log_lik_phi based on x
+            s = np.exp(E_log_lik_x[t, :] + E_log_prior[t, :])
             phi_x[t, :] = s/s.sum()
                                            
-            # predict y ('y' = 'u') 
-            E_post_pred = (tau[t, :] + 1)/(n[t, :] + 2) # mean of posterior predictive
-            u_hat[t, :] = np.sum(phi_x[t, :]*E_post_pred*u_psb[t, :], axis = 0) # predicted outcome (u)
+            # predict y (recall that 'y' = 'u') 
+            E_post_pred = (tau_y[t, :, :] + 1)/(n[t, :].reshape((max_z, 1)) + 2) # mean of posterior predictive
+            u_hat[t, :] = u_psb[t, :]*np.sum(phi_x[t, :].reshape((max_z, 1))*E_post_pred, axis = 0) # predicted outcome (u)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
                                            
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
-            E_eta_y = digamma(tau_y[t, :, :]) - digamma(n[t, :] - tau_y[t, :, :] + 1) # expected natural parameter (eta)
-            E_a_eta_y = digamma(n[t, :] - tau_y[t, :] + 1) - digamma(n[t, :] + 2) # expected log partition function (a(eta))
+            E_eta_y = digamma(tau_y[t, ind, :]) - digamma(n_for_y - tau_y[t, ind, :] + 1) # expected natural parameter (eta)
+            E_a_eta_y = digamma(n_for_y - tau_y[t, ind, :] + 1) - digamma(n_for_y + 2) # expected log partition function (a(eta))
             b_y = 0 # log base measure (b(y))
-            T_y = y[t, :] # sufficient statistic (T(y))
+            T_y = u[t, :] # sufficient statistic (T(y))
             bar = E_eta_y*T_y - E_a_eta_y - b_y
-            E_log_lik_y[t, range(N + 1)] = np.sum(u_psb[t, :]*bar, axis = 0) # outcomes assumed independent -> add log_lik across outcomes
+            print(np.sum(bar, axis = 1).shape)
+            # FIGURE THIS OUT.
+            E_log_lik_y[t, range(N + 1)] = np.sum(u_psb[t, :]*bar, axis = 1) # outcomes assumed independent -> add log_lik across outcomes
                                            
             # update phi based on y
             s *= np.exp(E_log_lik_y)
@@ -202,9 +209,10 @@ class model:
             n[t, :] = n[t, :] + phi[t, :]
                                            
             # add latent cause (expand N) if needed
-            if n[N + 1] > 1:
+            if n[N + 1] - sim_pars['tilde_n'] > 1:
                 N += 1
-                # INITIALIZE STUFF AS APPROPRIATE
+                # CHECK IF CONDITION IS APPROPRIATE
+                # INITIALIZE STUFF AS APPROPRIATE (NEED THIS?)
            
             # update E_r, V_r and sum_r
             E_r = np.exp(-sim_pars['gamma'])*(phi[t, :] + E_r)
@@ -233,13 +241,15 @@ class model:
                                      'u_hat' : (['t', 'u_name'], u_hat),
                                      'b_hat' : (['t', 'u_name'], b_hat),
                                      'b' : (['t', 'u_name'], b),
-                                     'prior' : (['t', 'z_name'], prior),
-                                     'post_x' : (['t', 'z_name'], post_x),
-                                     'post_xu' : (['t', 'z_name'], post_xu),
-                                     'x_lik' : (['t', 'z_name'], x_lik),
-                                     'u_lik' : (['t', 'z_name'], u_lik),
-                                     'z' : (['t', 'z_name'], z),
-                                     'z_counts' : (['z_name'], z_counts)},
+                                     
+                                     'tau_x' : (['t', 'z_name', 'x_name'], tau_x),
+                                     'tau_y' : (['t', 'z_name', 'u_name'], tau_y),
+                                     'n' : (['t', 'z_name'], n),
+                                     'E_log_lik_x' : (['t', 'z_name'], n),
+                                     'E_log_lik_y' : (['t', 'z_name'], n),
+                                     'E_log_prior' : (['t', 'z_name'], n),
+                                     'phi_x' : (['t', 'z_name'], n),
+                                     'phi' : (['t', 'z_name'], n)},
                         coords = {'t' : range(n_t),
                                   't_name' : ('t', trials.t_name),
                                   'trial' : ('t', trials.trial),
@@ -253,7 +263,7 @@ class model:
                         attrs = {'model': self.name,
                                  'model_class' : 'lc',
                                  'schedule' : trials.attrs['schedule'],
-                                 'resp_type' : resp_type,
+                                 'resp_type' : trials.attrs['resp_type'],
                                  'sim_pars' : sim_pars})
         return ds
 
@@ -262,7 +272,9 @@ class model:
 # ADD HYPERPARAMETERS FOR BETA PRIOR
 par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 2.0, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}] 
-par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]                                
+par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
+par_names += ['tilde_tau']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior hyperparameter for eta (log-odds in Bernoulli likelihood)'}]
+par_names += ['tilde_n']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior value for n (sample size for each latent cause)'}]
 
 pars = pd.DataFrame(par_list, index = par_names)
 del par_names; del par_list

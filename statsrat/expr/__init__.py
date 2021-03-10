@@ -1047,12 +1047,13 @@ class oat:
         for s in self.schedule_pos:
             df_s = data_dict[s].to_dataframe()
             df_s.reset_index(inplace=True)
+            index_is_main = np.array(df_s.t_name == 'main')
             for tn in trial_name:
                 index_tn = np.array(df_s.trial_name == tn)
                 index_sn = np.array(df_s.stage_name == self.behav_score_pos.stage)
                 for un in u_name:
                     index_un = np.array(df_s.u_name == un)
-                    index = index_tn*index_sn*index_un
+                    index = index_tn*index_sn*index_un*index_is_main
                     mean_resp = df_s['b'].loc[index].mean()
                     da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
             df_pos = da_pos.to_dataframe(name = 'mean_resp')
@@ -1084,12 +1085,13 @@ class oat:
             for s in self.schedule_neg:
                 df_s = data_dict[s].to_dataframe()
                 df_s.reset_index(inplace=True)
+                index_is_main = np.array(df_s.t_name == 'main')
                 for tn in trial_name:
                     index_tn = np.array(df_s.trial_name == tn)
                     index_sn = np.array(df_s.stage_name == self.behav_score_neg.stage)
                     for un in u_name:
                         index_un = np.array(df_s.u_name == un)
-                        index = index_tn*index_sn*index_un
+                        index = index_tn*index_sn*index_un*index_is_main
                         mean_resp = df_s['b'].loc[index].mean()
                         da_neg.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
             df_neg = da_neg.to_dataframe(name = 'mean_resp')
@@ -1179,12 +1181,13 @@ class behav_score:
         for name in ds.ident:
             try:
                 ds_name = ds.loc[{'ident' : name}] # dataset for current individual
+                is_main = np.array(ds_name.t_name == 'main')
                 # positive trials and responses
                 pos_sum = 0
                 n_ttype = len(self.trial_pos)
                 pos_n = 0
                 for i in range(n_ttype):
-                    pos_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_pos[i])
+                    pos_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_pos[i]) & is_main
                     b = ds_name['b'].loc[{'t' : pos_index, 'u_name' : self.resp_pos[i]}]
                     if use_conf:
                         conf = ds_name['conf'].loc[{'t' : pos_index}]
@@ -1201,7 +1204,7 @@ class behav_score:
                     n_ttype = len(self.trial_neg)
                     neg_n = 0
                     for i in range(n_ttype):
-                        neg_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_neg[i])
+                        neg_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_neg[i]) & is_main
                         b = ds_name['b'].loc[{'t' : neg_index, 'u_name' : self.resp_neg[i]}]
                         if use_conf:
                             conf = ds_name['conf'].loc[{'t' : neg_index}]
