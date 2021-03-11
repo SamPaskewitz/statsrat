@@ -185,8 +185,8 @@ class model:
             phi_x[t, :] = s/s.sum()
                                            
             # predict y (recall that 'y' = 'u') 
-            E_post_pred = (tau_y[t, :, :] + 1)/(n[t, :].reshape((max_z, 1)) + 2) # mean of posterior predictive
-            u_hat[t, :] = u_psb[t, :]*np.sum(phi_x[t, :].reshape((max_z, 1))*E_post_pred, axis = 0) # predicted outcome (u)
+            E_post_pred = (tau_y[t, ind, :] + 1)/(n[t, ind].reshape((N + 1, 1)) + 2) # mean of posterior predictive
+            u_hat[t, :] = u_psb[t, :]*np.sum(phi_x[t, ind].reshape((N + 1, 1))*E_post_pred, axis = 0) # predicted outcome (u)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
                                            
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
@@ -195,17 +195,18 @@ class model:
             b_y = 0 # log base measure (b(y))
             T_y = u[t, :] # sufficient statistic (T(y))
             bar = E_eta_y*T_y - E_a_eta_y - b_y
-            print(np.sum(bar, axis = 1).shape)
-            # FIGURE THIS OUT.
             E_log_lik_y[t, range(N + 1)] = np.sum(u_psb[t, :]*bar, axis = 1) # outcomes assumed independent -> add log_lik across outcomes
                                            
             # update phi based on y
-            s *= np.exp(E_log_lik_y)
+            s *= np.exp(E_log_lik_y[t, :])
             phi[t, :] = s/s.sum()
                                            
-            # learning (update hyperparameters)                        
-            tau_x[t, :, :] = tau_x[t, :, :] + phi[t, :]*T_x
-            tau_y[t, :, :] = tau_y[t, :, :] + phi[t, :]*T_y
+            # learning (update hyperparameters) 
+            print(phi[t, :].shape)
+            print(T_x.shape)
+            # FIGURE THIS OUT
+            tau_x[t, :, :] = tau_x[t, :, :] + phi[t, :]@T_x
+            tau_y[t, :, :] = tau_y[t, :, :] + phi[t, :]@T_y
             n[t, :] = n[t, :] + phi[t, :]
                                            
             # add latent cause (expand N) if needed

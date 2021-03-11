@@ -5,7 +5,7 @@ from scipy import stats
 import nlopt
 from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text
 
-def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
+def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
     """
     Plots learning simulation data as a function of time.
     
@@ -24,6 +24,9 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
     facet_var : string, optional
         Variable to control faceting.
         Defaults to None (see notes).
+    draw_points : boolean, optional
+        Whether or not points should be drawn as well as lines.
+        Defaults to False.
     drop_zeros : boolean, optional
         Drop rows where 'var' is zero.  Defaults to False.
     only_main : boolean, optional
@@ -71,22 +74,24 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, drop_zer
         if color_var is None:
             color_var = dims[0]
         if n_dims == 1:
-            plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line())
+                plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line())
         else:
             if facet_var is None:
                 facet_var = dims[1]
-            plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line() + facet_wrap('~' + facet_var))
+                plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line() + facet_wrap('~' + facet_var))
+    
+    if draw_points:
+        plot += geom_point()
     
     if stage_labels:
         # add labels for stage names
-        stage = ds_var.stage.values
+        stage = df.stage.values
         s_min = stage.min()
         s_max = stage.max()
         stage_start = []
         stage_labels = []
         for s in range(s_min, s_max + 1):
-            t = ds_var.t.loc[ds_var.stage == s].values
-            start_point = t.min()
+            start_point = df.t.loc[df.stage == s].min()
             stage_start += [start_point]
             stage_labels += [ds_var.stage_name.loc[{'t': start_point}].values]
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
