@@ -209,8 +209,9 @@ class model:
         return ds
 
 ########## PARAMETERS ##########
-par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
+par_names = []; par_list = []   
 par_names += ['lrate_par']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['decay_rate']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 0.5}]
+par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 pars = pd.DataFrame(par_list, index = par_names)
 del par_names; del par_list

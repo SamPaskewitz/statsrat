@@ -237,7 +237,6 @@ class model:
                 b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
         
         # put all simulation data into a single xarray dataset
-        # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
         ds = ds.assign_coords({'z_name' : np.array(range(max_z)), 'ident' : [ident]})
         ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
@@ -261,13 +260,12 @@ class model:
         return ds
 
 ########## PARAMETERS ##########
-                         
-# ADD HYPERPARAMETERS FOR BETA PRIOR
-par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
+par_names = []; par_list = []                         
 par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 2.0, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}] 
 par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 0.5, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
 par_names += ['tilde_tau']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior hyperparameter for eta (log-odds in Bernoulli likelihood)'}]
 par_names += ['tilde_n']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior value for n (sample size for each latent cause)'}]
+par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 
 pars = pd.DataFrame(par_list, index = par_names)
 del par_names; del par_list

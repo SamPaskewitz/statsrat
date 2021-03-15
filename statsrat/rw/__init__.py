@@ -200,8 +200,7 @@ class model:
         return ds
 
 ########## PARAMETERS ##########
-
-par_names = ['resp_scale']; par_list = [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
+par_names = []; par_list = [] 
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
@@ -213,5 +212,6 @@ par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # m
 par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
 par_names += ['u_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
 par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter
+par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 pars = pd.DataFrame(par_list, index = par_names)
 del par_names; del par_list
