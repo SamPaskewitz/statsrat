@@ -116,7 +116,7 @@ class experiment:
         # make new trials object
         trials = scd.trial_def.loc[{'t' : t_order}]
         trials = trials.assign_coords({'t' : range(scd.n_t)})
-        trials = trials.assign_coords({'trial' : trial_index})
+        trials = trials.assign_coords({'trial' : ('t', trial_index)})
         trials.attrs['schedule'] = scd.name
 
         return trials
