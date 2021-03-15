@@ -179,37 +179,23 @@ class model:
                 b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
         
         # put all simulation data into a single xarray dataset
-        ds = xr.Dataset(data_vars = {'x' : (['t', 'x_name'], x),
-                                     'u' : (['t', 'u_name'], u),
-                                     'u_psb' : (['t', 'u_name'], u_psb),
-                                     'u_lrn' : (['t', 'u_name'], u_lrn),
-                                     'fbase' : (['t', 'f_name'], fbase),
-                                     'f_x' : (['t', 'f_name'], f_x),
-                                     'u_hat' : (['t', 'u_name'], u_hat),
-                                     'b_hat' : (['t', 'u_name'], b_hat),
-                                     'b' : (['t', 'u_name'], b),
-                                     'w' : (['t', 'f_name', 'u_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
-                                     'delta' : (['t', 'u_name'], delta),
-                                     'lrate' : (['t', 'f_name', 'u_name'], lrate),
-                                     'drate' : (['t', 'f_name', 'u_name'], drate)},
-                        coords = {'t' : range(n_t),
-                                  't_name' : ('t', trials.t_name),
-                                  'trial' : ('t', trials.trial),
-                                  'trial_name' : ('t', trials.trial_name),
-                                  'stage' : ('t', trials.stage),
-                                  'stage_name' : ('t', trials.stage_name),
-                                  'x_name' : x_names,
-                                  'f_name' : f_names,
-                                  'u_name' : u_names,
-                                  'ident' : [ident]},
-                        attrs = {'model': self.name,
-                                 'model_class' : 'rw',
-                                 'schedule' : trials.attrs['schedule'],
-                                 'resp_type' : trials.attrs['resp_type'],
-                                 'sim_pars' : sim_pars})
-        
-        # add extra data from aux
-        ds = aux.add_data(ds)
+        ds = trials.copy(deep = True)
+        ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
+        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
+                        'u_lrn' : (['t', 'u_name'], u_lrn),
+                        'fbase' : (['t', 'f_name'], fbase),
+                        'f_x' : (['t', 'f_name'], f_x),
+                        'u_hat' : (['t', 'u_name'], u_hat),
+                        'b_hat' : (['t', 'u_name'], b_hat),
+                        'b' : (['t', 'u_name'], b),
+                        'w' : (['t', 'f_name', 'u_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
+                        'delta' : (['t', 'u_name'], delta),
+                        'lrate' : (['t', 'f_name', 'u_name'], lrate),
+                        'drate' : (['t', 'f_name', 'u_name'], drate)})
+        ds = ds.assign_attrs({'model': self.name,
+                              'model_class' : 'rw',
+                              'sim_pars' : sim_pars})
+        ds = aux.add_data(ds) # add extra data from aux
         
         return ds
 

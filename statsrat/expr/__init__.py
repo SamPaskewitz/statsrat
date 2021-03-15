@@ -495,7 +495,7 @@ class schedule:
         Labels time steps as 'main' when at least one punctate cue is present
         and 'bg' ('background') otherwise (e.g. during the inter-trial
         interval).
-    ex_name: str
+    ex: str
         Alternative coordinate for time steps (dimension t).
         Specifies the combination of cues (both background and punctate)
         present during that time step.
@@ -641,7 +641,7 @@ class schedule:
                                             'u_lrn': (['t', 'u_name'], u_lrn)},
                                coords = {'t': range(len(stage)),
                                          't_name': ('t', t_name),
-                                         'ex_name': ('t', ex_name),
+                                         'ex': ('t', ex_name),
                                          'trial': ('t', trial),
                                          'trial_name': ('t', trial_name),
                                          'stage': ('t', stage),
@@ -652,9 +652,9 @@ class schedule:
         
         # create a dataframe for exemplars, and attach to trial type dataset as an attribute
         ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
-        ex_names = trial_def['ex_name'].loc[{'t': ex_index}].values
-        ex_df = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
-        trial_def = trial_def.assign_attrs(ex = ex_df)
+        ex_names = trial_def['ex'].loc[{'t': ex_index}].values
+        x_ex = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
+        trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names)
 
         # make sure that no trial type is duplicated within any stage
         for i in range(n_stage):

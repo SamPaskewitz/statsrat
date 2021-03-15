@@ -136,11 +136,11 @@ class model:
         u = np.array(trials['u'], dtype = 'float64')
         u_psb = np.array(trials['u_psb'], dtype = 'float64')
         u_lrn = np.array(trials['u_lrn'], dtype = 'float64')
-        ex = trials['ex_name'].values
-        x_ex = trials.ex # exemplar locations
+        ex = trials['ex'].values
+        x_ex = trials.x_ex # exemplar locations
         x_names = list(trials.x_name.values) # cue names
         u_names = list(trials.u_name.values) # outcome names
-        ex_names = list(x_ex.index.values) # exemplar names
+        ex_names = list(trials.ex_names) # exemplar names
         n_t = x.shape[0] # number of time points
         n_x = x.shape[1] # number of features
         n_u = u.shape[1] # number of outcomes/response options
@@ -191,33 +191,20 @@ class model:
                 b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
         
         # put all simulation data into a single xarray dataset
-        ds = xr.Dataset(data_vars = {'x' : (['t', 'x_name'], x),
-                                     'u' : (['t', 'u_name'], u),
-                                     'u_psb' : (['t', 'u_name'], u_psb),
-                                     'u_lrn' : (['t', 'u_name'], u_lrn),
-                                     'u_hat' : (['t', 'u_name'], u_hat),
-                                     'b_hat' : (['t', 'u_name'], b_hat),
-                                     'b' : (['t', 'u_name'], b),
-                                     'u_ex' : (['t', 'ex_name', 'u_name'], u_ex[range(n_t), :, :]), # remove unnecessary last row
-                                     'atn': (['t', 'ex_name', 'x_name'], atn[range(n_t), :, :]),
-                                     'sim': (['t', 'ex_name'], sim),
-                                     'rtrv': (['t', 'ex_name'], rtrv)},
-                        coords = {'t' : range(n_t),
-                                  't_name' : ('t', trials.t_name),
-                                  'trial' : ('t', trials.trial),
-                                  'trial_name' : ('t', trials.trial_name),
-                                  'stage' : ('t', trials.stage),
-                                  'stage_name' : ('t', trials.stage_name),
-                                  'ex' : ('t', ex),
-                                  'x_name' : x_names,
-                                  'ex_name' : ex_names,
-                                  'u_name' : u_names,
-                                  'ident' : [ident]},
-                        attrs = {'model': self.name,
-                                 'model_class' : 'rw',
-                                 'schedule' : trials.attrs['schedule'],
-                                 'resp_type' : trials.attrs['resp_type'],
-                                 'sim_pars' : sim_pars})
+        ds = trials.copy(deep = True)
+        ds = ds.assign_coords({'ex_name' : ex_names, 'ident' : [ident]})
+        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
+                        'u_lrn' : (['t', 'u_name'], u_lrn),
+                        'u_hat' : (['t', 'u_name'], u_hat),
+                        'b_hat' : (['t', 'u_name'], b_hat),
+                        'b' : (['t', 'u_name'], b),
+                        'u_ex' : (['t', 'ex_name', 'u_name'], u_ex[range(n_t), :, :]), # remove unnecessary last row
+                        'atn': (['t', 'ex_name', 'x_name'], atn[range(n_t), :, :]),
+                        'sim': (['t', 'ex_name'], sim),
+                        'rtrv': (['t', 'ex_name'], rtrv)})
+        ds = ds.assign_attrs({'model': self.name,
+                              'model_class' : 'exemplar',
+                              'sim_pars' : sim_pars})
         
         return ds
 

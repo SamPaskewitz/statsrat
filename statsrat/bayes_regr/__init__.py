@@ -239,37 +239,26 @@ class model:
                 b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
         
         # put all simulation data into a single xarray dataset
-        ds = xr.Dataset(data_vars = {'x' : (['t', 'x_name'], x),
-                                     'u' : (['t', 'u_name'], u),
-                                     'u_psb' : (['t', 'u_name'], u_psb),
-                                     'u_lrn' : (['t', 'u_name'], u_lrn),
-                                     'f_x' : (['t', 'f_name'], f_x),
-                                     'z_hat' : (['t', 'u_name'], z_hat),
-                                     'u_hat' : (['t', 'u_name'], u_hat),
-                                     'b_hat' : (['t', 'u_name'], b_hat),
-                                     'b' : (['t', 'u_name'], b),
-                                     'shrink_cond' : (['t', 'u_name'], shrink_cond),
-                                     'mean_tausq_inv' : (['t', 'f_name', 'u_name'], mean_tausq_inv),
-                                     'mean_tausq' : (['t', 'f_name', 'u_name'], mean_tausq),
-                                     'mean_w' : (['t', 'f_name', 'u_name'], mean_w),
-                                     'var_w' : (['t', 'f_name', 'u_name'], var_w),
-                                     'mean_z' : (['t', 'u_name'], mean_z),
-                                     'mean_wsq' : (['t', 'f_name', 'u_name'], mean_wsq)},
-                        coords = {'t' : range(n_t),
-                                  't_name' : ('t', trials.t_name),
-                                  'trial' : ('t', trials.trial),
-                                  'trial_name' : ('t', trials.trial_name),
-                                  'stage' : ('t', trials.stage),
-                                  'stage_name' : ('t', trials.stage_name),
-                                  'x_name' : x_names,
-                                  'f_name' : f_names,
-                                  'u_name' : u_names,
-                                  'ident' : [ident]},
-                        attrs = {'model': self.name,
-                                 'model_class' : 'bayes_regr',
-                                 'schedule' : trials.attrs['schedule'],
-                                 'resp_type' : trials.attrs['resp_type'],
-                                 'sim_pars' : sim_pars})
+        ds = trials.copy(deep = True)
+        ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
+        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
+                        'u_lrn' : (['t', 'u_name'], u_lrn),
+                        'f_x' : (['t', 'f_name'], f_x),
+                        'z_hat' : (['t', 'u_name'], z_hat),
+                        'u_hat' : (['t', 'u_name'], u_hat),
+                        'b_hat' : (['t', 'u_name'], b_hat),
+                        'b' : (['t', 'u_name'], b),
+                        'shrink_cond' : (['t', 'u_name'], shrink_cond),
+                        'mean_tausq_inv' : (['t', 'f_name', 'u_name'], mean_tausq_inv),
+                        'mean_tausq' : (['t', 'f_name', 'u_name'], mean_tausq),
+                        'mean_w' : (['t', 'f_name', 'u_name'], mean_w),
+                        'var_w' : (['t', 'f_name', 'u_name'], var_w),
+                        'mean_z' : (['t', 'u_name'], mean_z),
+                        'mean_wsq' : (['t', 'f_name', 'u_name'], mean_wsq)})
+        ds = ds.assign_attrs({'model': self.name,
+                              'model_class' : 'bayes_regr',
+                              'sim_pars' : sim_pars})
+
         return ds
 
 ########## PARAMETERS ##########  
