@@ -149,7 +149,7 @@ def log_lik(model, ds, par_val):
     """
     # For now, this assumes discrete choice data (i.e. resp_type = 'choice')
     # 'b' has the same dimensions as 'b_hat' with 0 for choices not made and 1 for choices made
-    sim_ds = model.simulate(ds, resp_type = 'choice', par_val = par_val) # run simulation
+    sim_ds = model.simulate(ds, par_val = par_val) # run simulation
     b_hat = np.array(sim_ds['b_hat'])
     b_hat[b_hat == 0] = 0.00000001
     log_prob = np.log(b_hat) # logarithms of choice probabilities
@@ -240,27 +240,6 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     n_free = len(free_names) # number of free parameters
     free_pars = model.pars.loc[free_names] # free parameters
     mid_pars = (free_pars['max'] + free_pars['min'])/2 # midpoint of each parameter's allowed interval
-    
-    # FIGURE OUT TASK DEPENDENT PARAMETERS LATER
-    # set up task-dependent parameters (e.g. initial attention weights to cues), if there are any
-    # these are parameters that are repeated a certain number of times depending on some of n_x, n_u and/or n_ex
-    # for now, it is assumed that there is only one type of task dependent parameter in each model (for simplicity)
-    #if not model.pars.task_dep_par is None:
-    #    tdp = dict(keys = s_list) # information about task dependent parameters (tdp) for each schedule
-    #    mid_tdp = dict(keys = s_list) # midpoints
-    #    for s in s_list:
-    #        x_factor = s.n_x**model.task_dep_par['use_n_x'] # either n_x or 1
-    #        u_factor = s.n_u**model.task_dep_par['use_n_u'] # either n_u or 1
-    #        ex_factor = s.n_ex**model.task_dep_par['use_n_ex'] # either n_ex or 1
-    #        n_repeat = x_factor*u_factor*ex_factor # number of time the task dependent parameter is repeated for this schedule
-    #        tdp[s] = model.task_dep_par.loc[n_repeat*[0]]
-    #        mid_tdp[s] = (tdp[s]['max'] + tdp[s]['min'])/2
-    
-    # set up overall parameter space
-    #overall_pars = dict(keys = s_list)
-    #for s in s_list:
-    #    if not model.pars.task_dep_par is None:
-    #        overall_pars[s] += 
     
     # set up objective function
     if 'resp_scale' in par_names:

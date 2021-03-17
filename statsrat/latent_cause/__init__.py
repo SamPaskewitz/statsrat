@@ -46,7 +46,8 @@ class model:
         '''
         self.name = 'basic (Bernoulli)'
         # determine the model's parameter space
-        par_names = ['tilde_tau', 'tilde_n']
+        #par_names = ['tilde_tau', 'tilde_n']
+        par_names = ['prior_a', 'prior_b']
         self.pars = pars.loc[par_names + ['gamma', 'alpha', 'resp_scale']]
         
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
@@ -132,9 +133,15 @@ class model:
         u_hat = np.zeros((n_t, n_u)) # outcome predictions
         b_hat = np.zeros((n_t, n_u)) # expected behavior
         
-        tau_x = sim_pars['tilde_tau']*np.ones((n_t + 1, max_z, n_x)) # natural hyperparameters of outcome distribution
-        tau_y = sim_pars['tilde_tau']*np.ones((n_t + 1, max_z, n_u)) # natural hyperparameters of stimulus distribution
-        n = sim_pars['tilde_n']*np.ones((n_t + 1, max_z)) # estimated number of observations assigned to each latent cause
+        tilde_tau = sim_pars['prior_a'] - 1
+        tilde_n = sim_pars['prior_a'] + sim_pars['prior_b'] - 2
+        tau_x = tilde_tau*np.ones((n_t + 1, max_z, n_x)) # natural hyperparameters of outcome distribution
+        tau_y = tilde_tau*np.ones((n_t + 1, max_z, n_u)) # natural hyperparameters of stimulus distribution
+        #tau_x = sim_pars['tilde_tau']*np.ones((n_t + 1, max_z, n_x)) # natural hyperparameters of outcome distribution
+        #tau_y = sim_pars['tilde_tau']*np.ones((n_t + 1, max_z, n_u)) # natural hyperparameters of stimulus distribution
+        n = np.zeros((n_t + 1, max_z)) # estimated number of observations assigned to each latent cause
+        n[0, 0] = 1 # IS THIS CORRECT?
+        # IT SEEMS THAT n SHOULD BE DISTINGUISHED FROM THE SAMPLE SIZE HYPERPARAMETER, WHICH IS EQUAL TO n + sim_pars['tilde_n']
         N = np.zeros(n_t + 1, dtype=int) # estimated number of latent causes
         N[0] = 1
                          
@@ -142,6 +149,7 @@ class model:
         E_log_lik_y = -np.Inf*np.ones((n_t, max_z)) # expected log-likelihood of y (i.e. of u)
         E_log_prior = -np.Inf*np.ones((n_t, max_z)) # expected log-prior on z
         E_log_prior[0, 0] = 0 # initial observation is assigned to latent cause 0 with probability 1 (log(1) = 0)
+        E_post_pred = np.zeros((n_t, max_z, n_u))
         
         phi_x = np.zeros((n_t, max_z)) # posterior of latent causes after observing x, but before observing u
         phi = np.zeros((n_t, max_z)) # posterior of latent causes after observing both x and y (i.e. u)
@@ -151,7 +159,8 @@ class model:
         E_r = np.zeros(max_z) # mean recency
         V_r = np.zeros(max_z) # variance of recency
         sum_r = 0 # sum of recencies across latent causes
-        for i in range(int(sim_pars['tilde_n'])):
+        #for i in range(int(sim_pars['tilde_n'])):
+        for i in range(int(tilde_n)):
             E_r[range(2)] = np.exp(-sim_pars['gamma'])*(0.5 + E_r[range(2)])
             V_r[range(2)] = np.exp(-2*sim_pars['gamma'])*(0.25 + V_r[range(2)])
             sum_r = np.exp(-sim_pars['gamma'])*(1 + sum_r)
@@ -168,8 +177,10 @@ class model:
             x_sofar[x[t, :] > 0] = 1 # keep track of cues observed so far
             ind_n = range(N[t]) # indicates latent causes to be used for many computations
             ind_n1 = range(N[t] + 1) # indicates latent causes to be used for many computations
-            n_for_x = np.repeat(n[t, ind_n1], n_x).reshape((N[t] + 1, n_x)) # used in computations involving x
-            n_for_y = np.repeat(n[t, ind_n1], n_u).reshape((N[t] + 1, n_u)) # used in computations involving y (i.e. u)
+            #n_for_x = np.repeat(n[t, ind_n1] + sim_pars['tilde_n'], n_x).reshape((N[t] + 1, n_x)) # used in computations involving x
+            #n_for_y = np.repeat(n[t, ind_n1] + sim_pars['tilde_n'], n_u).reshape((N[t] + 1, n_u)) # used in computations involving y (i.e. u)
+            n_for_x = np.repeat(n[t, ind_n1] + tilde_n, n_x).reshape((N[t] + 1, n_x)) # used in computations involving x
+            n_for_y = np.repeat(n[t, ind_n1] + tilde_n, n_u).reshape((N[t] + 1, n_u)) # used in computations involving y (i.e. u)
             
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
             E_eta_x = digamma(tau_x[t, ind_n1, :]) - digamma(n_for_x - tau_x[t, ind_n1, :] + 1) # expected natural parameter (eta)
@@ -188,9 +199,11 @@ class model:
             s = np.exp(E_log_lik_x[t, ind_n1] + E_log_prior[t, ind_n1])
             phi_x[t, ind_n1] = s/s.sum()
                                            
-            # predict y (recall that 'y' = 'u') 
-            E_post_pred = (tau_y[t, ind_n1, :] + 1)/(n[t, ind_n1].reshape((N[t] + 1, 1)) + 2) # mean of posterior predictive
-            u_hat[t, :] = u_psb[t, :]*np.sum(phi_x[t, ind_n1].reshape((N[t] + 1, 1))*E_post_pred, axis = 0) # predicted outcome (u)
+            # predict y (recall that 'y' = 'u')
+            #n_for_calc = n[t, ind_n1].reshape((N[t] + 1, 1)) + sim_pars['tilde_n']
+            n_for_calc = n[t, ind_n1].reshape((N[t] + 1, 1)) + tilde_n
+            E_post_pred[t, ind_n1, :] = (tau_y[t, ind_n1, :] + 1)/(n_for_calc + 2) # mean of posterior predictive
+            u_hat[t, :] = u_psb[t, :]*np.sum(phi_x[t, ind_n1].reshape((N[t] + 1, 1))*E_post_pred[t, ind_n1, :], axis = 0) # predicted outcome (u)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
                                            
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
@@ -211,7 +224,8 @@ class model:
             n[t + 1, :] = n[t, :] + phi[t, :]
                                            
             # add latent cause (expand N) if needed
-            if n[t, N[t]] - sim_pars['tilde_n'] > 1:
+            #if n[t, N[t]] - sim_pars['tilde_n'] > 1:
+            if n[t, N[t]] > 1:
                 N[t + 1] = N[t] + 1
                 # CHECK IF CONDITION IS APPROPRIATE
                 # INITIALIZE STUFF AS APPROPRIATE (NEED THIS?)
@@ -238,7 +252,7 @@ class model:
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
-        ds = ds.assign_coords({'z_name' : np.array(range(max_z)), 'ident' : [ident]})
+        ds = ds.assign_coords({'z_name' : np.array(range(max_z), dtype = int), 'ident' : [ident]})
         ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
                         'u_lrn' : (['t', 'u_name'], u_lrn),
                         'u_hat' : (['t', 'u_name'], u_hat),
@@ -250,6 +264,7 @@ class model:
                         'E_log_lik_x' : (['t', 'z_name'], E_log_lik_x),
                         'E_log_lik_y' : (['t', 'z_name'], E_log_lik_y),
                         'E_log_prior' : (['t', 'z_name'], E_log_prior),
+                        'E_post_pred' : (['t', 'z_name', 'u_name'], E_post_pred),
                         'phi_x' : (['t', 'z_name'], phi_x),
                         'phi' : (['t', 'z_name'], phi),
                         'N' : (['t'], N[range(n_t)])})
@@ -263,8 +278,10 @@ class model:
 par_names = []; par_list = []                         
 par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 2.0, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}] 
 par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 0.5, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
-par_names += ['tilde_tau']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior hyperparameter for eta (log-odds in Bernoulli likelihood)'}]
-par_names += ['tilde_n']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior value for n (sample size for each latent cause)'}]
+par_names += ['prior_a']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 1.0, 'description': 'prior hyperparameter for eta (log-odds in Bernoulli likelihood)'}]
+par_names += ['prior_b']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 5.0, 'description': 'prior hyperparameter for eta (log-odds in Bernoulli likelihood)'}]
+#par_names += ['tilde_tau']; par_list += [{'min': 0.0, 'max': 40.0, 'default': 2.0, 'description': 'prior hyperparameter for eta (log-odds in Bernoulli likelihood)'}]
+#par_names += ['tilde_n']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 2.0, 'description': 'prior value for n (sample size for each latent cause)'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 
 pars = pd.DataFrame(par_list, index = par_names)

@@ -371,9 +371,7 @@ class experiment:
 
         # **** merge datasets together ****
         try:
-            ds = xr.combine_nested(ds_list, concat_dim = 'ident')
-            ds.attrs['schedule'] = scd.name
-            ds.attrs['x_dims'] = scd.x_dims
+            ds = xr.combine_nested(ds_list, concat_dim = 'ident', combine_attrs = 'override')
         except Exception as e:
             print(e)
             print('There was a problem merging individual datasets together.')
@@ -654,7 +652,7 @@ class schedule:
         ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
         ex_names = trial_def['ex'].loc[{'t': ex_index}].values
         x_ex = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
-        trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names)
+        trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names, resp_type = resp_type, schedule = name)
 
         # make sure that no trial type is duplicated within any stage
         for i in range(n_stage):
@@ -667,7 +665,6 @@ class schedule:
         self.name = name
         self.resp_type = resp_type
         self.stage_list = stage_list
-        trial_def = trial_def.assign_attrs(resp_type = self.resp_type)
         self.trial_def = trial_def
         self.x_names = x_names
         self.u_names = u_names
