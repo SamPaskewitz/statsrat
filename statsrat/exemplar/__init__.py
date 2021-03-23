@@ -175,7 +175,7 @@ class model:
             u_hat[t, :] = rtrv[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             u_ex[t + 1, :, :] = u_ex[t, :, :] + self.u_ex_update(sim[t, :], rtrv[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], ex_counts, n_ex, n_u, sim_pars) # update u_ex
-            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], n_x, n_u, ex_counts, n_ex, sim_pars) # update attention
+            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], x[t, :], u[t, :], u_psb[t, :], rtrv[t, :], u_hat[t, :], u_lrn[t, :], x_ex.values, u_ex[t, :, :], n_x, n_u, ex_counts, n_ex, sim_pars) # update attention
             
         # generate simulated responses
         if random_resp is False:
@@ -211,6 +211,7 @@ class model:
 ########## PARAMETERS ##########
 par_names = []; par_list = []   
 par_names += ['lrate_par']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
+par_names += ['atn_lrate_par']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}] # learning rate for attention updates
 par_names += ['decay_rate']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 0.5}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 pars = pd.DataFrame(par_list, index = par_names)

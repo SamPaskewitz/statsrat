@@ -407,7 +407,7 @@ extinction = expr.experiment(schedules = {'control': cond, 'experimental': extn}
                                                                   behav_score_neg = cs_score)
 })
 
-# context dependence of extinction (i.e. ABA renewal)
+# ABA renewal
 aba_renewal = expr.experiment(schedules = {'experimental': extn_aba, 'control': extn},
                               oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                           schedule_neg = ['control'],
