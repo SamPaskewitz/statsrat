@@ -241,6 +241,34 @@ extn_abc = expr.schedule(name = 'extinction_abc',
                                   n_rep = 5)
                    ])
 
+# extinction (AAB)
+extn_aab = expr.schedule(name = 'extinction_aab',
+                        resp_type = 'exct',
+                   stage_list = [
+                       expr.stage(name = 'training',
+                             x_pn = [['cs']],
+                             x_bg = ['ctx_a'],
+                             u = [['us']],
+                             u_psb = ['us'],
+                             order_fixed = True, 
+                             iti = 5,
+                             n_rep = 5),
+                       expr.stage(name = 'extinction',
+                             x_pn = [['cs']],
+                             x_bg = ['ctx_a'],
+                             u_psb = ['us'],
+                             order_fixed = True,
+                             iti = 5,
+                             n_rep = 5),
+                       expr.stage(name = 'test',
+                                  x_pn = [['cs']],
+                                  x_bg = ['ctx_b'],
+                                  u_psb = ['us'],
+                                  order_fixed = True,
+                                  iti = 5,
+                                  n_rep = 5)
+                   ])
+
 # extinction (ABB)
 extn_abb = expr.schedule(name = 'extinction_abb',
                         resp_type = 'exct',
@@ -417,6 +445,14 @@ aba_renewal = expr.experiment(schedules = {'experimental': extn_aba, 'control': 
 
 # ABC renewal
 abc_renewal = expr.experiment(schedules = {'experimental': extn_abc, 'control': extn_abb},
+                              oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
+                                                          schedule_neg = ['control'],
+                                                          behav_score_pos = cs_score,
+                                                          behav_score_neg = cs_score)
+})
+
+# AAB renewal
+aab_renewal = expr.experiment(schedules = {'experimental': extn_aab, 'control': extn},
                               oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                           schedule_neg = ['control'],
                                                           behav_score_pos = cs_score,

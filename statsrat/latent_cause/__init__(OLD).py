@@ -211,17 +211,21 @@ class model:
             s *= np.exp(E_log_lik_y[t, ind_n1])
             phi[t, ind_n1] = s/s.sum()
                                            
+            # learning (update hyperparameters) 
+            tau_x[t + 1, :, :] = tau_x[t, :, :] + x_sofar*np.outer(phi[t, :], T_x)
+            tau_y[t + 1, :, :] = tau_y[t, :, :] + u_psb[t, :]*np.outer(phi[t, :], T_y)
+            n[t + 1, :] = n[t, :] + phi[t, :]
+                                           
             # add latent cause (expand N) if needed
-            if phi[t, N[t]] == phi[t, :].max():
+            # The "n[t, N[t]] > 1" criterion doesn't make sense for a streaming algorithm: it will tend to add new causes
+            # after a while even if the environment is constant.
+            # I'm going to try a different heuristic, or none (i.e. don't limit at all).
+            #if n[t, N[t]] > 1:
+            #if phi[t, N[t]] == phi[t, :].max():
+            if phi[t, N[t]] >= 0.75:
                 N[t + 1] = N[t] + 1
             else:
                 N[t + 1] = N[t]
-                                                       
-            # learning (update hyperparameters)
-            ind_lrn = range(N[t + 1])
-            tau_x[t + 1, ind_lrn, :] = tau_x[t, ind_lrn, :] + x_sofar*np.outer(phi[t, ind_lrn], T_x)
-            tau_y[t + 1, ind_lrn, :] = tau_y[t, ind_lrn, :] + u_psb[t, :]*np.outer(phi[t, ind_lrn], T_y)
-            n[t + 1, ind_lrn] = n[t, ind_lrn] + phi[t, ind_lrn]
                                                        
         # generate simulated responses
         if random_resp is False:
