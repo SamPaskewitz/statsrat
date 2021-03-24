@@ -16,7 +16,11 @@ class schedule:
         be either 'choice' (discrete responses), 'exct' (excitatory)
         or 'supr' (suppression of an ongoing activity).
     stage_list: list
-        List of dictionaries defining the schedule's stages.
+        List of experimental stages (stage objects).
+    delays: list of int
+        List of time delays between stages (e.g. if delay[1] = 100
+        then there is a 100 unit delay between the end of stage 0 and
+        the start of stage 1).
     trial_def: data frame
         Defines the trial types implied by 'stage_list'.
     x_names: list of str
@@ -62,11 +66,11 @@ class schedule:
 
     In trial_def and trials dataset objects, 't' is the dimension that
     indicates time steps (it is simply an ascending integer).  't_name',
-    'trial', 'trial_name', 'stage' and 'stage_name' are all alternative
-    labels for the time dimension.  Because xarray does not fully support
-    multi-indexing (e.g. vectorized indexing doesn't work, at least in
-    v0.15.1), these other time labels are specified as separate data
-    variable instead of coordinates of the time dimension alongside 't'.
+    'trial', 'trial_name', 'stage' and 'stage_name' are all 
+    alternative labels for the time dimension.  Because xarray does not
+    fully support multi-indexing (e.g. vectorized indexing doesn't work, 
+    at least in v0.15.1), these other time labels are specified as separate
+    data variable instead of coordinates of the time dimension alongside 't'.
 
     Data variables of trial_def and trials dataset objects:
     x: float
@@ -115,7 +119,7 @@ class schedule:
     x_name: str
         Cue name dimension.        
     """
-    def __init__(self, name, resp_type, stage_list, x_dims = None):
+    def __init__(self, name, resp_type, stage_list, delays = None, x_dims = None):
         """
         Parameters
         ----------
@@ -127,6 +131,11 @@ class schedule:
             or 'supr' (suppression of an ongoing activity).
         stage_list: list
             List of experimental stages (stage objects).
+        delays: list of int or None, optional
+            List of time delays between stages (e.g. if delay[0] = 100
+            then there is a 100 unit delay between the end of stage 0 and
+            the start of stage 1).  If None, then there are no delays (all are 0).
+            Defaults to None.
         x_dims: dict or None, optional
             If not None, then a dictionary specifying the cues belonging to
             each stimulus dimension.  Keys are dimension names and values
@@ -264,6 +273,10 @@ class schedule:
         self.name = name
         self.resp_type = resp_type
         self.stage_list = stage_list
+        if delays is None:
+            self.delays = (n_stage - 1)*[0]
+        else:
+            self.delays = delays
         self.trial_def = trial_def
         self.x_names = x_names
         self.u_names = u_names

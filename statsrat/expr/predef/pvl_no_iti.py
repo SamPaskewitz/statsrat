@@ -368,7 +368,7 @@ extn_extra_time = expr.schedule(name = 'extinction_extra_time',
                                              n_rep = 5)
                                    ])
 
-# extinction with delay (in the home cage, i.e. a separate context) before test
+# extinction with delay before test
 extn_delay = expr.schedule(name = 'extinction_delay',
                            resp_type = 'exct',
                                    stage_list = [
@@ -387,13 +387,6 @@ extn_delay = expr.schedule(name = 'extinction_delay',
                                              order_fixed = True,
                                              iti = 0,
                                              n_rep = 5),
-                                       expr.stage(name = 'delay',
-                                             x_pn = [[]],
-                                             x_bg = ['home_cage'],
-                                             u_psb = ['us'],
-                                             order_fixed = True,
-                                             iti = 0,
-                                             n_rep = 50),
                                        expr.stage(name = 'test',
                                              x_pn = [['cs']],
                                              x_bg = ['ctx'],
@@ -401,7 +394,8 @@ extn_delay = expr.schedule(name = 'extinction_delay',
                                              order_fixed = True,
                                              iti = 0,
                                              n_rep = 5)
-                                   ])
+                                   ],
+                          delays = [0, 100])
 
 ##### DEFINE BEHAVIORAL SCORES #####
 cs_score = expr.behav_score(stage = 'test',

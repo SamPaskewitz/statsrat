@@ -15,6 +15,8 @@ class stage:
         Number of trials per repetition (trial block).
     n_trial_type : int
         Number of trial types.
+    n_t : int
+        Total number of time steps in stage.
     order : list
         Used by the 'make_trials' method to determine trial
         order (typically after random reshuffling).
@@ -129,6 +131,7 @@ class stage:
             self.freq = self.n_trial_type*[1]
         else:
             self.freq = freq
+        self.n_t = n_rep*np.sum(self.freq*(1 + iti)) # number of time steps
         order = []
         for j in range(self.n_trial_type):
             order += self.freq[j]*[j]

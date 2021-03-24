@@ -90,6 +90,14 @@ class experiment:
         dataset (xarray)
             Contains time step level data (stimuli, outcomes etc.).  See
             documentation on the schedule class for more details.
+            
+        Notes
+        -----
+        Adds in 'time', an alternative coordinate for time steps (dimension t).
+        This indicates real world time (in abstract units), including possible delays
+        since previous time steps (e.g. for an experiment with several sessions
+        on different days).  Starts at 0 for the first time step, and each time
+        step represents a time unit of 1.
         """
         # determine experimental schedule to use
         if schedule is None:
@@ -113,11 +121,17 @@ class experiment:
                     t_order += trial_def_index
                     trial_index += (iti + 1)*[m]
                     m += 1
+                    
+        # make list for 'time' coordinate
+        time = list(np.arange(scd.stage_list[0].n_t))
+        for i in range(1, scd.n_stage):
+            time += list(np.arange(scd.stage_list[i].n_t) + scd.delays[i - 1] + time[-1] + 1)
         
         # make new trials object
         trials = scd.trial_def.loc[{'t' : t_order}]
         trials = trials.assign_coords({'t' : range(scd.n_t)})
         trials = trials.assign_coords({'trial' : ('t', trial_index)})
+        trials = trials.assign_coords({'time' : time})
         trials.attrs['schedule'] = scd.name
 
         return trials
@@ -187,10 +201,18 @@ class experiment:
         experiments, and does not mean anything for stages without feedback (i.e. test stages).
         
         Current Limitations:
+        
         For now, I assume that each time step represents a trial (i.e. iti = 0).
+        
         I also assume that all 'x_names' in the Python schedule object are lower case.
+        
         I also assume that each stage has at most one trial type for any set of punctate cues.
+        
         I also assume that the Python schedule object has exactly the right number of trials.
+        
+        Currently, the 'time' (real world time) coordinate is only a copy of 't' (the time step
+        number).  This represents the assumption that there are no delays between stages of the
+        experiment.
         """        
         # list .csv files in the directory
         file_set = [file for file in glob.glob(path + "**/*.csv", recursive=True)]
@@ -309,7 +331,8 @@ class experiment:
                             m += 1
                     # **** make new dataset **** 
                     ds_new = scd.trial_def.loc[{'t' : t_order}]
-                    ds_new = ds_new.assign_coords({'t' : range(len(t_order)), 'trial' : range(len(t_order))})
+                    n_t = len(t_order)
+                    ds_new = ds_new.assign_coords({'t' : range(n_t), 'trial' : range(len(t_order)), 'time': range(n_t)})
                     ds_new = ds_new.assign(b = b)
                     ds_new = ds_new.expand_dims(ident = [ident])
                     # **** add confidence ratings ****
