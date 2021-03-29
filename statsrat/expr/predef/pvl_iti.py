@@ -415,18 +415,18 @@ cs2_score = expr.behav_score(stage = 'test',
 
 # basic conditioning, i.e. acquistion of a conditioned response
 conditioning = expr.experiment(schedules = {'control': no_cond, 'experimental': cond},
-                               oats = {'acquistion_of_cr': expr.oat(schedule_pos = ['experimental'],
-                                                                    schedule_neg = ['control'],
-                                                                    behav_score_pos = cs_score,
-                                                                    behav_score_neg = cs_score)
+                               oats = {'acquistion': expr.oat(schedule_pos = ['experimental'],
+                                                              schedule_neg = ['control'],
+                                                              behav_score_pos = cs_score,
+                                                              behav_score_neg = cs_score)
 })
 
 # basic extinction of a conditioned response
 extinction = expr.experiment(schedules = {'control': cond, 'experimental': extn},
-                             oats = {'extinction_of_cr': expr.oat(schedule_pos = ['control'],
-                                                                  schedule_neg = ['experimental'],
-                                                                  behav_score_pos = cs_score,
-                                                                  behav_score_neg = cs_score)
+                             oats = {'extinction': expr.oat(schedule_pos = ['control'],
+                                                            schedule_neg = ['experimental'],
+                                                            behav_score_pos = cs_score,
+                                                            behav_score_neg = cs_score)
 })
 
 # ABA renewal

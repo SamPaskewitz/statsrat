@@ -9,7 +9,6 @@ def elem(x, x_names):
     f_names = x_names.copy()
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-
 elem.par_names = []
 
 # Elemental features with intercept term.
@@ -24,7 +23,6 @@ def elem_intercept(x, x_names):
     
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-
 elem_intercept.par_names = []
 
 # Binary configural features.
@@ -48,7 +46,6 @@ def cfg2(x, x_names):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-
 cfg2.par_names = []
 
 # Binary configural features with intercept term.
@@ -77,5 +74,4 @@ def cfg2_intercept(x, x_names):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-
 cfg2_intercept.par_names = []

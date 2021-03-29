@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
-from . import fbase, fweight, aux, lrate, drate
+from . import pred, fbase, fweight, aux, lrate, drate
 
 class model:
     '''
@@ -13,6 +13,8 @@ class model:
     ----------
     name: str
         Model name.
+    pred: function
+        Prediction function.
     fbase: function
         Base mapping between cues (x) and features (f_x).
     fweight: function
@@ -34,12 +36,14 @@ class model:
         Simulate a trial sequence once with known model parameters.
     '''
 
-    def __init__(self, name, fbase, fweight, lrate, drate, aux):
+    def __init__(self, name, pred, fbase, fweight, lrate, drate, aux):
         """
         Parameters
         ----------
         name: str
             Model name.
+        pred: function
+            Prediction function.
         fbase: function
             Base mapping between cues (x) and features (f_x).
         fweight: function
@@ -53,13 +57,14 @@ class model:
         """
         # add attributes to object ('self')
         self.name = name
+        self.pred = pred
         self.fbase = fbase
         self.fweight = fweight
         self.lrate = lrate
         self.drate = drate
         self.aux = aux
         # determine model's parameter space
-        self.par_names = list(np.unique(fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names))
+        self.par_names = list(np.unique(pred.par_names + fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names))
         self.pars = pars.loc[self.par_names + ['resp_scale']]
  
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
@@ -156,8 +161,8 @@ class model:
         # loop through time steps
         for t in range(n_t):
             fweight[t, :] = self.fweight(aux, t, fbase, fweight, n_f, sim_pars)
-            f_x[t, :] = fbase[t, :] * fweight[t, :] # weight base features
-            u_hat[t, :] = u_psb[t, :] * (f_x[t, :] @ w[t, :, :]) # prediction
+            f_x[t, :] = fbase[t, :]*fweight[t, :] # weight base features
+            u_hat[t, :] = self.pred(u_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
             aux.update(sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)

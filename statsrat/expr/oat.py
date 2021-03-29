@@ -165,10 +165,8 @@ class oat:
             
         Returns
         -------
-        mean_resp: dataframe or dict of dataframe
-            If the OAT only has positive schedules, then the dataframe containing relevant mean
-            responses.  Otherwise a dict containing such dataframes for positive and
-            negative schedules.
+        mean_resp: dataframe
+            Mean responses for relevant trial types.
         """
         # Deal with case where input is a single dataset, rather than a dictionary of datasets.
         if type(data) is dict:
@@ -197,6 +195,7 @@ class oat:
                               coords = {'schedule': self.schedule_pos,
                                         'trial_name': trial_name,
                                         'u_name': u_name})
+        
         # loop through schedules
         for s in self.schedule_pos:
             df_s = data_dict[s].to_dataframe()
@@ -212,7 +211,7 @@ class oat:
                     da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
             df_pos = da_pos.to_dataframe(name = 'mean_resp')
             df_pos.reset_index(inplace = True)
-       
+        
         # ** negative schedules **
         
         if not self.schedule_neg is None:
