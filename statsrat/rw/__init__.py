@@ -167,7 +167,7 @@ class model:
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
             aux.update(sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
             lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_u, sim_pars) # learning rates for this time step
-            drate[t, :, :] = self.drate(aux, t, n_f, n_u, sim_pars) # decay rates for this time step
+            drate[t, :, :] = self.drate(aux, t, w, n_f, n_u, sim_pars) # decay rates for this time step
             w[t+1, :, :] = w[t, :, :] + u_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_u)) - drate[t, :, :]*w[t, :, :] # association learning
 
         # generate simulated responses
@@ -209,7 +209,7 @@ par_names = []; par_list = []
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
-par_names += ['extra_counts']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0}]
+par_names += ['power']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # min is 0.1 in the R version, but this doesn't work here
 par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
 par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]

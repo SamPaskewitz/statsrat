@@ -284,7 +284,7 @@ class schedule:
         self.n_stage = n_stage        
         self.n_x = n_x
         self.n_u = n_u
-        self.n_t = n_t
+        self.n_t = int(n_t)
         self.n_ex = len(self.ex_names)
         
         # record stimulus dimension info, if any

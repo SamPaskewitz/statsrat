@@ -60,30 +60,30 @@ cfg2_intercept = rw.model(name = 'cfg2_intercept',
                           drate = rw.drate.zero,
                           aux = rw.aux.basic)
 
-# Rescorla-Wagner model with harmonically decaying learning rate.
-hrmn = rw.model(name = 'hrmn',
+# Rescorla-Wagner model with decaying learning rate.
+power = rw.model(name = 'power',
                 pred = rw.pred.identity,
                 fbase = rw.fbase.elem,
                 fweight = rw.fweight.none,
-                lrate = rw.lrate.hrmn,
+                lrate = rw.lrate.power,
                 drate = rw.drate.zero,
                 aux = rw.aux.basic)
 
-# Rescorla-Wagner model with harmonically decaying learning rate and intercept.
-hrmn_intercept = rw.model(name = 'hrmn_intercept',
+# Rescorla-Wagner model with decaying learning rate and intercept.
+power_intercept = rw.model(name = 'power_intercept',
                           pred = rw.pred.identity,
                           fbase = rw.fbase.elem_intercept,
                           fweight = rw.fweight.none,
-                          lrate = rw.lrate.hrmn,
+                          lrate = rw.lrate.power,
                           drate = rw.drate.zero,
                           aux = rw.aux.basic)
 
-# Rescorla-Wagner model with harmonically decaying learning rate and binary configural features.
-hrmncfg2 = rw.model(name = 'hrmncfg2',
+# Rescorla-Wagner model with decaying learning rate and binary configural features.
+power_cfg2 = rw.model(name = 'power_cfg2',
                     pred = rw.pred.identity,
                     fbase = rw.fbase.cfg2,
                     fweight = rw.fweight.none,
-                    lrate = rw.lrate.hrmn,
+                    lrate = rw.lrate.power,
                     drate = rw.drate.zero,
                     aux = rw.aux.basic)
 

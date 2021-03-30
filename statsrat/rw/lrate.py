@@ -8,15 +8,18 @@ def cnst(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     return new_lrate
 cnst.par_names = ['lrate']
 
-def hrmn(aux, t, fbase, fweight, n_f, n_u, sim_pars):
-    '''Harmonic learning rate for non-zero features.'''
-    denom = sim_pars['extra_counts'] + aux.data['f_counts'][t, :]
-    new_lrate = 1/denom # learning rates harmonically decay with the number of times each feature has been observed
+def power(aux, t, fbase, fweight, n_f, n_u, sim_pars):
+    '''
+    Power function learning rate for non-zero features.
+    Learning rates decay with the number of times each feature has been observed.
+    '''
+    denom = (aux.data['f_counts'][t, :] + 1)**sim_pars['power']
+    new_lrate = 1/denom
     abv_min = new_lrate > 0.01
     new_lrate = new_lrate*abv_min + 0.01*(1 - abv_min)
     new_lrate = new_lrate.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-hrmn.par_names = ['extra_counts']
+power.par_names = ['power']
 
 def from_aux_norm(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     '''

@@ -401,7 +401,8 @@ class experiment:
             print('There was a problem merging individual datasets together.')
             
         # **** create summary data frame (each row corresponds to a participant) ****
-        summary = ds.drop_dims(['t', 'trial', 'x_name', 'u_name']).to_dataframe()
+        summary = ds.drop_dims(['t', 'trial', 'time', 'x_name', 'u_name']).to_dataframe()
+        print(summary)
         # **** add pct_correct ****
         for s in range(n_stage):
             not_test = scd.stage_list[s].lrn == True
