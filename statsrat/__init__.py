@@ -3,11 +3,11 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 import nlopt
-from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text
+from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity
 
 def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
     """
-    Plots learning simulation data as a function of time.
+    Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
     Parameters
     ----------
@@ -45,7 +45,7 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     
     Notes
     -----
-    The variable plotted should not have more than two dimensions besides time ('t').
+    The variable plotted should not have more than two dimensions besides time step ('t').
     
     By default, the first non-time dimension will be used for color and the
     second one for faceting.
@@ -55,12 +55,13 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     where 'dim0', 'dim1' etc. are one or more dimensions of 'var'.
     
     """
+    ### SET UP DATA FRAME ###
     if sel is None:
         ds_var = ds[var]
     else:
         ds_var = ds[var].loc[sel].squeeze()    
     dims = list(ds_var.dims)
-    dims.remove('t') # remove dimensions other than time ('t')
+    dims.remove('t') # remove dimensions other than time step ('t')
     n_dims = len(dims)
     df = ds_var.to_dataframe()
     df = df.reset_index()
@@ -68,20 +69,24 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
         df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
     if drop_zeros:
         df = df[-(df[var] == 0)] # remove rows where var is zero 
+    
+    ### CREATE PLOT ###
+    dpos = position_dodge(width = 1.0)
     if n_dims == 0:
+        dpos = position_identity()
         plot = (ggplot(df, aes(x='t', y=var)) + geom_line())
     else:
         if color_var is None:
             color_var = dims[0]
         if n_dims == 1:
-                plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line())
+            plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos))
         else:
             if facet_var is None:
                 facet_var = dims[1]
-                plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line() + facet_wrap('~' + facet_var))
+                plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
     
     if draw_points:
-        plot += geom_point()
+        plot += geom_point(position = dpos)
     
     if stage_labels:
         # add labels for stage names
@@ -98,6 +103,113 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     
     plot += theme(text=element_text(size = text_size)) # set text size
     
+    return plot
+
+def multi_plot(ds_list, var, sel = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
+    """
+    Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
+    
+    Parameters
+    ----------
+    ds_list : list of datasets (xarray)
+        Each element of the list consists of learning simulation data
+        (output of a model's 'simulate' method) from a different schedule.
+    var : string
+        Variable to plot.
+    sel : dict, optional
+        Used to select a subset of 'var'.  Defaults to 'None' (i.e. all
+        data in 'var' are plotted).
+    schedule_facet : boolean, optional
+        Whether or not schedules should be on different facets instead
+        of on a single graph distinguished by color.  Defaults to False.
+    draw_points : boolean, optional
+        Whether or not points should be drawn as well as lines.
+        Defaults to False.
+    drop_zeros : boolean, optional
+        Drop rows where 'var' is zero.  Defaults to False.
+    only_main : boolean, optional
+        Only keep rows where 't_name' is 'main', i.e. time steps with
+        punctate cues and/or non-zero outcomes.  Defaults to False.
+    stage_labels : boolean, optional
+        Whether the x-axis should be labeled with 'stage_name' (if True) or
+        't', i.e. time step (if False).  Defaults to True.
+    text_size : float, optional
+        Specifies text size.  Defaults to 10.0.
+        
+    Returns
+    -------
+    plot : object
+        A plotnine plot object.
+    
+    Notes
+    -----
+    It is assumed that either the schedules all have the same stage names, or else
+    that the 'sel' argument is used to select time steps that all have the same stage names.
+    
+    The variable plotted should not have more than one dimension besides time step ('t').
+    
+    If there is an extra dimension besides 't', it will be used for facetting (if
+    schedule_facet = False) or for color (if schedule_facet = True).
+    
+    The 'sel' argument is used to index 'ds' via the latter's 'loc' method.
+    It should be a dictionary of the form {'dim0' : ['a', 'b'], 'dim1' : ['c']},
+    where 'dim0', 'dim1' etc. are one or more dimensions of 'var'.
+    """
+    ### CREATE INDIVIDUAL DATA FRAMES ###
+    df_list = []
+    for ds in ds_list:
+        if sel is None:
+            new_ds_var = ds[var]
+        else:
+            new_ds_var = ds[var].loc[sel].squeeze()
+        new_dims = list(new_ds_var.dims)
+        new_dims.remove('t') # remove dimensions other than time step ('t')
+        new_df = new_ds_var.to_dataframe()
+        new_df = new_df.reset_index()
+        new_df['schedule'] = new_ds_var.schedule.values
+        df_list += [new_df]
+
+    ### CONCATENATE DATA FRAMES ###
+    df = pd.concat(df_list)
+    if only_main:
+        df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
+    if drop_zeros:
+        df = df[-(df[var] == 0)] # remove rows where var is zero 
+
+    ### CREATE PLOT ###
+    dims = new_dims
+    n_dims = len(dims)
+    dpos = position_dodge(width = 1.0)
+    if n_dims == 0:
+        if schedule_facet:
+            dpos = position_identity()
+            plot = (ggplot(df, aes(x='t', y=var)) + geom_line() + facet_wrap('~schedule'))
+        else:
+            plot = (ggplot(df, aes(x='t', y=var, color='schedule')) + geom_line(position = dpos))
+    else:
+        if schedule_facet:
+            plot = (ggplot(df, aes(x='t', y=var, color=dims[0])) + geom_line(position = dpos) + facet_wrap('~schedule'))
+        else:
+            plot = (ggplot(df, aes(x='t', y=var, color='schedule')) + geom_line(position = dpos) + facet_wrap('~' + dims[0]))
+    
+    if draw_points:
+        plot += geom_point(position = dpos)
+    
+    if stage_labels:
+        # add labels for stage names
+        stage = df.stage.values
+        s_min = stage.min()
+        s_max = stage.max()
+        stage_start = []
+        stage_labels = []
+        for s in range(s_min, s_max + 1):
+            start_point = df.t.loc[df.stage == s].min()
+            stage_start += [start_point]
+            stage_labels += [new_ds_var.stage_name.loc[{'t': start_point}].values]
+        plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
+    
+    plot += theme(text=element_text(size = text_size)) # set text size
+                        
     return plot
 
 def multi_sim(model, trials_list, par_val, random_resp = False):
