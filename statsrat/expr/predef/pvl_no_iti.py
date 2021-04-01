@@ -12,7 +12,7 @@ The OAT score for each schedule is simply response to CS.
 
 Each OAT is defined to be positive if it corresponds to published results.
 
-This version includes inter-trial intervals (ITIs).
+This version does not include inter-trial intervals (ITIs).
 '''
 
 iti = 0
@@ -204,6 +204,9 @@ pre_exp_abc = expr.schedule(name = 'pre_exposure_abc', resp_type = 'exct', stage
 # extinction
 extn = expr.schedule(name = 'extinction', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, test_stage])
 
+# extinction (AAA)
+extn_aaa = expr.schedule(name = 'extinction_aaa', resp_type = 'exct', stage_list = [no_stim_ctx_a_stage, training_ctx_a_stage, extn_ctx_a_stage, test_ctx_a_stage])
+
 # extinction (ABA)
 extn_aba = expr.schedule(name = 'extinction_aba', resp_type = 'exct', stage_list = [no_stim_ctx_a_stage, training_ctx_a_stage, extn_ctx_b_stage, test_ctx_a_stage])
 
@@ -261,7 +264,7 @@ extinction = expr.experiment(schedules = {'control': cond, 'experimental': extn}
 })
 
 # ABA renewal
-aba_renewal = expr.experiment(schedules = {'experimental': extn_aba, 'control': extn},
+aba_renewal = expr.experiment(schedules = {'experimental': extn_aba, 'control': extn_aaa},
                               oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                           schedule_neg = ['control'],
                                                           behav_score_pos = cs_score,
@@ -277,7 +280,7 @@ abc_renewal = expr.experiment(schedules = {'experimental': extn_abc, 'control': 
 })
 
 # AAB renewal
-aab_renewal = expr.experiment(schedules = {'experimental': extn_aab, 'control': extn},
+aab_renewal = expr.experiment(schedules = {'experimental': extn_aab, 'control': extn_aaa},
                               oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                           schedule_neg = ['control'],
                                                           behav_score_pos = cs_score,

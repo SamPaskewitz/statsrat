@@ -5,7 +5,7 @@ from scipy import stats
 import nlopt
 from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity
 
-def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
+def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
@@ -18,6 +18,9 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     sel : dict, optional
         Used to select a subset of 'var'.  Defaults to 'None' (i.e. all
         data in 'var' are plotted).
+    rename_coords : dict or None, optional
+        Either a dictionary for re-naming coordinates (keys are old names and
+        values are new names), or None (don't re-name).  Defaults to None.
     color_var : string, optional
         Variable to be represented by color.
         Defaults to None (see notes).
@@ -57,7 +60,7 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     """
     ### SET UP DATA FRAME ###
     if sel is None:
-        ds_var = ds[var]
+        ds_var = ds[var].squeeze()
     else:
         ds_var = ds[var].loc[sel].squeeze()    
     dims = list(ds_var.dims)
@@ -68,8 +71,19 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     if only_main:
         df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
     if drop_zeros:
-        df = df[-(df[var] == 0)] # remove rows where var is zero 
+        df = df[-(df[var] == 0)] # remove rows where var is zero
     
+    ### SET UP VARIABLES NAMES ###
+    if not rename_coords is None:
+        df = df.rename(columns = rename_coords)
+        var_names = rename_coords
+    else:
+        var_names = dict.fromkeys(dims)
+        for i in range(n_dims):
+            var_names[dims[i]] = dims[i]
+    print(var_names)
+    print(df.columns)
+        
     ### CREATE PLOT ###
     dpos = position_dodge(width = 1.0)
     if n_dims == 0:
@@ -77,12 +91,12 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
         plot = (ggplot(df, aes(x='t', y=var)) + geom_line())
     else:
         if color_var is None:
-            color_var = dims[0]
+            color_var = var_names[dims[0]]
         if n_dims == 1:
             plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos))
         else:
             if facet_var is None:
-                facet_var = dims[1]
+                facet_var = var_names[dims[1]]
                 plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
     
     if draw_points:
@@ -105,7 +119,7 @@ def learn_plot(ds, var, sel = None, color_var = None, facet_var = None, draw_poi
     
     return plot
 
-def multi_plot(ds_list, var, sel = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
+def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     
@@ -116,9 +130,15 @@ def multi_plot(ds_list, var, sel = None, schedule_facet = False, draw_points = F
         (output of a model's 'simulate' method) from a different schedule.
     var : string
         Variable to plot.
-    sel : dict, optional
-        Used to select a subset of 'var'.  Defaults to 'None' (i.e. all
-        data in 'var' are plotted).
+    sel : list of dicts or None, optional
+        If a list, then elements correspond to elements of ds_list.
+        Each list element is either None (to include everything in the 
+        corresponding data set) or a dict used to select a subset of 'var'.
+        Defaults to None (i.e. all data in 'var' are plotted for all data
+        sets).
+    rename_coords : dict or None, optional
+        Either a dictionary for re-naming coordinates (keys are old names and
+        values are new names), or None (don't re-name).  Defaults to None.
     schedule_facet : boolean, optional
         Whether or not schedules should be on different facets instead
         of on a single graph distinguished by color.  Defaults to False.
@@ -157,24 +177,35 @@ def multi_plot(ds_list, var, sel = None, schedule_facet = False, draw_points = F
     """
     ### CREATE INDIVIDUAL DATA FRAMES ###
     df_list = []
+    i = 0
     for ds in ds_list:
         if sel is None:
-            new_ds_var = ds[var]
+            new_ds_var = ds[var].squeeze()
         else:
-            new_ds_var = ds[var].loc[sel].squeeze()
+            if sel[i] is None:
+                new_ds_var = ds[var].squeeze()
+            else:
+                new_ds_var = ds[var].loc[sel[i]].squeeze()
+        new_ds_var['t'] = range(new_ds_var['t'].values.shape[0])
         new_dims = list(new_ds_var.dims)
         new_dims.remove('t') # remove dimensions other than time step ('t')
         new_df = new_ds_var.to_dataframe()
         new_df = new_df.reset_index()
         new_df['schedule'] = new_ds_var.schedule.values
         df_list += [new_df]
+        i += 1
 
     ### CONCATENATE DATA FRAMES ###
     df = pd.concat(df_list)
     if only_main:
         df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
     if drop_zeros:
-        df = df[-(df[var] == 0)] # remove rows where var is zero 
+        df = df[-(df[var] == 0)] # remove rows where var is zero
+    schedule_name = 'schedule'
+    if not rename_coords is None:
+        df = df.rename(columns = rename_coords)
+        if 'schedule' in list(rename_coords.keys()):
+            schedule_name = rename_coords['schedule']
 
     ### CREATE PLOT ###
     dims = new_dims
@@ -183,14 +214,14 @@ def multi_plot(ds_list, var, sel = None, schedule_facet = False, draw_points = F
     if n_dims == 0:
         if schedule_facet:
             dpos = position_identity()
-            plot = (ggplot(df, aes(x='t', y=var)) + geom_line() + facet_wrap('~schedule'))
+            plot = (ggplot(df, aes(x='t', y=var)) + geom_line() + facet_wrap('~' + schedule_name))
         else:
-            plot = (ggplot(df, aes(x='t', y=var, color='schedule')) + geom_line(position = dpos))
+            plot = (ggplot(df, aes(x='t', y=var, color=schedule_name)) + geom_line(position = dpos))
     else:
         if schedule_facet:
-            plot = (ggplot(df, aes(x='t', y=var, color=dims[0])) + geom_line(position = dpos) + facet_wrap('~schedule'))
+            plot = (ggplot(df, aes(x='t', y=var, color=dims[0])) + geom_line(position = dpos) + facet_wrap('~' + schedule_name))
         else:
-            plot = (ggplot(df, aes(x='t', y=var, color='schedule')) + geom_line(position = dpos) + facet_wrap('~' + dims[0]))
+            plot = (ggplot(df, aes(x='t', y=var, color=schedule_name)) + geom_line(position = dpos) + facet_wrap('~' + dims[0]))
     
     if draw_points:
         plot += geom_point(position = dpos)

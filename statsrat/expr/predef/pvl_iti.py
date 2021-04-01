@@ -23,6 +23,7 @@ n_rep_pre_exp = 5
 n_rep_no_stim = 10
 
 ##### DEFINE STAGES #####
+
 no_stim_stage = expr.stage(name = 'no_stim',
                          x_pn = [[]],
                          x_bg = ['ctx'],
@@ -204,6 +205,9 @@ pre_exp_abc = expr.schedule(name = 'pre_exposure_abc', resp_type = 'exct', stage
 # extinction
 extn = expr.schedule(name = 'extinction', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, test_stage])
 
+# extinction (AAA)
+extn_aaa = expr.schedule(name = 'extinction_aaa', resp_type = 'exct', stage_list = [no_stim_ctx_a_stage, training_ctx_a_stage, extn_ctx_a_stage, test_ctx_a_stage])
+
 # extinction (ABA)
 extn_aba = expr.schedule(name = 'extinction_aba', resp_type = 'exct', stage_list = [no_stim_ctx_a_stage, training_ctx_a_stage, extn_ctx_b_stage, test_ctx_a_stage])
 
@@ -229,6 +233,7 @@ extn_delay_implicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct
 extn_extra_time = expr.schedule(name = 'extinction_extra_time', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, no_stim_stage, test_stage])
 
 ##### DEFINE BEHAVIORAL SCORES #####
+
 cs_score = expr.behav_score(stage = 'test',
                             trial_pos = ['cs -> nothing'],
                             resp_pos = 2*['us'])
@@ -261,7 +266,7 @@ extinction = expr.experiment(schedules = {'control': cond, 'experimental': extn}
 })
 
 # ABA renewal
-aba_renewal = expr.experiment(schedules = {'experimental': extn_aba, 'control': extn},
+aba_renewal = expr.experiment(schedules = {'experimental': extn_aba, 'control': extn_aaa},
                               oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                           schedule_neg = ['control'],
                                                           behav_score_pos = cs_score,
@@ -277,7 +282,7 @@ abc_renewal = expr.experiment(schedules = {'experimental': extn_abc, 'control': 
 })
 
 # AAB renewal
-aab_renewal = expr.experiment(schedules = {'experimental': extn_aab, 'control': extn},
+aab_renewal = expr.experiment(schedules = {'experimental': extn_aab, 'control': extn_aaa},
                               oats = {'renewal': expr.oat(schedule_pos = ['experimental'],
                                                           schedule_neg = ['control'],
                                                           behav_score_pos = cs_score,

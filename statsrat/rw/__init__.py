@@ -207,6 +207,7 @@ class model:
 ########## PARAMETERS ##########
 par_names = []; par_list = [] 
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
+par_names += ['lrate_scale']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
 par_names += ['power']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
