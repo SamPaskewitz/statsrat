@@ -106,11 +106,9 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     if stage_labels:
         # add labels for stage names
         stage = df.stage.values
-        s_min = stage.min()
-        s_max = stage.max()
         stage_start = []
         stage_labels = []
-        for s in range(s_min, s_max + 1):
+        for s in np.unique(df.stage):
             start_point = df.t.loc[df.stage == s].min()
             stage_start += [start_point]
             stage_labels += [ds_var.stage_name.loc[{'t': start_point}].values]
@@ -240,14 +238,12 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
     if stage_labels:
         # add labels for stage names
         stage = df.stage.values
-        s_min = stage.min()
-        s_max = stage.max()
         stage_start = []
         stage_labels = []
-        for s in range(s_min, s_max + 1):
+        for s in np.unique(df.stage):
             start_point = df.t.loc[df.stage == s].min()
             stage_start += [start_point]
-            stage_labels += [new_ds_var.stage_name.loc[{'t': start_point}].values]
+            stage_labels += [df.stage_name.loc[df.t.values == start_point].values[0]]
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
     plot += theme(text=element_text(size = text_size)) # set text size
