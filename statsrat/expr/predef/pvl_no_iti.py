@@ -23,6 +23,7 @@ n_rep_pre_exp = 5
 n_rep_no_stim = 10
 
 ##### DEFINE STAGES #####
+
 no_stim_stage = expr.stage(name = 'no_stim',
                          x_pn = [[]],
                          x_bg = ['ctx'],
@@ -179,7 +180,15 @@ extra_us_stage = expr.stage(name = 'extra_us',
                             u_psb = ['us'],
                             order_fixed = True,
                             iti = iti,
-                            n_rep = n_rep_extn)
+                            n_rep = n_rep_train)
+
+extra_us_ctl_stage = expr.stage(name = 'extra_us',
+                                x_pn = [[]],
+                                x_bg = ['ctx'],
+                                u_psb = ['us'],
+                                order_fixed = True,
+                                iti = 0,
+                                n_rep = (iti + 1)*n_rep_train)
 
 ##### DEFINE SCHEDULES #####
 
@@ -220,7 +229,10 @@ extn_aab = expr.schedule(name = 'extinction_aab', resp_type = 'exct', stage_list
 extn_abb = expr.schedule(name = 'extinction_aab', resp_type = 'exct', stage_list = [no_stim_ctx_a_stage, training_ctx_a_stage, extn_ctx_b_stage, test_ctx_b_stage])
 
 # extinction with extra US (for reinstatement)
-extn_extra_us = expr.schedule(name = 'extinction_extra_us', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, extra_us_stage, test_stage])
+extn_extra_us = expr.schedule(name = 'extra_us', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, extra_us_stage, test_stage])
+
+# control condition for extinction with US (for reinstatement)
+extn_extra_us_ctl = expr.schedule(name = 'extra_us_control', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, extra_us_ctl_stage, test_stage])
 
 # extinction with delay before test (explicit)
 extn_delay_explicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, delay_stage, test_stage])
@@ -228,21 +240,19 @@ extn_delay_explicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct
 # extinction with delay before test (implicit)
 extn_delay_implicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, test_stage], delays = [0, 0, 100])
 
-# extinction with extra time in the conditioning/extinction context before test
-extn_extra_time = expr.schedule(name = 'extinction_extra_time', resp_type = 'exct', stage_list = [no_stim_stage, training_stage, extn_stage, no_stim_stage, test_stage])
-
 ##### DEFINE BEHAVIORAL SCORES #####
+
 cs_score = expr.behav_score(stage = 'test',
                             trial_pos = ['cs -> nothing'],
-                            resp_pos = 2*['us'])
+                            resp_pos = ['us'])
 
 cs1_score = expr.behav_score(stage = 'test',
                              trial_pos = ['cs1 -> nothing'],
-                             resp_pos = 2*['us'])
+                             resp_pos = ['us'])
 
 cs2_score = expr.behav_score(stage = 'test',
                              trial_pos = ['cs2 -> nothing'],
-                             resp_pos = 2*['us'])
+                             resp_pos = ['us'])
 
 
 ##### DEFINE OATS AND EXPERIMENTS #####
@@ -288,7 +298,7 @@ aab_renewal = expr.experiment(schedules = {'experimental': extn_aab, 'control': 
 })
 
 # reinstatement
-reinstatement = expr.experiment(schedules = {'experimental': extn_extra_us, 'control': extn_extra_time},
+reinstatement = expr.experiment(schedules = {'experimental': extn_extra_us, 'control': extn_extra_us_ctl},
                                 oats = {'reinstatement': expr.oat(schedule_pos = ['experimental'],
                                                                   schedule_neg = ['control'],
                                                                   behav_score_pos = cs_score,
@@ -328,17 +338,17 @@ blocking = expr.experiment(schedules = {'control': two_cue, 'experimental': bloc
 })
 
 # spontaneous recovery (explicit)
-spont_rec = expr.experiment(schedules = {'experimental': extn_delay_explicit, 'control': extn},
-                            oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
-                                                                     schedule_neg = ['control'],
-                                                                     behav_score_pos = cs_score,
-                                                                     behav_score_neg = cs_score)
-})
+spont_rec_exp = expr.experiment(schedules = {'experimental': extn_delay_explicit, 'control': extn},
+                                oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
+                                                                         schedule_neg = ['control'],
+                                                                         behav_score_pos = cs_score,
+                                                                         behav_score_neg = cs_score)
+    })
 
 # spontaneous recovery (implicit)
-spont_rec = expr.experiment(schedules = {'experimental': extn_delay_implicit, 'control': extn},
-                            oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
-                                                                     schedule_neg = ['control'],
-                                                                     behav_score_pos = cs_score,
-                                                                     behav_score_neg = cs_score)
-})
+spont_rec_imp = expr.experiment(schedules = {'experimental': extn_delay_implicit, 'control': extn},
+                                oats = {'spontaneous_recovery': expr.oat(schedule_pos = ['experimental'],
+                                                                         schedule_neg = ['control'],
+                                                                         behav_score_pos = cs_score,
+                                                                         behav_score_neg = cs_score)
+    })

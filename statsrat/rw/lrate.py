@@ -14,12 +14,10 @@ def power(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     Learning rates decay with the number of times each feature has been observed.
     '''
     denom = (aux.data['f_counts'][t, :] + 1)**sim_pars['power']
-    new_lrate = sim_pars['lrate_scale']/denom
-    abv_min = new_lrate > 0.01
-    new_lrate = new_lrate*abv_min + 0.01*(1 - abv_min)
+    new_lrate = 0.5/denom + sim_pars['lrate_min']
     new_lrate = new_lrate.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-power.par_names = ['power', 'lrate_scale']
+power.par_names = ['power', 'lrate_min']
 
 def from_aux_norm(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     '''

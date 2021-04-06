@@ -6,39 +6,12 @@ from scipy.special import digamma
 from statsrat import resp_fun
 from . import kernel
 
+# https://github.com/LukasNeugebauer/LCM_python/blob/master/LCM.py
+# https://github.com/sjgershm/LCM
+
 class model:
     '''
-    Class for latent cause models.
-    
-    Attributes
-    ----------
-    name: str
-        Model name.
-    par_names: list
-        Names of the model's free parameters (strings).
-          
-    Methods
-    -------
-    simulate(trials, resp_type = 'choice', par_val = None, random_resp = False, ident = 'sim', max_z = 15)
-        Simulate a trial sequence once with known model parameters.
-        
-    Notes
-    -----
-    To start with (temporarily), this assumes that both x and u have Bernoulli likelihoods.
-    UPDATE THESE NOTES
-    
-    Both the outcome vector (u) and stimulus vector (x) are assumed to be
-    determined by a latent cause (z).  Only one latent cause is active on each
-    trial.  Instead of local MAP approximation (Anderson, 1991; Gerhsman et al, 2017)
-    or a particle filter (Gershman et al, 2010) to simulate latent cause models, statsrat
-    uses a streaming variational Bayes algorithm (Blei & Jordan, 2006; Broderick et al)
-
-    Anderson, J. R. (1991). The adaptive nature of human categorization. Psychological Review, 98(3), 409.
-    Blei, D. M., & Jordan, M. I. (2006). Variational inference for Dirichlet process mixtures. Bayesian Analysis, 1(1), 121–143. https://doi.org/10.1214/06-BA104
-    Broderick, T., Boyd, N., Wibisono, A., Wilson, A. C., & Jordan, M. I. (n.d.). Streaming Variational Bayes.
-    Gershman, S. J., Blei, D. M., & Niv, Y. (2010). Context, learning, and extinction. Psychological Review, 117(1), 197–209.
-    Gershman, S. J., Monfils, M.-H., Norman, K. A., & Niv, Y. (2017). The computational nature of memory modification. Elife, 6, e23763.
-
+    This just implements the local MAP approximation, as an attempt to see if this will work.
     '''
     def __init__(self, kernel):
         '''
@@ -48,10 +21,11 @@ class model:
         self.name = 'basic (Bernoulli)'
         self.kernel = kernel
         # determine the model's parameter space
-        par_names = kernel.par_names + ['prior_a_x', 'prior_b_x', 'prior_a_y', 'prior_b_y']
+        par_names = kernel.par_names + ['prior_mean_x', 'prior_n_x', 'prior_mean_y', 'prior_n_y', 'stick']
+        #par_names = kernel.par_names + ['prior_a_x', 'prior_b_x', 'prior_a_y', 'prior_b_y']
         self.pars = pars.loc[par_names + ['alpha', 'resp_scale']]
         
-    def simulate(self, trials, par_val = None, n_iter = 5, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
         '''
         Simulate a trial sequence once with known model parameters.
         
@@ -135,24 +109,26 @@ class model:
         time = trials['time'].values # real world time (in arbitrary units, starting at 0)
         
         # prior for parameters for x
-        tilde_tau_x = sim_pars['prior_a_x'] - 1
-        tilde_n_x = sim_pars['prior_a_x'] + sim_pars['prior_b_x'] - 2
+        tilde_tau_x = sim_pars['prior_mean_x']*(sim_pars['prior_n_x'] + 2) - 1
+        tilde_n_x = sim_pars['prior_n_x']
+        #tilde_tau_x = sim_pars['prior_a_x'] - 1
+        #tilde_n_x = sim_pars['prior_a_x'] + sim_pars['prior_b_x'] - 2
         tau_x = tilde_tau_x*np.ones((n_t + 1, n_t + 1, n_x)) # natural hyperparameters of outcome distribution
         # prior for parameters for y
-        tilde_tau_y = sim_pars['prior_a_y'] - 1
-        tilde_n_y = sim_pars['prior_a_y'] + sim_pars['prior_b_y'] - 2
+        tilde_tau_y = sim_pars['prior_mean_y']*(sim_pars['prior_n_y'] + 2) - 1
+        tilde_n_y = sim_pars['prior_n_y']
+        #tilde_tau_y = sim_pars['prior_a_y'] - 1
+        #tilde_n_y = sim_pars['prior_a_y'] + sim_pars['prior_b_y'] - 2
         tau_y = tilde_tau_y*np.ones((n_t + 1, n_t + 1, n_u)) # natural hyperparameters of stimulus distribution
         
+        z = np.zeros((n_t), dtype = int) # hard latent cause assignments
+        z_onehot = np.zeros((n_t, n_t + 1)) # one hot representation of z, i.e. winner is 1 and all others are 0
         n = np.zeros((n_t + 1, n_t + 1)) # estimated number of observations assigned to each latent cause
         N = np.zeros(n_t + 1, dtype=int) # estimated number of latent causes
         N[[0, 1]] = 1
         phi_x = np.zeros((n_t, n_t + 1)) # posterior of latent causes after observing x, but before observing u
         phi = np.zeros((n_t, n_t + 1)) # posterior of latent causes after observing both x and y (i.e. u)
         x_sofar = np.zeros(n_x) # keep track of cues (x) observed so far
-        
-        E_r = np.zeros((n_t, n_t)) # mean recency
-        V_r = np.zeros((n_t, n_t)) # variance of recency
-        sum_r = 0 # sum of recencies across latent causes
                          
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -172,6 +148,9 @@ class model:
         T_y = u[0, :] # sufficient statistic (T(y))
         tau_y[1, 0, :] = tau_y[0, 0, :] + u_psb[0, :]*T_y
         n[1, 0] = n[0, 0] + 1
+        z[0] = 0
+        z_onehot[0, 0] = 1
+        N[0] = 1
                
         # loop through time steps
         for t in range(1, n_t):
@@ -180,24 +159,25 @@ class model:
             ind_n = range(N[t]) # index for latent causes
             ind_n1 = range(N[t] + 1) # index latent causes
             n_for_x = np.repeat(n[t, ind_n1] + tilde_n_x, n_x).reshape((N[t] + 1, n_x)) # used in computations involving x
-            n_for_y = np.repeat(n[t, ind_n1] + tilde_n_y, n_u).reshape((N[t] + 1, n_u)) # used in computations involving y (i.e. u)
+            n_for_y = np.repeat(n[t, ind_n1] + tilde_n_y, n_u).reshape((N[t] + 1, n_u)) # used in computations involving y
             
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-            E_eta_x = digamma(tau_x[t, ind_n1, :] + 1) - digamma(n_for_x - tau_x[t, ind_n1, :] + 1) # expected natural parameter (eta)
-            E_a_eta_x = digamma(n_for_x - tau_x[t, ind_n1, :] + 1) - digamma(n_for_x + 2) # expected log partition function (a(eta))
-            b_x = 0 # log base measure (b(x))
+            #E_eta_x = digamma(tau_x[t, ind_n1, :] + 1) - digamma(n_for_x - tau_x[t, ind_n1, :] + 1) # expected natural parameter
+            #E_a_eta_x = digamma(n_for_x - tau_x[t, ind_n1, :] + 1) - digamma(n_for_x + 2) # expected log partition function
+            #b_x = 0 # log base measure (b(x))
             T_x = x[t, :] # sufficient statistic (T(x))
-            Ell_cues = E_eta_x*T_x - E_a_eta_x - b_x # expected log likelihood for each cue
+            #Ell_cues = E_eta_x*T_x - E_a_eta_x - b_x # expected log likelihood for each cue
+            E_log_theta_x = np.log(tau_x[t, ind_n1, :] + 1) - np.log(n_for_x + 2)
+            Ell_cues = x[t, :]*E_log_theta_x + (1 - x[t, :])*(1 - E_log_theta_x)
             E_log_lik_x = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
-            K = self.kernel(t, time, sim_pars) # temporal kernel (i.e. decay function for latent causes)
-            E_r[t, ind_n] = np.sum(K.reshape((t, 1))*phi[0:t, ind_n], axis = 0)
-            V_r[t, ind_n] = np.sum((K**2).reshape((t, 1))*phi[0:t, ind_n]*(1 - phi[0:t, ind_n]), axis = 0)
-            sum_r = np.sum(K)
+            K = self.kernel(t, time, sim_pars).reshape((t, 1)) # temporal kernel (i.e. decay function for latent causes)
+            r = np.sum(K*z_onehot[0:t, ind_n], axis = 0) # recency
+            sum_r = np.sum(r)
             E_log_prior = np.zeros(N[t] + 1)
-            E_log_prior[ind_n] = np.log(E_r[t, ind_n]) - 0.5*V_r[t, ind_n]/(E_r[t, ind_n]**2) - np.log(sum_r + sim_pars['alpha'])
-            E_log_prior[N[t]] = np.log(sim_pars['alpha']) - np.log(sum_r + sim_pars['alpha'])
+            E_log_prior[ind_n] = np.log(r[ind_n] + sim_pars['stick']) - np.log(sum_r + sim_pars['alpha']) # old clusters
+            E_log_prior[N[t]] = np.log(sim_pars['alpha']) - np.log(sum_r + sim_pars['alpha']) # new cluster
 
             # compute E_log_lik_phi based on x
             s = np.exp(E_log_lik_x + E_log_prior)
@@ -209,53 +189,36 @@ class model:
             E_post_pred = (tau_y[t, ind_n1, :] + 1)/(n_for_calc + 2) # mean of posterior predictive
             u_hat[t, :] = u_psb[t, :]*np.sum(new_phi_x.reshape((N[t] + 1, 1))*E_post_pred, axis = 0) # predicted outcome (u)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
-            
-            # loop through iterations
-            new_tau_x = tau_x[t, ind_n1, :]
-            new_tau_y = tau_y[t, ind_n1, :]
-            for i in range(n_iter):
-                # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-                E_eta_x = digamma(tau_x[t, ind_n1, :] + 1) - digamma(n_for_x - new_tau_x + 1) # expected natural parameter (eta)
-                E_a_eta_x = digamma(n_for_x - new_tau_x + 1) - digamma(n_for_x + 2) # expected log partition function (a(eta))
-                b_x = 0 # log base measure (b(x))
-                T_x = x[t, :] # sufficient statistic (T(x))
-                Ell_cues = E_eta_x*T_x - E_a_eta_x - b_x # expected log likelihood for each cue
-                E_log_lik_x = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
-            
-                # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
-                E_eta_y = digamma(new_tau_y + 1) - digamma(n_for_y - new_tau_y + 1) # expected natural parameter
-                E_a_eta_y = digamma(n_for_y - new_tau_y + 1) - digamma(n_for_y + 2) # expected log partition function
-                b_y = 0 # log base measure (b(y))
-                T_y = u[t, :] # sufficient statistic (T(y))
-                Ell_outcomes = E_eta_y*T_y - E_a_eta_y - b_y # expected log likelihood for each outcome
-                E_log_lik_y = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
-            
-                # compute phi
-                s = np.exp(E_log_lik_x + E_log_lik_y + E_log_prior)
-                new_phi = s/s.sum()
 
-                # learning (update hyperparameters)
-                new_tau_x = tau_x[t, ind_n1, :] + x_sofar*np.outer(new_phi, T_x)
-                new_tau_y = tau_y[t, ind_n1, :] + u_psb[t, :]*np.outer(new_phi, T_y)
-                new_n = n[t, ind_n1] + new_phi
-                n_for_x = np.repeat(new_n + tilde_n_x, n_x).reshape((N[t] + 1, n_x))
-                n_for_y = np.repeat(new_n + tilde_n_y, n_u).reshape((N[t] + 1, n_u))
-            
-            # add latent cause (expand N) if needed
-            if new_phi[N[t]] == new_phi.max():
-                N[t + 1] = N[t] + 1
+            # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
+            #E_eta_y = digamma(tau_y[t, ind_n1, :] + 1) - digamma(n_for_y - tau_y[t, ind_n1, :] + 1) # expected natural parameter
+            #E_a_eta_y = digamma(n_for_y - tau_y[t, ind_n1, :] + 1) - digamma(n_for_y + 2) # expected log partition function
+            #b_y = 0 # log base measure (b(y))
+            T_y = u[t, :] # sufficient statistic (T(y))
+            #Ell_outcomes = E_eta_y*T_y - E_a_eta_y - b_y # expected log likelihood for each outcome
+            E_log_theta_y = np.log(tau_y[t, ind_n1, :] + 1) - np.log(n_for_y + 2)
+            Ell_outcomes = u[t, :]*E_log_theta_y + (1 - u[t, :])*(1 - E_log_theta_y)
+            E_log_lik_y = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
+
+            # compute phi
+            s_xy = np.exp(E_log_lik_x + E_log_lik_y + E_log_prior)
+            phi[t, ind_n1] = s_xy/s_xy.sum()
+                
+            # hard latent cause assignment
+            z[t] = np.argmax(phi[t, :]) # winning (most probable) cluster
+            z_onehot[t, z[t]] = 1
+            if z[t] == N[t]:
+                N[t + 1] = N[t] + 1 # increase number of latent causes
             else:
                 N[t + 1] = N[t]
-            
-            # perform permanent updates/record computations
-            ind_lrn = range(N[t + 1])
-            phi[t, ind_lrn] = new_phi[ind_lrn]
-            tau_x[t + 1, ind_lrn, :] = new_tau_x[ind_lrn, :]
-            tau_y[t + 1, ind_lrn, :] = new_tau_y[ind_lrn, :]
-            n[t + 1, ind_lrn] = new_n[ind_lrn]
-            #tau_x[t + 1, ind_lrn, :] = tau_x[t, ind_lrn, :] + x_sofar*np.outer(phi[t, ind_lrn], T_x)
-            #tau_y[t + 1, ind_lrn, :] = tau_y[t, ind_lrn, :] + u_psb[t, :]*np.outer(phi[t, ind_lrn], T_y)
-            #n[t + 1, ind_lrn] = n[t, ind_lrn] + phi[t, ind_lrn]
+
+            # learning (update hyperparameters for winning cluster)
+            tau_x[t + 1, :, :] = tau_x[t, :, :]
+            tau_y[t + 1, :, :] = tau_y[t, :, :]
+            n[t + 1, :] = n[t, :]
+            tau_x[t + 1, z[t], :] += x_sofar*T_x
+            tau_y[t + 1, z[t], :] += u_psb[t, :]*T_y
+            n[t + 1, z[t]] += 1
             
         # generate simulated responses
         if random_resp is False:
@@ -281,8 +244,7 @@ class model:
                         'tau_x' : (['t', 'z_name', 'x_name'], tau_x[0:-1, 0:-1, :]),
                         'tau_y' : (['t', 'z_name', 'u_name'], tau_y[0:-1, 0:-1, :]),
                         'n' : (['t', 'z_name'], n[0:-1, 0:-1]),
-                        'E_r' : (['t', 'z_name'], E_r),
-                        'V_r' : (['t', 'z_name'], V_r),
+                        'z' : (['t'], z),
                         'phi_x' : (['t', 'z_name'], phi_x[:, 0:-1]),
                         'phi' : (['t', 'z_name'], phi[:, 0:-1]),
                         'N' : (['t'], N[0:(t+1)])})
@@ -304,11 +266,12 @@ class model:
 # Note: allowing prior_a to be close to 1 seems to cause problems.
 par_names = []; par_list = []                         
 par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 0.5, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}] 
-par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 20.0, 'default': 0.5, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
-par_names += ['prior_a_x']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 2.0, 'description': 'prior hyperparameter for eta for x (log-odds in Bernoulli likelihood)'}]
-par_names += ['prior_b_x']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x (log-odds in Bernoulli likelihood)'}]
-par_names += ['prior_a_y']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 2.0, 'description': 'prior hyperparameter for eta for y (log-odds in Bernoulli likelihood)'}]
-par_names += ['prior_b_y']; par_list += [{'min': 1.0, 'max': 40.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y (log-odds in Bernoulli likelihood)'}]
+par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 0.5, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
+par_names += ['prior_mean_x']; par_list += [{'min': 0.01, 'max': 0.5, 'default': 0.1, 'description': 'prior hyperparameter for eta for x'}]
+par_names += ['prior_n_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
+par_names += ['prior_mean_y']; par_list += [{'min': 0.01, 'max': 0.5, 'default': 0.1, 'description': 'prior hyperparameter for eta for y'}]
+par_names += ['prior_n_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
+par_names += ['stick']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 
 pars = pd.DataFrame(par_list, index = par_names)

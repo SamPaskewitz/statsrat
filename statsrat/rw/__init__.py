@@ -207,10 +207,13 @@ class model:
 ########## PARAMETERS ##########
 par_names = []; par_list = [] 
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
-par_names += ['lrate_scale']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
+par_names += ['lrate_min']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 0.1}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
-par_names += ['power']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
+par_names += ['lrate_tau']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}] # for tdrva
+par_names += ['tau0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}] # for tdrva
+par_names += ['tau_scale']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 2.0}] # for tdrva
+par_names += ['power']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.5}]
 par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # min is 0.1 in the R version, but this doesn't work here
 par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
 par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]

@@ -101,14 +101,14 @@ class model:
                     E_log_prior = np.zeros(K + 1)
                 
                 # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-                E_eta_x = digamma(tau_x[rk1, :]) - digamma(n_for_x - tau_x[rk1, :] + 1) # expected natural parameter (eta)
+                E_eta_x = digamma(tau_x[rk1, :] + 1) - digamma(n_for_x - tau_x[rk1, :] + 1) # expected natural parameter (eta)
                 E_a_eta_x = digamma(n_for_x - tau_x[rk1, :] + 1) - digamma(n_for_x + 2) # expected log partition function (a(eta))
                 b_x = 0 # log base measure (b(x))
                 Ell_cues = E_eta_x*T_x[t, :] - E_a_eta_x - b_x # expected log likelihood for each cue
                 E_log_lik_x = np.sum(Ell_cues, axis = 1) # assumed independent -> add log_lik across cues (omit x_sofar)
             
                 # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
-                E_eta_y = digamma(tau_y[rk1, :]) - digamma(n_for_y - tau_y[rk1, :] + 1) # expected natural parameter
+                E_eta_y = digamma(tau_y[rk1, :] + 1) - digamma(n_for_y - tau_y[rk1, :] + 1) # expected natural parameter
                 E_a_eta_y = digamma(n_for_y - tau_y[rk1, :] + 1) - digamma(n_for_y + 2) # expected log partition function
                 b_y = 0 # log base measure (b(y))
                 Ell_outcomes = E_eta_y*T_y[t, :] - E_a_eta_y - b_y # expected log likelihood for each outcome
@@ -147,7 +147,7 @@ class model:
                 E_log_prior = np.zeros(K)
 
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-            E_eta_x = digamma(tau_x[rk, :]) - digamma(n_for_x - tau_x[rk, :] + 1) # expected natural parameter (eta)
+            E_eta_x = digamma(tau_x[rk, :] + 1) - digamma(n_for_x - tau_x[rk, :] + 1) # expected natural parameter (eta)
             E_a_eta_x = digamma(n_for_x - tau_x[rk, :] + 1) - digamma(n_for_x + 2) # expected log partition function (a(eta))
             b_x = 0 # log base measure (b(x))
             Ell_cues = E_eta_x*T_x[t, :] - E_a_eta_x - b_x # expected log likelihood for each cue

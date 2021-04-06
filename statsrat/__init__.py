@@ -5,7 +5,7 @@ from scipy import stats
 import nlopt
 from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity
 
-def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
+def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0, dodge_width = 1.0):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
@@ -40,6 +40,9 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
         't', i.e. time step (if False).  Defaults to True.
     text_size : float, optional
         Specifies text size.  Defaults to 10.0.
+    dodge_width : float, optional
+        Amount to separate overlapping lines so that they appear visually
+        distinct (using Plotnine's position_dodge).  Defaults to 1.0.
         
     Returns
     -------
@@ -73,7 +76,7 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     if drop_zeros:
         df = df[-(df[var] == 0)] # remove rows where var is zero
     
-    ### SET UP VARIABLES NAMES ###
+    ### SET UP VARIABLE NAMES ###
     if not rename_coords is None:
         df = df.rename(columns = rename_coords)
         var_names = rename_coords
@@ -81,11 +84,9 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
         var_names = dict.fromkeys(dims)
         for i in range(n_dims):
             var_names[dims[i]] = dims[i]
-    print(var_names)
-    print(df.columns)
         
     ### CREATE PLOT ###
-    dpos = position_dodge(width = 1.0)
+    dpos = position_dodge(width = dodge_width)
     if n_dims == 0:
         dpos = position_identity()
         plot = (ggplot(df, aes(x='t', y=var)) + geom_line())
@@ -119,7 +120,7 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     
     return plot
 
-def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0):
+def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0, dodge_width = 1.0):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     
@@ -155,6 +156,9 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         't', i.e. time step (if False).  Defaults to True.
     text_size : float, optional
         Specifies text size.  Defaults to 10.0.
+    dodge_width : float, optional
+        Amount to separate overlapping lines so that they appear visually
+        distinct (using Plotnine's position_dodge).  Defaults to 1.0.
         
     Returns
     -------
@@ -201,27 +205,34 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
     if drop_zeros:
         df = df[-(df[var] == 0)] # remove rows where var is zero
-    schedule_name = 'schedule'
+    
+    ### SET UP VARIABLE NAMES ###
     if not rename_coords is None:
         df = df.rename(columns = rename_coords)
-        if 'schedule' in list(rename_coords.keys()):
-            schedule_name = rename_coords['schedule']
+        var_names = rename_coords
+        if not 'schedule' in rename_coords.keys():
+            var_names['schedule'] = 'schedule'
+    else:
+        var_names = dict.fromkeys(dims)
+        for i in range(n_dims):
+            var_names[dims[i]] = dims[i]
+        var_names['schedule'] = 'schedule'
 
     ### CREATE PLOT ###
     dims = new_dims
     n_dims = len(dims)
-    dpos = position_dodge(width = 1.0)
+    dpos = position_dodge(width = dodge_width)
     if n_dims == 0:
         if schedule_facet:
             dpos = position_identity()
-            plot = (ggplot(df, aes(x='t', y=var)) + geom_line() + facet_wrap('~' + schedule_name))
+            plot = (ggplot(df, aes(x='t', y=var)) + geom_line() + facet_wrap('~' + var_names['schedule']))
         else:
-            plot = (ggplot(df, aes(x='t', y=var, color=schedule_name)) + geom_line(position = dpos))
+            plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'])) + geom_line(position = dpos))
     else:
         if schedule_facet:
-            plot = (ggplot(df, aes(x='t', y=var, color=dims[0])) + geom_line(position = dpos) + facet_wrap('~' + schedule_name))
+            plot = (ggplot(df, aes(x='t', y=var, color=var_names[dims[0]])) + geom_line(position = dpos) + facet_wrap('~' + var_names['schedule']))
         else:
-            plot = (ggplot(df, aes(x='t', y=var, color=schedule_name)) + geom_line(position = dpos) + facet_wrap('~' + dims[0]))
+            plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'])) + geom_line(position = dpos) + facet_wrap('~' + var_names[dims[0]]))
     
     if draw_points:
         plot += geom_point(position = dpos)
