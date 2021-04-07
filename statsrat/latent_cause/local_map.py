@@ -168,7 +168,7 @@ class model:
             T_x = x[t, :] # sufficient statistic (T(x))
             #Ell_cues = E_eta_x*T_x - E_a_eta_x - b_x # expected log likelihood for each cue
             E_log_theta_x = np.log(tau_x[t, ind_n1, :] + 1) - np.log(n_for_x + 2)
-            Ell_cues = x[t, :]*E_log_theta_x + (1 - x[t, :])*(1 - E_log_theta_x)
+            Ell_cues = x[t, :]*E_log_theta_x + (1 - x[t, :])*(1 - E_log_theta_x) # WRONG EQUATION
             E_log_lik_x = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
@@ -197,7 +197,7 @@ class model:
             T_y = u[t, :] # sufficient statistic (T(y))
             #Ell_outcomes = E_eta_y*T_y - E_a_eta_y - b_y # expected log likelihood for each outcome
             E_log_theta_y = np.log(tau_y[t, ind_n1, :] + 1) - np.log(n_for_y + 2)
-            Ell_outcomes = u[t, :]*E_log_theta_y + (1 - u[t, :])*(1 - E_log_theta_y)
+            Ell_outcomes = u[t, :]*E_log_theta_y + (1 - u[t, :])*(1 - E_log_theta_y) # WRONG EQUATION
             E_log_lik_y = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
             # compute phi

@@ -65,7 +65,8 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     if sel is None:
         ds_var = ds[var].squeeze()
     else:
-        ds_var = ds[var].loc[sel].squeeze()    
+        ds_var = ds[var].loc[sel].squeeze()
+    ds_var['t'] = range(ds_var['t'].values.shape[0])
     dims = list(ds_var.dims)
     dims.remove('t') # remove dimensions other than time step ('t')
     n_dims = len(dims)

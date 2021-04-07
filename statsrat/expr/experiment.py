@@ -131,7 +131,7 @@ class experiment:
         trials = scd.trial_def.loc[{'t' : t_order}]
         trials = trials.assign_coords({'t' : range(scd.n_t)})
         trials = trials.assign_coords({'trial' : ('t', trial_index)})
-        trials = trials.assign_coords({'time' : time})
+        trials = trials.assign_coords({'time' : ('t', time)})
         trials.attrs['schedule'] = scd.name
 
         return trials
@@ -332,7 +332,7 @@ class experiment:
                     # **** make new dataset **** 
                     ds_new = scd.trial_def.loc[{'t' : t_order}]
                     n_t = len(t_order)
-                    ds_new = ds_new.assign_coords({'t' : range(n_t), 'trial' : range(len(t_order)), 'time': range(n_t)})
+                    ds_new = ds_new.assign_coords({'t' : range(n_t), 'trial' : ('t', range(len(t_order))), 'time': ('t', range(n_t))})
                     ds_new = ds_new.assign(b = b)
                     ds_new = ds_new.expand_dims(ident = [ident])
                     # **** add confidence ratings ****
