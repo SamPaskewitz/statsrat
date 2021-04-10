@@ -21,9 +21,8 @@ class model:
         self.name = 'basic (Bernoulli)'
         self.kernel = kernel
         # determine the model's parameter space
-        par_names = kernel.par_names + ['prior_mean_x', 'prior_n_x', 'prior_mean_y', 'prior_n_y', 'stick']
-        #par_names = kernel.par_names + ['prior_a_x', 'prior_b_x', 'prior_a_y', 'prior_b_y']
-        self.pars = pars.loc[par_names + ['alpha', 'resp_scale']]
+        self.par_names = kernel.par_names + ['prior_mean_x', 'prior_n_x', 'prior_mean_y', 'prior_n_y', 'stick', 'alpha', 'resp_scale']
+        self.pars = pars.loc[self.par_names]
         
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
         '''
@@ -108,19 +107,18 @@ class model:
         b_hat = np.zeros((n_t, n_u)) # expected behavior
         time = trials['time'].values # real world time (in arbitrary units, starting at 0)
         
-        # prior for parameters for x
+        # prior x for parameters
         tilde_tau_x = sim_pars['prior_mean_x']*(sim_pars['prior_n_x'] + 2) - 1
         tilde_n_x = sim_pars['prior_n_x']
-        #tilde_tau_x = sim_pars['prior_a_x'] - 1
-        #tilde_n_x = sim_pars['prior_a_x'] + sim_pars['prior_b_x'] - 2
         tau_x = tilde_tau_x*np.ones((n_t + 1, n_t + 1, n_x)) # natural hyperparameters of outcome distribution
-        # prior for parameters for y
+        # prior y for parameters
         tilde_tau_y = sim_pars['prior_mean_y']*(sim_pars['prior_n_y'] + 2) - 1
         tilde_n_y = sim_pars['prior_n_y']
-        #tilde_tau_y = sim_pars['prior_a_y'] - 1
-        #tilde_n_y = sim_pars['prior_a_y'] + sim_pars['prior_b_y'] - 2
         tau_y = tilde_tau_y*np.ones((n_t + 1, n_t + 1, n_u)) # natural hyperparameters of stimulus distribution
         
+        E_log_prior = np.zeros((n_t, n_t))
+        E_log_lik_x = np.zeros((n_t, n_t))
+        E_log_lik_y = np.zeros((n_t, n_t))
         z = np.zeros((n_t), dtype = int) # hard latent cause assignments
         z_onehot = np.zeros((n_t, n_t + 1)) # one hot representation of z, i.e. winner is 1 and all others are 0
         n = np.zeros((n_t + 1, n_t + 1)) # estimated number of observations assigned to each latent cause
@@ -167,20 +165,24 @@ class model:
             #b_x = 0 # log base measure (b(x))
             T_x = x[t, :] # sufficient statistic (T(x))
             #Ell_cues = E_eta_x*T_x - E_a_eta_x - b_x # expected log likelihood for each cue
-            E_log_theta_x = np.log(tau_x[t, ind_n1, :] + 1) - np.log(n_for_x + 2)
-            Ell_cues = x[t, :]*E_log_theta_x + (1 - x[t, :])*(1 - E_log_theta_x) # WRONG EQUATION
-            E_log_lik_x = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
+            E_theta_x = (tau_x[t, ind_n1, :] + 1)/(n_for_x + 2)
+            Ell_cues = x[t, :]*np.log(E_theta_x) + (1 - x[t, :])*np.log(1 - E_theta_x)
+            #E_log_theta_x = np.log(tau_x[t, ind_n1, :] + 1) - np.log(n_for_x + 2) # WRONG EQUATION
+            #Ell_cues = x[t, :]*E_log_theta_x + (1 - x[t, :])*(1 - E_log_theta_x) # WRONG EQUATION
+            E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
             K = self.kernel(t, time, sim_pars).reshape((t, 1)) # temporal kernel (i.e. decay function for latent causes)
             r = np.sum(K*z_onehot[0:t, ind_n], axis = 0) # recency
             sum_r = np.sum(r)
-            E_log_prior = np.zeros(N[t] + 1)
-            E_log_prior[ind_n] = np.log(r[ind_n] + sim_pars['stick']) - np.log(sum_r + sim_pars['alpha']) # old clusters
-            E_log_prior[N[t]] = np.log(sim_pars['alpha']) - np.log(sum_r + sim_pars['alpha']) # new cluster
+            numerator = r[ind_n]
+            numerator[z[t-1]] += sim_pars['stick'] # add stickiness to most recent cluster
+            log_denominator = np.log(sum_r + sim_pars['stick'] + sim_pars['alpha'])
+            E_log_prior[t, ind_n] = np.log(numerator) - log_denominator # old clusters
+            E_log_prior[t, N[t]] = np.log(sim_pars['alpha']) - log_denominator # new cluster
 
             # compute E_log_lik_phi based on x
-            s = np.exp(E_log_lik_x + E_log_prior)
+            s = np.exp(E_log_lik_x[t, ind_n1] + E_log_prior[t, ind_n1])
             new_phi_x = s/s.sum()
             phi_x[t, ind_n] = new_phi_x[ind_n]
                                            
@@ -196,12 +198,14 @@ class model:
             #b_y = 0 # log base measure (b(y))
             T_y = u[t, :] # sufficient statistic (T(y))
             #Ell_outcomes = E_eta_y*T_y - E_a_eta_y - b_y # expected log likelihood for each outcome
-            E_log_theta_y = np.log(tau_y[t, ind_n1, :] + 1) - np.log(n_for_y + 2)
-            Ell_outcomes = u[t, :]*E_log_theta_y + (1 - u[t, :])*(1 - E_log_theta_y) # WRONG EQUATION
-            E_log_lik_y = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
+            E_theta_y = (tau_y[t, ind_n1, :] + 1)/(n_for_y + 2)
+            Ell_outcomes = u[t, :]*np.log(E_theta_y) + (1 - u[t, :])*np.log(1 - E_theta_y)
+            #E_log_theta_y = np.log(tau_y[t, ind_n1, :] + 1) - np.log(n_for_y + 2) # WRONG EQUATION
+            #Ell_outcomes = u[t, :]*E_log_theta_y + (1 - u[t, :])*(1 - E_log_theta_y) # WRONG EQUATION
+            E_log_lik_y[t, ind_n1] = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
             # compute phi
-            s_xy = np.exp(E_log_lik_x + E_log_lik_y + E_log_prior)
+            s_xy = np.exp(E_log_lik_x[t, ind_n1] + E_log_lik_y[t, ind_n1] + E_log_prior[t, ind_n1])
             phi[t, ind_n1] = s_xy/s_xy.sum()
                 
             # hard latent cause assignment
@@ -247,7 +251,10 @@ class model:
                         'z' : (['t'], z),
                         'phi_x' : (['t', 'z_name'], phi_x[:, 0:-1]),
                         'phi' : (['t', 'z_name'], phi[:, 0:-1]),
-                        'N' : (['t'], N[0:(t+1)])})
+                        'N' : (['t'], N[0:(t+1)]),
+                        'E_log_prior': (['t', 'z_name'], E_log_prior),
+                        'E_log_lik_x': (['t', 'z_name'], E_log_lik_x),
+                        'E_log_lik_y': (['t', 'z_name'], E_log_lik_y)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class': 'latent_cause',
                               'sim_pars': sim_pars})
@@ -267,9 +274,9 @@ class model:
 par_names = []; par_list = []                         
 par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 0.5, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}] 
 par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 0.5, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
-par_names += ['prior_mean_x']; par_list += [{'min': 0.01, 'max': 0.5, 'default': 0.1, 'description': 'prior hyperparameter for eta for x'}]
+par_names += ['prior_mean_x']; par_list += [{'min': 0.001, 'max': 0.99, 'default': 0.1, 'description': 'prior hyperparameter for eta for x'}]
 par_names += ['prior_n_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
-par_names += ['prior_mean_y']; par_list += [{'min': 0.01, 'max': 0.5, 'default': 0.1, 'description': 'prior hyperparameter for eta for y'}]
+par_names += ['prior_mean_y']; par_list += [{'min': 0.001, 'max': 0.5, 'default': 0.1, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['prior_n_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['stick']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]

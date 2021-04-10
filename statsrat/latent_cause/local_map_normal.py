@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import stats
-from scipy.special import digamma
 from statsrat import resp_fun
 from . import kernel
 
@@ -11,14 +10,7 @@ from . import kernel
 
 class model:
     '''
-    Local MAP approximation/variational Bayes hybrid (not mathematically justified or thought out).
-    The local MAP approximation is used for two purposes: approximating the prior on latent causes,
-    and deciding when to add a new latent cause.  Everything else is done via streaming variational Bayes.
-    
-    Notes
-    -----
-    mu | sigma^2 ~ N(tau1/n, sigma^2/n)
-    1/sigma^2 ~ Gamma((n + 3)/2, (n tau2 - tau1^2)/(2 n))
+    Local MAP approximation with normal distribution.
     '''
     def __init__(self, name, kernel):
         '''
@@ -28,7 +20,7 @@ class model:
         self.name = name
         self.kernel = kernel
         # determine the model's parameter space
-        self.par_names = kernel.par_names + ['prior_tau2_x', 'prior_nu_x', 'prior_tau2_y', 'prior_nu_y', 'stick', 'alpha', 'resp_scale']
+        self.par_names = kernel.par_names + ['prior_tau1_x', 'prior_nu_x', 'prior_tau1_y', 'prior_nu_y', 'stick', 'alpha', 'resp_scale']
         self.pars = pars.loc[self.par_names]
         
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
@@ -60,6 +52,33 @@ class model:
         ds: dataset
             Simulation data.
 
+        Notes
+        -----
+        Use the response type 'choice' for discrete response options.  This
+        produces response probabilities using a softmax function:
+        .. math:: \text{resp}_i = \frac{ e^{\phi \hat{u}_i} }{ \sum_j e^{\phi \hat{u}_j} }
+
+        The response type 'exct' is used for excitatory Pavlovian
+        conditioning:
+        .. math:: \text{resp} = \frac{ e^{\phi \hat{u}_i} }{ e^{\phi \hat{u}_i} + 1 }
+
+        The response type 'supr' (suppression) is used for inhibitory
+        Pavlovian conditioning:
+        .. math:: \text{resp} = \frac{ e^{-\phi \hat{u}_i} }{ e^{-\phi \hat{u}_i} + 1 }
+
+        Here :math:`\phi` represents the 'resp_scale' parameter.
+        
+        UPDATE THESE NOTES IF NEEDED
+        
+        Likelihood computations only use stimulus attributes (elements of x) and 
+        outcomes (elements of u) that the learner has observed up to that point in 
+        the learning process.  That way, model computations cannot be affected by 
+        future events (stimulus attributes that haven't yet been encountered).  This
+        is important for between groups simulations in which each group's schedule has
+        a different set of stimulus attributes or possible outcomes.
+        
+        Similarly, likelihood computations only use outcomes (elements of u) that
+        the learner believes are possible at a given stage.
         '''        
         # use default parameters unless others are given
         if par_val is None:
@@ -88,23 +107,21 @@ class model:
         time = trials['time'].values # real world time (in arbitrary units, starting at 0)
         
         # prior for x parameters
-        tau1_x = np.zeros((n_t + 1, n_t + 1, n_x))
-        tau2_x = sim_pars['prior_tau2_x']*np.ones((n_t + 1, n_t + 1, n_x))
-        nu_x = sim_pars['prior_nu_x']*np.ones((n_t + 1, n_t + 1, n_x))
+        tilde_nu_x = sim_pars['prior_nu_x']
+        tau0_x = np.zeros((n_t + 1, n_t + 1, n_x)) # corresponds to kappa (mean of normal-gamma) times n
+        tau1_x = sim_pars['prior_tau1_x']*np.ones((n_t + 1, n_t + 1, n_x)) # corresponds to beta/2
         # prior for y parameters
-        tau1_y = np.zeros((n_t + 1, n_t + 1, n_u))
-        tau2_y = sim_pars['prior_tau2_y']*np.ones((n_t + 1, n_t + 1, n_u))
-        nu_y = sim_pars['prior_nu_y']*np.ones((n_t + 1, n_t + 1, n_u))
+        tilde_nu_y = sim_pars['prior_nu_y']
+        tau0_y = np.zeros((n_t + 1, n_t + 1, n_u)) # corresponds to kappa (mean of normal-gamma) times n
+        tau1_y = sim_pars['prior_tau1_y']*np.ones((n_t + 1, n_t + 1, n_u)) # corresponds to beta/2
         
-        E_log_prior = np.zeros((n_t, n_t))
-        E_log_lik_x = np.zeros((n_t, n_t))
-        E_log_lik_y = np.zeros((n_t, n_t))
-        est_mu_x = np.zeros((n_t, n_t, n_x))
-        prior_E_eta1_x = -(sim_pars['prior_nu_x']*(sim_pars['prior_nu_x'] + 3))/(2*sim_pars['prior_nu_x']*sim_pars['prior_tau2_x'])
-        est_sigma_x = (1/np.sqrt(-2*prior_E_eta1_x))*np.ones((n_t, n_t, n_x))
-        est_mu_y = np.zeros((n_t, n_t, n_u))
-        E_eta1_y = -(sim_pars['prior_nu_y']*(sim_pars['prior_nu_y'] + 3))/(2*sim_pars['prior_nu_y']*sim_pars['prior_tau2_y'])
-        est_sigma_y = (1/np.sqrt(-2*E_eta1_y))*np.ones((n_t, n_t, n_u))
+        log_prior = np.zeros((n_t, n_t))
+        log_lik_x = np.zeros((n_t, n_t))
+        log_lik_y = np.zeros((n_t, n_t))
+        E_x = np.zeros((n_t, n_t, n_x))
+        V_x = np.zeros((n_t, n_t, n_x))
+        E_y = np.zeros((n_t, n_t, n_u))
+        V_y = np.zeros((n_t, n_t, n_u))
         z = np.zeros((n_t), dtype = int) # hard latent cause assignments
         z_onehot = np.zeros((n_t, n_t + 1)) # one hot representation of z, i.e. winner is 1 and all others are 0
         n = np.zeros((n_t + 1, n_t + 1)) # estimated number of observations assigned to each latent cause
@@ -125,10 +142,10 @@ class model:
         b_hat[0, :] = sim_resp_fun(u_hat[0, :], u_psb[0, :], sim_pars['resp_scale']) # response
         phi_x[0, 0] = 1
         phi[0, 0] = 1
-        tau1_x[1, 0, :] = tau1_x[0, 0, :] + x_sofar*x[0, :]
-        tau2_x[1, 0, :] = tau2_x[0, 0, :] + x_sofar*(x[0, :]**2)
-        tau1_y[1, 0, :] = tau1_y[0, 0, :] + u_psb[0, :]*u[0, :]
-        tau2_y[1, 0, :] = tau2_y[0, 0, :] + u_psb[0, :]*(u[0, :]**2)
+        tau0_x[1, 0, :] = tau0_x[0, 0, :] + x_sofar*x[0, :]
+        tau1_x[1, 0, :] = tau1_x[0, 0, :] + x_sofar*(x[0, :]**2)
+        tau0_y[1, 0, :] = tau0_y[0, 0, :] + u_psb[0, :]*u[0, :]
+        tau1_y[1, 0, :] = tau1_y[0, 0, :] + u_psb[0, :]*(u[0, :]**2)
         n[1, 0] = n[0, 0] + 1
         z[0] = 0
         z_onehot[0, 0] = 1
@@ -136,68 +153,75 @@ class model:
                
         # loop through time steps
         for t in range(1, n_t):
+            # I AM NOT CONFIDENT THAT THE POSTERIOR PREDICTIVE (I.E. MARGINAL LIKELIHOOD) FORMULA IS CORRECT.
+            
             # preliminary stuff
             x_sofar[x[t, :] > 0] = 1 # keep track of cues observed so far
             ind_n = range(N[t]) # index for latent causes
             ind_n1 = range(N[t] + 1) # index latent causes
+            nu_x = np.repeat(n[t, ind_n1] + tilde_nu_x, n_x).reshape((N[t] + 1, n_x)) # used in computations involving x
+            nu_y = np.repeat(n[t, ind_n1] + tilde_nu_y, n_u).reshape((N[t] + 1, n_u)) # used in computations involving y
             
-            # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-            E_eta0_x = (nu_x[t, ind_n1, :] + 3)*tau1_x[t, ind_n1, :]/(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2)
-            E_eta1_x = -(nu_x[t, ind_n1, :]*(nu_x[t, ind_n1, :] + 3))/(2*(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2))
-            est_mu_x[t, ind_n1, :] = -E_eta0_x/(2*E_eta1_x)
-            est_sigma_x[t, ind_n1, :] = 1/np.sqrt(-2*E_eta1_x)
-            Ell_cues = stats.norm.logpdf(x[t, :], est_mu_x[t, ind_n1], est_sigma_x[t, ind_n1])
-            E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
+            # compute log p(x_n | z_n = t, eta) (log-likelihood of x)
+            E_x[t, ind_n1, :] = tau0_x[t, ind_n1, :]/nu_x
+            alpha_x = nu_x/2 + 1
+            beta_x = tau1_x[t, ind_n1, :]/2
+            df_x = 2*alpha_x # posterior predictive degrees of freedom
+            V_x[t, ind_n1, :] = (beta_x*(nu_x + 1))/(alpha_x*nu_x) # posterior predictive variance
+            ll_cues = stats.t.logpdf(x[t, :], df_x, E_x[t, ind_n1, :], np.sqrt(V_x[t, ind_n1, :]))
+            log_lik_x[t, ind_n1] = np.sum(x_sofar*ll_cues, axis = 1) # assumed independent -> add log_lik across cues
             
-            # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
+            # compute log p(z_n = t | z_1, ..., z_{n-1}) (log-prior)
             K = self.kernel(t, time, sim_pars).reshape((t, 1)) # temporal kernel (i.e. decay function for latent causes)
             r = np.sum(K*z_onehot[0:t, ind_n], axis = 0) # recency
             sum_r = np.sum(r)
+            numerator = r[ind_n]
+            numerator[z[t-1]] += sim_pars['stick'] # add stickiness to most recent cluster
             log_denominator = np.log(sum_r + sim_pars['stick'] + sim_pars['alpha'])
-            E_log_prior[t, ind_n] = np.log(r[ind_n]) - log_denominator # old clusters
-            E_log_prior[t, z[t-1]] += sim_pars['stick'] # add stickiness to most recent cluster
-            E_log_prior[t, N[t]] = np.log(sim_pars['alpha']) - log_denominator # new cluster
+            log_prior[t, ind_n] = np.log(numerator) - log_denominator # old clusters
+            log_prior[t, N[t]] = np.log(sim_pars['alpha']) - log_denominator # new cluster
 
-            # compute E_log_lik_phi based on x
-            s = np.exp(E_log_lik_x[t, ind_n1] + E_log_prior[t, ind_n1])
+            # compute log_lik_phi based on x
+            s = np.exp(log_lik_x[t, ind_n1] + log_prior[t, ind_n1])
             new_phi_x = s/s.sum()
             phi_x[t, ind_n] = new_phi_x[ind_n]
                                            
             # predict y (recall that 'y' = 'u')
-            E_eta0_y = (nu_y[t, ind_n1, :] + 3)*tau1_y[t, ind_n1, :]/(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2)
-            E_eta1_y = -(nu_y[t, ind_n1, :]*(nu_y[t, ind_n1, :] + 3))/(2*(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2))
-            est_mu_y[t, ind_n1, :] = -E_eta0_y/(2*E_eta1_y)
-            u_hat[t, :] = u_psb[t, :]*np.sum(new_phi_x.reshape((N[t] + 1, 1))*est_mu_y[t, ind_n1], axis = 0)
+            E_y[t, ind_n1, :] = tau0_y[t, ind_n1, :]/nu_y # posterior predictive mean (refer to my notes) # CHECK THAT THIS IS CORRECT.
+            u_hat[t, :] = u_psb[t, :]*np.sum(new_phi_x.reshape((N[t] + 1, 1))*E_y[t, ind_n1, :], axis = 0) # predicted outcome (u)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
 
-            # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
-            est_sigma_y[t, ind_n1, :] = 1/np.sqrt(-2*E_eta1_y)
-            Ell_outcomes = stats.norm.logpdf(u[t, :], est_mu_y[t, ind_n1], est_sigma_y[t, ind_n1])
-            E_log_lik_y[t, ind_n1] = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
+            # compute log p(y_n | z_n = t, eta) (log-likelihood of y)
+            alpha_y = nu_y/2 + 1
+            beta_y = tau1_y[t, ind_n1, :]/2
+            df_y = 2*alpha_y # posterior predictive degrees of freedom
+            V_y[t, ind_n1, :] = (beta_y*(nu_y + 1))/(alpha_y*nu_y) # posterior predictive variance
+            ll_outcomes = stats.t.logpdf(u[t, :], df_y, E_y[t, ind_n1, :], np.sqrt(V_y[t, ind_n1, :]))
+            log_lik_y[t, ind_n1] = np.sum(u_psb[t, :]*ll_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
             # compute phi
-            s_xy = np.exp(E_log_lik_x[t, ind_n1] + E_log_lik_y[t, ind_n1] + E_log_prior[t, ind_n1])
+            s_xy = np.exp(log_lik_x[t, ind_n1] + log_lik_y[t, ind_n1] + log_prior[t, ind_n1])
             phi[t, ind_n1] = s_xy/s_xy.sum()
                 
             # hard latent cause assignment
             z[t] = np.argmax(phi[t, :]) # winning (most probable) cluster
             z_onehot[t, z[t]] = 1
             if z[t] == N[t]:
-                phi_learn = phi[t, :]
                 N[t + 1] = N[t] + 1 # increase number of latent causes
             else:
-                phi_learn = np.zeros(n_t + 1)
-                phi_learn[ind_n] = phi[t, ind_n]/phi[t, ind_n].sum() # drop new cause and re-normalize over old latent causes
                 N[t + 1] = N[t]
 
-            # learning (update hyperparameters)
-            tau1_x[t + 1, :, :] = tau1_x[t, :, :] + x_sofar*np.outer(phi_learn, x[t, :])
-            tau2_x[t + 1, :, :] = tau2_x[t, :, :] + x_sofar*np.outer(phi_learn, x[t, :]**2)
-            nu_x[t + 1, :, :] = nu_x[t, :, :] + np.outer(phi_learn, x_sofar)
-            tau1_y[t + 1, :, :] = tau1_y[t, :, :] + u_psb[t, :]*np.outer(phi_learn, u[t, :])
-            tau2_y[t + 1, :, :] = tau2_y[t, :, :] + u_psb[t, :]*np.outer(phi_learn, u[t, :]**2)
-            nu_y[t + 1, :, :] = nu_y[t, :, :] + np.outer(phi_learn, u_psb[t, :])
-            n[t + 1, :] = n[t, :] + phi_learn
+            # learning (update hyperparameters for winning cluster)
+            tau0_x[t + 1, :, :] = tau0_x[t, :, :]
+            tau1_x[t + 1, :, :] = tau1_x[t, :, :]
+            tau0_y[t + 1, :, :] = tau0_y[t, :, :]
+            tau1_y[t + 1, :, :] = tau1_y[t, :, :]
+            n[t + 1, :] = n[t, :]
+            tau0_x[t + 1, z[t], :] += x_sofar*x[t, :]
+            tau1_x[t + 1, z[t], :] += x_sofar*(x[t, :]**2)
+            tau0_y[t + 1, z[t], :] += u_psb[t, :]*u[t, :]
+            tau1_y[t + 1, z[t], :] += u_psb[t, :]*(u[t, :]**2)
+            n[t + 1, z[t]] += 1
             
         # generate simulated responses
         if random_resp is False:
@@ -220,23 +244,25 @@ class model:
                         'u_hat' : (['t', 'u_name'], u_hat),
                         'b_hat' : (['t', 'u_name'], b_hat),
                         'b' : (['t', 'u_name'], b),
-                        'est_mu_x' : (['t', 'z_name', 'x_name'], est_mu_x),
-                        'est_sigma_x' : (['t', 'z_name', 'x_name'], est_sigma_x),
-                        'est_precision_x' : (['t', 'z_name', 'x_name'], 1/est_sigma_x**2),
-                        'est_mu_y' : (['t', 'z_name', 'u_name'], est_mu_y),
-                        'est_sigma_y' : (['t', 'z_name', 'u_name'], est_sigma_y),
-                        'est_precision_y' : (['t', 'z_name', 'u_name'], 1/est_sigma_y**2),
+                        'tau0_x' : (['t', 'z_name', 'x_name'], tau0_x[0:-1, 0:-1, :]),
+                        'tau1_x' : (['t', 'z_name', 'x_name'], tau1_x[0:-1, 0:-1, :]),
+                        'tau0_y' : (['t', 'z_name', 'u_name'], tau0_y[0:-1, 0:-1, :]),
+                        'tau1_y' : (['t', 'z_name', 'u_name'], tau1_y[0:-1, 0:-1, :]),
                         'n' : (['t', 'z_name'], n[0:-1, 0:-1]),
                         'z' : (['t'], z),
+                        'E_x' : (['t', 'z_name', 'x_name'], E_x),
+                        'V_x' : (['t', 'z_name', 'x_name'], V_x),
+                        'E_y' : (['t', 'z_name', 'u_name'], E_y),
+                        'V_y' : (['t', 'z_name', 'u_name'], V_y),
                         'phi_x' : (['t', 'z_name'], phi_x[:, 0:-1]),
                         'phi' : (['t', 'z_name'], phi[:, 0:-1]),
                         'N' : (['t'], N[0:(t+1)]),
-                        'E_log_prior': (['t', 'z_name'], E_log_prior),
-                        'E_log_lik_x': (['t', 'z_name'], E_log_lik_x),
-                        'E_log_lik_y': (['t', 'z_name'], E_log_lik_y)})
+                        'log_prior': (['t', 'z_name'], log_prior),
+                        'log_lik_x': (['t', 'z_name'], log_lik_x),
+                        'log_lik_y': (['t', 'z_name'], log_lik_y)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class': 'latent_cause',
-                              'sim_pars': sim_pars})
+                              'sim_pars': sim_pars})        
         return ds
 
 ########## PARAMETERS ##########
@@ -244,9 +270,9 @@ class model:
 par_names = []; par_list = []                         
 par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 0.5, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}] 
 par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 15.0, 'default': 1.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
-par_names += ['prior_tau2_x']; par_list += [{'min': 0.01, 'max': 5.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for x'}]
+par_names += ['prior_tau1_x']; par_list += [{'min': 0.01, 'max': 0.5, 'default': 0.2, 'description': 'prior hyperparameter for eta for x'}]
 par_names += ['prior_nu_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
-par_names += ['prior_tau2_y']; par_list += [{'min': 0.01, 'max': 5.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'}]
+par_names += ['prior_tau1_y']; par_list += [{'min': 0.01, 'max': 0.5, 'default': 0.2, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['prior_nu_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['stick']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
