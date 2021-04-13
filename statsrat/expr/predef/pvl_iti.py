@@ -238,7 +238,7 @@ extn_extra_us_ctl = expr.schedule(name = 'extra_us_control', resp_type = 'exct',
 extn_delay_explicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [training_stage, extn_stage, delay_stage, test_stage])
 
 # extinction with delay before test (implicit)
-extn_delay_implicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [training_stage, extn_stage, test_stage], delays = [0, 0, 100])
+extn_delay_implicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [training_stage, extn_stage, test_stage], delays = [0, 100])
 
 ##### DEFINE BEHAVIORAL SCORES #####
 
@@ -343,7 +343,7 @@ spont_rec_exp = expr.experiment(schedules = {'experimental': extn_delay_explicit
                                                                          schedule_neg = ['control'],
                                                                          behav_score_pos = cs_score,
                                                                          behav_score_neg = cs_score)
-    })
+})
 
 # spontaneous recovery (implicit)
 spont_rec_imp = expr.experiment(schedules = {'experimental': extn_delay_implicit, 'control': extn},
@@ -351,4 +351,4 @@ spont_rec_imp = expr.experiment(schedules = {'experimental': extn_delay_implicit
                                                                          schedule_neg = ['control'],
                                                                          behav_score_pos = cs_score,
                                                                          behav_score_neg = cs_score)
-    })
+})

@@ -14,7 +14,7 @@ def exponential(t, time, sim_pars):
 exponential.par_names = ['gamma']
 
 def power(t, time, sim_pars):
-    '''Power law decay (with a constant power of 1).'''
-    K = 1/(time[t] - time[0:t])
+    '''Power law decay.'''
+    K = (time[t] - time[0:t])**(-sim_pars['power'])
     return K
-power.par_names = []
+power.par_names = ['power']

@@ -42,6 +42,16 @@ def from_aux_feature(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     return new_lrate
 from_aux_feature.par_names = ['lrate']
 
+def from_aux_feature_simple(aux, t, fbase, fweight, n_f, n_u, sim_pars):
+    '''
+    Learning rate determined by 'aux' (variable name 'atn'), with no 'lrate' parameter.
+    Depends only on feature.
+    '''
+    atn = aux.data['atn'][t, :] # current attention ('atn')
+    new_lrate = atn.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
+    return new_lrate
+from_aux_feature_simple.par_names = []
+
 def from_aux_direct(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     '''
     Learning rate taken directly from 'aux' (variable name 'gain').

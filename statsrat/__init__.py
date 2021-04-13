@@ -212,9 +212,10 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         if not 'schedule' in rename_coords.keys():
             var_names['schedule'] = 'schedule'
     else:
-        var_names = dict.fromkeys(dims)
+        n_dims = len(new_dims)
+        var_names = dict.fromkeys(new_dims)
         for i in range(n_dims):
-            var_names[dims[i]] = dims[i]
+            var_names[new_dims[i]] = new_dims[i]
         var_names['schedule'] = 'schedule'
 
     ### CREATE PLOT ###

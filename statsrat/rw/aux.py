@@ -33,23 +33,26 @@ drva.par_names = ['atn_min']
 class tdrva:
     '''
     Derived attention, but with trial by trial tracking of associative strength.
-    Also, attention is a logistic function of mean associative strength (tau).
+    Attention is a sigmoidal function of mean associative strength (tau).
     This is a bit like the model of Frey and Sears (1978), but is simpler.
     '''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
         self.data = {'atn': np.zeros((n_t + 1, n_f)), # attention (i.e. learning rate for present features)
                      'tau': np.zeros((n_t + 1, n_f))} # tracks the mean of |w| across outcomes
         self.data['tau'][0, :] = sim_pars['tau0']
+        denom = sim_pars['tau0']**(-sim_pars['tau_scale']) + 1
+        self.data['atn'][0, :] = 0.5/denom + sim_pars['lrate_min']
 
     def update(self, sim_pars, n_u, n_f, t, fbase, fweight, u_psb, u_hat, delta, w):
         abs_w_mean = np.mean(abs(w[t, :]), axis = 1)
         self.data['tau'][t + 1, :] = self.data['tau'][t, :] + sim_pars['lrate_tau']*(abs_w_mean - self.data['tau'][t, :])
-        self.data['atn'][t + 1, :] = 1/(1 + np.exp(-sim_pars['tau_scale']*self.data['tau'][t + 1, :])) # attention is a logistic function of tau
+        denom = self.data['tau'][t + 1, :]**(-sim_pars['tau_scale']) + 1
+        self.data['atn'][t + 1, :] = 0.5/denom + sim_pars['lrate_min']
 
     def add_data(self, ds):
         n_t = ds['t'].values.shape[0]
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(n_t), :]), tau = (['t', 'f_name'], self.data['tau'][range(n_t), :]))
-tdrva.par_names = ['tau_scale', 'tau0', 'lrate_tau']
+tdrva.par_names = ['lrate_min', 'tau_scale', 'tau0', 'lrate_tau']
 
 class grad:
     '''Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).'''
