@@ -252,7 +252,7 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
                         
     return plot
 
-def multi_sim(model, trials_list, par_val, random_resp = False):
+def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None):
     """
     Simulate one or more trial sequences from the same schedule with known parameters.
 
@@ -266,18 +266,33 @@ def multi_sim(model, trials_list, par_val, random_resp = False):
     par_val : list
         Learning model parameters (floats or ints).
 
+    sim_type: str or None, optional
+        Type of simulation to perform (passed to the model's .simulate() method).
+        Should be a string indicating the type of simulation if there is more than
+        one type (e.g. latent cause models), and otherwise should be None.
+        Defaults to None.
+
     Returns
     -------
     ds : dataset
     """
     n_sim = len(trials_list)
     ds_list = []
-    for i in range(n_sim):
-        ds_new = model.simulate(trials = trials_list[i],
-                                par_val = par_val,
-                                random_resp = random_resp,
-                                ident = 'sim_' + str(i))
-        ds_list += [ds_new]
+    if sim_type is None:
+        for i in range(n_sim):
+            ds_new = model.simulate(trials = trials_list[i],
+                                    par_val = par_val,
+                                    random_resp = random_resp,
+                                    ident = 'sim_' + str(i))
+            ds_list += [ds_new]
+    else:
+        for i in range(n_sim):
+            ds_new = model.simulate(trials = trials_list[i],
+                                    par_val = par_val,
+                                    random_resp = random_resp,
+                                    ident = 'sim_' + str(i),
+                                    sim_type = sim_type)
+            ds_list += [ds_new]
     ds = xr.combine_nested(ds_list, concat_dim = ['ident'])
     return ds
 
@@ -309,7 +324,7 @@ def log_lik(model, ds, par_val):
     ll = np.sum(log_prob*resp) # log-likelihood of choice sequence
     return ll
 
-def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time = 60, verbose = False, algorithm = nlopt.GN_ORIG_DIRECT):
+def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time = 60, verbose = False, algorithm = nlopt.GN_ORIG_DIRECT, sim_type = None):
     """
     Perform an ordinal adequacy test (OAT).
     
@@ -329,7 +344,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
 
     n: int, optional
         Number of individuals to simulate.  Defaults to 5.
-    
+            
     max_time: int, optional
         Maximum time for each optimization (in seconds), i.e.
         about half the maximum total time running the whole OAT should take.
@@ -342,6 +357,12 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     algorithm: object, optional
         NLopt algorithm to use for optimization.
         Defaults to nlopt.GN_ORIG_DIRECT.
+        
+    sim_type: str or None, optional
+        Type of simulation to perform (passed to the model's .simulate() method).
+        Should be a string indicating the type of simulation if there is more than
+        one type (e.g. latent cause models), and otherwise should be None.
+        Defaults to None.
 
     Returns
     -------
@@ -395,51 +416,49 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     
     # set up objective function
     if 'resp_scale' in par_names:
-        # define objective function
         if verbose:
             def f(x, grad = None):
-                    if grad.size > 0:
-                        grad = None
-                    par_val = np.append(x, 5)
-                    print(par_val)
-                    sim_data = {}
-                    for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
-                    oat_total = oat_used.compute_total(data = sim_data)
-                    return oat_total
+                if grad.size > 0:
+                    grad = None
+                par_val = np.append(x, 5)
+                print(par_val)
+                sim_data = {}
+                for s in s_list:
+                    sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False, sim_type = sim_type)
+                oat_total = oat_used.compute_total(data = sim_data)
+                return oat_total
         else:
             def f(x, grad = None):
-                    if grad.size > 0:
-                        grad = None
-                    par_val = np.append(x, 5)
-                    sim_data = {}
-                    for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
-                    oat_total = oat_used.compute_total(data = sim_data)
-                    return oat_total
+                if grad.size > 0:
+                    grad = None
+                par_val = np.append(x, 5)
+                sim_data = {}
+                for s in s_list:
+                    sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False, sim_type = sim_type)
+                oat_total = oat_used.compute_total(data = sim_data)
+                return oat_total
     else:
-        # define objective function
         if verbose:
             def f(x, grad = None):
-                    if grad.size > 0:
-                        grad = None
-                    par_val = x
-                    print(par_val)
-                    sim_data = {}
-                    for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
-                    oat_total = oat_used.compute_total(data = sim_data)
-                    return oat_total
+                if grad.size > 0:
+                    grad = None
+                par_val = x
+                print(par_val)
+                sim_data = {}
+                for s in s_list:
+                    sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False, sim_type = sim_type)
+                oat_total = oat_used.compute_total(data = sim_data)
+                return oat_total
         else:
             def f(x, grad = None):
-                    if grad.size > 0:
-                        grad = None
-                    par_val = x
-                    sim_data = {}
-                    for s in s_list:
-                        sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False)
-                    oat_total = oat_used.compute_total(data = sim_data)
-                    return oat_total    
+                if grad.size > 0:
+                    grad = None
+                par_val = x
+                sim_data = {}
+                for s in s_list:
+                    sim_data[s] = multi_sim(model, trials_list[s], par_val, random_resp = False, sim_type = sim_type)
+                oat_total = oat_used.compute_total(data = sim_data)
+                return oat_total    
     
     # maximize the OAT score
     print('Maximizing OAT score.')
