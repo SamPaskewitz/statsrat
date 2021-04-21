@@ -18,7 +18,7 @@ This version does not include inter-trial intervals (ITIs).
 iti = 0
 n_rep_train = 5
 n_rep_extn = 5
-n_rep_test = 5
+n_rep_test = 2
 n_rep_pre_exp = 5
 n_rep_no_stim = 10
 
@@ -226,7 +226,7 @@ extn_abc = expr.schedule(name = 'extinction_abc', resp_type = 'exct', stage_list
 extn_aab = expr.schedule(name = 'extinction_aab', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_a_stage, test_ctx_b_stage])
 
 # extinction (ABB)
-extn_abb = expr.schedule(name = 'extinction_aab', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_b_stage, test_ctx_b_stage])
+extn_abb = expr.schedule(name = 'extinction_abb', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_b_stage, test_ctx_b_stage])
 
 # extinction with extra US (for reinstatement)
 extn_extra_us = expr.schedule(name = 'extra_us', resp_type = 'exct', stage_list = [training_stage, extn_stage, extra_us_stage, test_stage])

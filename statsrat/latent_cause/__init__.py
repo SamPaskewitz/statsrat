@@ -33,7 +33,7 @@ class model:
         self.par_names = kernel.par_names + ['prior_tau2_x', 'prior_nu_x', 'prior_tau2_y', 'prior_nu_y', 'stick', 'alpha', 'resp_scale']
         self.pars = pars.loc[self.par_names]
         
-    def simulate(self, trials, par_val = None, n_z = 10, n_p = 20, random_resp = False, ident = 'sim', sim_type = 'local_vb'):
+    def simulate(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim', sim_type = 'local_vb'):
         '''
         Simulate a trial sequence once with known model parameters using
         either the .local_vb() or .particle() method.
@@ -50,7 +50,7 @@ class model:
             Maximum number of latent causes.  Defaults to 10.
             
         n_p: int, optional
-            Number of particles.  Defaults to 20.  Only relevant if using
+            Number of particles.  Defaults to 50.  Only relevant if using
             the .particle() simulation methods (i.e. sim_type = 'particle').
             
         random_resp: str, optional
@@ -169,11 +169,11 @@ class model:
         E_log_lik_x = np.zeros((n_t, n_z))
         E_log_lik_y = np.zeros((n_t, n_z))
         est_mu_x = np.zeros((n_t, n_z, n_x))
-        prior_E_eta1_x = -(sim_pars['prior_nu_x']*(sim_pars['prior_nu_x'] + 3))/(2*sim_pars['prior_nu_x']*sim_pars['prior_tau2_x'])
-        est_sigma_x = (1/np.sqrt(-2*prior_E_eta1_x))*np.ones((n_t, n_z, n_x))
+        prior_E_eta2_x = -(sim_pars['prior_nu_x']*(sim_pars['prior_nu_x'] + 3))/(2*sim_pars['prior_nu_x']*sim_pars['prior_tau2_x'])
+        est_sigma_x = (1/np.sqrt(-2*prior_E_eta2_x))*np.ones((n_t, n_z, n_x))
         est_mu_y = np.zeros((n_t, n_z, n_u))
-        E_eta1_y = -(sim_pars['prior_nu_y']*(sim_pars['prior_nu_y'] + 3))/(2*sim_pars['prior_nu_y']*sim_pars['prior_tau2_y'])
-        est_sigma_y = (1/np.sqrt(-2*E_eta1_y))*np.ones((n_t, n_z, n_u))
+        E_eta2_y = -(sim_pars['prior_nu_y']*(sim_pars['prior_nu_y'] + 3))/(2*sim_pars['prior_nu_y']*sim_pars['prior_tau2_y'])
+        est_sigma_y = (1/np.sqrt(-2*E_eta2_y))*np.ones((n_t, n_z, n_u))
         z = np.zeros((n_t), dtype = int) # hard latent cause assignments
         z_onehot = np.zeros((n_t, n_z)) # one hot representation of z, i.e. winner is 1 and all others are 0
         n = np.zeros((n_t + 1, n_z)) # estimated number of observations assigned to each latent cause
@@ -216,10 +216,10 @@ class model:
                 ind_n1 = ind_n
             
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
-            E_eta0_x = (nu_x[t, ind_n1, :] + 3)*tau1_x[t, ind_n1, :]/(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2)
-            E_eta1_x = -(nu_x[t, ind_n1, :]*(nu_x[t, ind_n1, :] + 3))/(2*(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2))
-            est_mu_x[t, ind_n1, :] = -E_eta0_x/(2*E_eta1_x)
-            est_sigma_x[t, ind_n1, :] = 1/np.sqrt(-2*E_eta1_x)
+            E_eta1_x = (nu_x[t, ind_n1, :] + 3)*tau1_x[t, ind_n1, :]/(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2)
+            E_eta2_x = -(nu_x[t, ind_n1, :]*(nu_x[t, ind_n1, :] + 3))/(2*(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2))
+            est_mu_x[t, ind_n1, :] = -E_eta1_x/(2*E_eta2_x)
+            est_sigma_x[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_x)
             Ell_cues = stats.norm.logpdf(x[t, :], est_mu_x[t, ind_n1], est_sigma_x[t, ind_n1])
             E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
@@ -240,14 +240,14 @@ class model:
             phi_x[t, ind_n] = new_phi_x[ind_n]
                                            
             # predict y (recall that 'y' = 'u')
-            E_eta0_y = (nu_y[t, ind_n1, :] + 3)*tau1_y[t, ind_n1, :]/(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2)
-            E_eta1_y = -(nu_y[t, ind_n1, :]*(nu_y[t, ind_n1, :] + 3))/(2*(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2))
-            est_mu_y[t, ind_n1, :] = -E_eta0_y/(2*E_eta1_y)
+            E_eta1_y = (nu_y[t, ind_n1, :] + 3)*tau1_y[t, ind_n1, :]/(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2)
+            E_eta2_y = -(nu_y[t, ind_n1, :]*(nu_y[t, ind_n1, :] + 3))/(2*(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2))
+            est_mu_y[t, ind_n1, :] = -E_eta1_y/(2*E_eta2_y)
             u_hat[t, :] = u_psb[t, :]*np.sum(new_phi_x.reshape((N_zt, 1))*est_mu_y[t, ind_n1], axis = 0)
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
 
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
-            est_sigma_y[t, ind_n1, :] = 1/np.sqrt(-2*E_eta1_y)
+            est_sigma_y[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_y)
             Ell_outcomes = stats.norm.logpdf(u[t, :], est_mu_y[t, ind_n1], est_sigma_y[t, ind_n1])
             E_log_lik_y[t, ind_n1] = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
@@ -266,7 +266,6 @@ class model:
                 phi_learn[ind_n] = phi[t, ind_n]/phi[t, ind_n].sum() # drop new cause and re-normalize over old latent causes
                 N[t + 1] = N[t]
                 
-
             # learning (update hyperparameters)
             tau1_x[t + 1, :, :] = tau1_x[t, :, :] + x_sofar*np.outer(phi_learn, x[t, :])
             tau2_x[t + 1, :, :] = tau2_x[t, :, :] + x_sofar*np.outer(phi_learn, x[t, :]**2)
@@ -317,7 +316,7 @@ class model:
                               'n_z': n_z})
         return ds
     
-    def particle_filter(self, trials, par_val = None, n_z = 10, n_p = 20, random_resp = False, ident = 'sim'):
+    def particle_filter(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim'):
         '''
         Simulate the model using a particle filter algorithm.
         
@@ -333,7 +332,7 @@ class model:
             Maximum number of latent causes.  Defaults to 10.
         
         n_p: int, optional
-            Number of particles.  Defaults to 20.
+            Number of particles.  Defaults to 50.
             
         random_resp: str, optional
             Whether or not simulated responses should be random.  Defaults
@@ -361,8 +360,6 @@ class model:
         
         *** I should double check that this is correct. ***
         '''
-        # ***FINISH UPDATING EVERYTHING***
-        
         # use default parameters unless others are given
         if par_val is None:
             sim_pars = self.pars['default']
@@ -474,9 +471,10 @@ class model:
                 # compute p(x_n | z_n = t, eta) (likelihood of x)
                 df_x = nu_x[p, z[p], :] + 3
                 mu_x = tau1_x[p, z[p], :]/nu_x[p, z[p], :]
-                alpha_x = (nu_x[p, z[p], :] + 3)/2
+                #alpha_x = (nu_x[p, z[p], :] + 3)/2
                 beta_x = (nu_x[p, z[p], :]*tau2_x[p, z[p], :] - tau1_x[p, z[p], :]**2)/(2*nu_x[p, z[p], :])
-                sigma_x = np.sqrt((beta_x*(nu_x[p, z[p], :] + 1))/(nu_x[p, z[p], :]*alpha_x))
+                #sigma_x = np.sqrt((beta_x*(nu_x[p, z[p], :] + 1))/(nu_x[p, z[p], :]*alpha_x))
+                sigma_x = np.sqrt(2*beta_x/df_x)
                 ll_x = stats.t.logpdf(x[t, :], df_x, mu_x, sigma_x)
                 lik_x[p] = np.exp(np.sum(x_sofar*ll_x)) # assumed independent -> add log_lik across cues
 
@@ -485,10 +483,11 @@ class model:
                 u_hat_p[p, :] = u_psb[t, :]*mu_y
 
                 # compute p(y_n | z_n = t, eta) (likelihood of y)
-                alpha_y = (nu_y[p, z[p], :] + 3)/2
-                beta_y = (nu_y[p, z[p], :]*tau2_y[p, z[p], :] - tau1_y[p, z[p], :]**2)/(2*nu_y[p, z[p], :])
-                sigma_y = np.sqrt((beta_y*(nu_y[p, z[p], :] + 1))/(nu_y[p, z[p], :]*alpha_y))
                 df_y = nu_y[p, z[p], :] + 3
+                #alpha_y = (nu_y[p, z[p], :] + 3)/2
+                beta_y = (nu_y[p, z[p], :]*tau2_y[p, z[p], :] - tau1_y[p, z[p], :]**2)/(2*nu_y[p, z[p], :])
+                #sigma_y = np.sqrt((beta_y*(nu_y[p, z[p], :] + 1))/(nu_y[p, z[p], :]*alpha_y))
+                sigma_y = np.sqrt(2*beta_y/df_y)
                 ll_y = stats.t.logpdf(u[t, :], df_y, mu_y, sigma_y)
                 lik_y[p] = np.exp(np.sum(u_psb[t, :]*ll_y)) # assumed independent -> add log_lik across outcomes
                 
@@ -563,9 +562,9 @@ par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'd
 par_names += ['power']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for power law SCRP; higher -> favors more recent latent causes'}]
 par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 15.0, 'default': 1.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
 par_names += ['prior_tau2_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for x'}]
-par_names += ['prior_nu_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
+par_names += ['prior_nu_x']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
 par_names += ['prior_tau2_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'}]
-par_names += ['prior_nu_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
+par_names += ['prior_nu_y']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['stick']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 

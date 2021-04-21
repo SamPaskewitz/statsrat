@@ -45,10 +45,12 @@ def ex_mean(sim, rtrv, u, u_hat, u_lrn, u_ex, ex_counts, n_ex, n_u, sim_pars):
     Combined with the right type of retrieval function, this is equivalent
     to instance based learning: instances with the same cues (x)
     are simply grouped together as a single exemplar.
+    
+    One can add a fixed initial value ('nu') to ex_counts.
     """
     index = np.argmax(sim)
     lrate = np.zeros(n_ex)
-    lrate[index] = 1/ex_counts[index]
+    lrate[index] = 1/(ex_counts[index] + sim_pars['nu'])
     delta = u - u_ex[index] # prediction error (only for current exemplar)
     return np.outer(lrate, u_lrn*delta)
-ex_mean.par_names = []
+ex_mean.par_names = ['nu']

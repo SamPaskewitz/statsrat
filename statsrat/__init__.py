@@ -3,9 +3,9 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 import nlopt
-from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity
+from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity, theme_classic
 
-def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0, dodge_width = 1.0):
+def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
@@ -39,7 +39,9 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
         Whether the x-axis should be labeled with 'stage_name' (if True) or
         't', i.e. time step (if False).  Defaults to True.
     text_size : float, optional
-        Specifies text size.  Defaults to 10.0.
+        Specifies text size.  Defaults to 15.0.
+    figure_size : tuple of floats, optional
+        Figure width and height in inches.  Defaults to (4.0, 4.0).
     dodge_width : float, optional
         Amount to separate overlapping lines so that they appear visually
         distinct (using Plotnine's position_dodge).  Defaults to 1.0.
@@ -99,7 +101,7 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
         else:
             if facet_var is None:
                 facet_var = var_names[dims[1]]
-                plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
+            plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
     
     if draw_points:
         plot += geom_point(position = dpos)
@@ -115,11 +117,12 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
             stage_labels += [ds_var.stage_name.loc[{'t': start_point}].values]
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
-    plot += theme(text=element_text(size = text_size)) # set text size
+    plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
+    plot += theme(figure_size = (4.0, 4.0))
     
     return plot
 
-def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 10.0, dodge_width = 1.0):
+def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     
@@ -154,7 +157,9 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         Whether the x-axis should be labeled with 'stage_name' (if True) or
         't', i.e. time step (if False).  Defaults to True.
     text_size : float, optional
-        Specifies text size.  Defaults to 10.0.
+        Specifies text size.  Defaults to 15.0.
+    figure_size : tuple of floats, optional
+        Figure width and height in inches.  Defaults to (4.0, 4.0).
     dodge_width : float, optional
         Amount to separate overlapping lines so that they appear visually
         distinct (using Plotnine's position_dodge).  Defaults to 1.0.
@@ -248,7 +253,8 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
             stage_labels += [df.stage_name.loc[df.t.values == start_point].values[0]]
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
-    plot += theme(text=element_text(size = text_size)) # set text size
+    plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
+    plot += theme(figure_size = (4.0, 4.0))
                         
     return plot
 
@@ -258,6 +264,9 @@ def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None)
 
     Parameters
     ----------
+    model : object
+        Model to use.
+    
     trials_list : list
         List of time step level experimental data (cues, outcomes
         etc.) for each participant.  These should be generated from
@@ -265,6 +274,9 @@ def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None)
 
     par_val : list
         Learning model parameters (floats or ints).
+        
+    random_resp : boolean
+        Should responses be random?
 
     sim_type: str or None, optional
         Type of simulation to perform (passed to the model's .simulate() method).
@@ -497,18 +509,18 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
 
     # simulate data to compute resulting OAT scores at max and min
     par_names = model.pars.index.tolist()
+    min_data = dict(keys = s_list)
+    max_data = dict(keys = s_list)
     if 'resp_scale' in par_names:
-        min_data = dict(keys = s_list)
-        max_data = dict(keys = s_list)
         for s in s_list:
-            max_data[s] = multi_sim(model, trials_list[s], np.append(par_max, 5), random_resp = False)
+            max_data[s] = multi_sim(model, trials_list[s], np.append(par_max, 5), random_resp = False, sim_type = sim_type)
             if minimize:
-                min_data[s] = multi_sim(model, trials_list[s], np.append(par_min, 5), random_resp = False)
+                min_data[s] = multi_sim(model, trials_list[s], np.append(par_min, 5), random_resp = False, sim_type = sim_type)
     else:
         for s in s_list:
-            max_data[s] = multi_sim(model, trials_list[s], par_max, random_resp = False)
+            max_data[s] = multi_sim(model, trials_list[s], par_max, random_resp = False, sim_type = sim_type)
             if minimize:
-                min_data[s] = multi_sim(model, trials_list[s], par_min, random_resp = False)
+                min_data[s] = multi_sim(model, trials_list[s], par_min, random_resp = False, sim_type = sim_type)
     # package results for output
     output_dict = dict()
     if n > 1:
@@ -554,8 +566,7 @@ def perform_oat(model, experiment, minimize = True, oat = None, n = 5, max_time 
     else:
         mean_resp_min = None
         mean_resp = mean_resp_max
-    
-    return (output, mean_resp)    
+    return (output, mean_resp, max_data, min_data)    
 
 def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = None, n = 20):
     """
