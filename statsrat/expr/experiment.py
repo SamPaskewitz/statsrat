@@ -69,8 +69,10 @@ class experiment:
             for s in schedules.values():
                 match_resp_type += [self.resp_type == s.resp_type]
             assert not (False in match_resp_type), 'Schedules have non-matching response types (resp_type).'
-        # add other data to 'self'        
+        # add other data to 'self'
         self.schedules = schedules
+        for s in self.schedules:
+            self.schedules[s].name = s # assign schedule name attributes based on dictionary keys
         self.oats = oats
         self.notes = notes
 
@@ -109,30 +111,31 @@ class experiment:
         t_order = []
         trial_index = []
         m = 0 # index for trials
-        for i in range(scd.n_stage):
-            iti = scd.stage_list[i].iti
-            order = scd.stage_list[i].order
-            for j in range(scd.stage_list[i].n_rep):
-                if scd.stage_list[i].order_fixed == False:
+        for st in scd.stages:
+            iti = scd.stages[st].iti
+            order = scd.stages[st].order
+            for j in range(scd.stages[st].n_rep):
+                if scd.stages[st].order_fixed == False:
                     np.random.shuffle(order)
-                for k in range(scd.stage_list[i].n_trial):
-                    trial_def_bool = np.array( (scd.trial_def.stage == i) & (scd.trial_def.trial == order[k]) )
+                for k in range(scd.stages[st].n_trial):
+                    trial_def_bool = np.array( (scd.trial_def.stage_name == st) & (scd.trial_def.trial == order[k]) )
                     trial_def_index = list( scd.trial_def.t[trial_def_bool].values )
                     t_order += trial_def_index
                     trial_index += (iti + 1)*[m]
                     m += 1
                     
         # make list for 'time' coordinate
-        time = list(np.arange(scd.stage_list[0].n_t))
+        st_names = list(scd.stages.keys())
+        time = list(np.arange(scd.stages[st_names[0]].n_t))
         for i in range(1, scd.n_stage):
-            time += list(np.arange(scd.stage_list[i].n_t) + scd.delays[i - 1] + time[-1] + 1)
+            time += list(np.arange(scd.stages[st_names[i]].n_t) + scd.delays[i - 1] + time[-1] + 1)
         
         # make new trials object
         trials = scd.trial_def.loc[{'t' : t_order}]
         trials = trials.assign_coords({'t' : range(scd.n_t)})
         trials = trials.assign_coords({'trial' : ('t', trial_index)})
         trials = trials.assign_coords({'time' : ('t', time)})
-        trials.attrs['schedule'] = scd.name
+        trials = trials.assign_attrs({'schedule': scd.name})
 
         return trials
 
@@ -225,13 +228,12 @@ class experiment:
             scd = self.schedules[schedule]
 
         # set up pct_correct
-        n_stage = len(scd.stage_list)
+        n_stage = len(scd.stages)
         pct_correct = dict()
-        for i in range(n_stage):
-            not_test = scd.stage_list[i].lrn == True
+        for st in scd.stages:
+            not_test = scd.stages[st].lrn == True
             if not_test:
-                stage_name = scd.stage_list[i].name
-                var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
+                var_name = st + '_' + 'last' + str(n_final) + '_pct_correct'
                 pct_correct[var_name] = []
             
         # **** loop through files ****
@@ -301,9 +303,9 @@ class experiment:
                     t_order = [] # list of time steps to produce the 'trials' data frame
                     trial_list = []
                     m = 0 # index for trials
-                    for s in range(scd.n_stage):
-                        iti = scd.stage_list[s].iti
-                        n_stage_trials = scd.stage_list[s].n_trial * scd.stage_list[s].n_rep
+                    for st in scd.stages:
+                        iti = scd.stages[st].iti
+                        n_stage_trials = scd.stages[st].n_trial * scd.stages[st].n_rep
                         for j in range(n_stage_trials):
                             # determine x (stimulus vector) from raw data
                             raw_x = pd.Series(0, index = scd.x_names)
@@ -314,13 +316,13 @@ class experiment:
                                         raw_x[raw_x_name] = 1
                             # find corresponding trial definition (will only work if ITI = 0)
                             match_raw_x = (scd.trial_def['x'] == np.array(raw_x)).all(axis = 1)
-                            match_stage = scd.trial_def['stage'] == s
+                            match_stage = scd.trial_def['stage_name'] == st
                             trial_def_bool = match_stage & match_raw_x
                             trial_def_index = list(scd.trial_def['t'].loc[{'t' : trial_def_bool}])
                             if np.sum(trial_def_bool) == 0:
                                 print('cue combination found that is not in schedule definition for stage:') # for debugging
                                 print('stage')
-                                print(s)
+                                print(st)
                                 print('trial')
                                 print(m)
                                 print('cue combination')
@@ -356,10 +358,10 @@ class experiment:
                     correct = np.all(u == b, axis = 1)
                     ds_new = ds_new.assign(correct = correct)
                     # **** calculate percent correct per stage (excluding test stages) ****
-                    for s in range(n_stage):
-                        not_test = scd.stage_list[s].lrn == True
+                    for st in scd.stages:
+                        not_test = scd.stages[st].lrn == True
                         if not_test:
-                            stage_name = scd.stage_list[s].name
+                            stage_name = scd.stages[st].name
                             index = np.array(ds_new.stage_name == stage_name)
                             var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
                             pct_correct[var_name] += [100*ds_new['correct'].loc[{'t': index}][-n_final:].mean().values]    
@@ -401,13 +403,12 @@ class experiment:
             print('There was a problem merging individual datasets together.')
             
         # **** create summary data frame (each row corresponds to a participant) ****
-        summary = ds.drop_dims(['t', 'trial', 'time', 'x_name', 'u_name']).to_dataframe()
-        print(summary)
+        summary = ds.drop_dims(['t', 'x_name', 'u_name']).to_dataframe()
         # **** add pct_correct ****
-        for s in range(n_stage):
-            not_test = scd.stage_list[s].lrn == True
+        for st in scd.stages:
+            not_test = scd.stages[st].lrn == True
             if not_test:
-                stage_name = scd.stage_list[s].name
+                stage_name = scd.stages[st].name
                 var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
                 summary[var_name] = pct_correct[var_name]            
         # **** calculate behavioral scores ****

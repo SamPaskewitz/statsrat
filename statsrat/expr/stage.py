@@ -7,8 +7,9 @@ class stage:
     
     Attributes
     ----------
-    name : str
-        name of the stage
+    name : str or None
+        By default this is None until the stage is used
+        in the creation of an experiment object.
     n_rep : int
         Number of repetitions (trial blocks).
     n_trial : int
@@ -61,12 +62,10 @@ class stage:
         that outcomes cannot occur during the ITI, as in most
         human category learning experiments.
     """
-    def __init__(self, name, n_rep, x_pn, x_bg = [], x_value = None, freq = None, u = None, u_psb = None, u_value = None, lrn = True, order_fixed = False, iti = 0):
+    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, u = None, u_psb = None, u_value = None, lrn = True, order_fixed = False, iti = 0):
         """
         Parameters
         ----------
-        name : str
-            name of the stage
         n_rep: int
             Number of repetitions (trial blocks).
         x_pn : list
@@ -113,7 +112,7 @@ class stage:
             that outcomes cannot occur during the ITI, as in most
             human category learning experiments.  Defaults to 0.      
         """
-        self.name = name
+        self.name = None # stages only get a real name attribute when used to create a schedule
         self.n_rep = n_rep
         self.n_trial_type = len(x_pn) # number of trial types
         self.x_pn = x_pn

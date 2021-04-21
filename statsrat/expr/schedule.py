@@ -9,20 +9,22 @@ class schedule:
 
     Attributes
     ----------
-    name: str
-        The schedule's name.
+    name: str or None
+        The schedule's name.  By default this is None
+        until the schedule is used in the creation of
+        an experiment object.
     resp_type : str
         The type of behavioral response made by the learner.  Can
         be either 'choice' (discrete responses), 'exct' (excitatory)
         or 'supr' (suppression of an ongoing activity).
-    stage_list: list
-        List of experimental stages (stage objects).
+    stages: dict
+        Dictionary of experimental stages (stage objects).
     delays: list of int
         List of time delays between stages (e.g. if delay[1] = 100
         then there is a 100 unit delay between the end of stage 0 and
         the start of stage 1).
     trial_def: data frame
-        Defines the trial types implied by 'stage_list'.
+        Defines the trial types implied by 'stages'.
     x_names: list of str
         Names of cues (stimulus attributes).
     x_dims: dict or None
@@ -50,6 +52,9 @@ class schedule:
 
     Notes
     -----
+    Although it is a dict, the 'stages' attribute retains stage order 
+    in modern versions of Python (>= 3.7).  This is important.
+    
     In an experiment with several between subjects conditions, each such
     condition corresponds to a schedule.
 
@@ -119,18 +124,16 @@ class schedule:
     x_name: str
         Cue name dimension.        
     """
-    def __init__(self, name, resp_type, stage_list, delays = None, x_dims = None):
+    def __init__(self, resp_type, stages, delays = None, x_dims = None):
         """
         Parameters
         ----------
-        name: str
-            The name of the schedule.
         resp_type: str
             The type of behavioral response made by the learner.  Can
             be either 'choice' (discrete responses), 'exct' (excitatory)
             or 'supr' (suppression of an ongoing activity).
-        stage_list: list
-            List of experimental stages (stage objects).
+        stages: dict
+            Dictionary of experimental stages (stage objects).
         delays: list of int or None, optional
             List of time delays between stages (e.g. if delay[0] = 100
             then there is a 100 unit delay between the end of stage 0 and
@@ -142,7 +145,7 @@ class schedule:
             are cue names (i.e. 'x_names').  Defaults to None.
         """
         # assemble names; count things
-        n_stage = len(stage_list)
+        n_stage = len(stages)
         stage_names = []
         stage_number = []
         x_names = []
@@ -151,19 +154,22 @@ class schedule:
         n_t_trial_def = 0 # total number of time steps with one trial of each type
         # loop through stages
         has_varying_x_value = [] # cues that have x_value which varies (more accurately is sometimes different from 0 or 1)
-        for i in range(n_stage):
-            n_t_trial_def += (stage_list[i].iti + 1)*stage_list[i].n_trial_type
-            n_t += (stage_list[i].iti + 1)*np.sum(stage_list[i].freq)*stage_list[i].n_rep
-            stage_names += [stage_list[i].n_trial_type*stage_list[i].name]
-            stage_number += [stage_list[i].n_trial_type*i]
-            x_names += stage_list[i].x_names
-            u_names += stage_list[i].u_psb
-            for j in range(stage_list[i].n_trial_type):
-                u_new = stage_list[i].u[j]
+        i = 0 # index for stages
+        for st in stages:
+            stages[st].name = st # assign stage name attribute based on dictionary key
+            n_t_trial_def += (stages[st].iti + 1)*stages[st].n_trial_type
+            n_t += (stages[st].iti + 1)*np.sum(stages[st].freq)*stages[st].n_rep
+            stage_names += [stages[st].n_trial_type*st]
+            stage_number += [stages[st].n_trial_type*i]
+            x_names += stages[st].x_names
+            u_names += stages[st].u_psb
+            for j in range(stages[st].n_trial_type):
+                u_new = stages[st].u[j]
                 u_names += u_new
-            for xn in stage_list[i].x_names:
-                if not stage_list[i].x_value[xn] in [0.0, 1.0]:
+            for xn in stages[st].x_names:
+                if not stages[st].x_value[xn] in [0.0, 1.0]:
                     has_varying_x_value += [xn]
+            i += 1
         has_varying_x_value = list(np.unique(has_varying_x_value))
         x_names = list(np.unique(x_names))
         u_names = list(np.unique(u_names))
@@ -171,8 +177,8 @@ class schedule:
         n_u = len(u_names)
         # this is the number of trial types, not the number of trials in the experiment
         n_trial = 0
-        for s in stage_list:
-            n_trial += s.n_trial_type            
+        for st in stages:
+            n_trial += stages[st].n_trial_type            
             
         # loop through trial types to add information
         x = xr.DataArray(np.zeros((n_t_trial_def, n_x)), [range(n_t_trial_def), x_names], ['row', 'x_name'])
@@ -188,35 +194,36 @@ class schedule:
         ex_name = []           
         
         k = 0 # time step index
+        i = 0 # stage index
         # loop through stages
-        for i in range(n_stage):
-            iti = stage_list[i].iti
-            stage += (iti + 1)*stage_list[i].n_trial_type*[i]
-            stage_name += (iti + 1)*stage_list[i].n_trial_type*[stage_list[i].name]
+        for st in stages:
+            iti = stages[st].iti
+            stage += (iti + 1)*stages[st].n_trial_type*[i]
+            stage_name += (iti + 1)*stages[st].n_trial_type*[st]
             # figure out cue names for use in exemplar naming (may include x_value if that is not only 0.0 or 1.0)
-            x_names_ex = pd.Series('', index = stage_list[i].x_names)
-            for xn in stage_list[i].x_names:
+            x_names_ex = pd.Series('', index = stages[st].x_names)
+            for xn in stages[st].x_names:
                 if xn in has_varying_x_value:
-                    x_names_ex[xn] = xn + str(stage_list[i].x_value[xn])
+                    x_names_ex[xn] = xn + str(stages[st].x_value[xn])
                 else:
                     x_names_ex[xn] = xn
             # loop through trial types
-            for j in range(stage_list[i].n_trial_type):
+            for j in range(stages[st].n_trial_type):
                 trial += (iti + 1)*[j]
                 # figure out trial name
-                has_x_pn = len(stage_list[i].x_pn[j]) > 0 # indicates whether there are punctate cues (x_pn)
-                has_u = len(stage_list[i].u[j]) > 0 # indicates whether there are outcomes (u)
-                possible_names = {(True, True): '.'.join(stage_list[i].x_pn[j]) + ' -> ' + '.'.join(stage_list[i].u[j]),
-                                  (True, False): '.'.join(stage_list[i].x_pn[j]) + ' -> ' + 'nothing',
-                                  (False, True): 'nothing' + ' -> ' + '.'.join(stage_list[i].u[j]),
+                has_x_pn = len(stages[st].x_pn[j]) > 0 # indicates whether there are punctate cues (x_pn)
+                has_u = len(stages[st].u[j]) > 0 # indicates whether there are outcomes (u)
+                possible_names = {(True, True): '.'.join(stages[st].x_pn[j]) + ' -> ' + '.'.join(stages[st].u[j]),
+                                  (True, False): '.'.join(stages[st].x_pn[j]) + ' -> ' + 'nothing',
+                                  (False, True): 'nothing' + ' -> ' + '.'.join(stages[st].u[j]),
                                   (False, False): 'background'}
                 new_trial_name = possible_names[(has_x_pn, has_u)]
                 trial_name += (iti + 1)*[new_trial_name]                
                 # other information
-                x.loc[{'row': range(k, k + iti + 1), 'x_name': stage_list[i].x_bg}] = stage_list[i].x_value.loc[stage_list[i].x_bg] # background cues (x_bg)
-                u_psb.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
-                if stage_list[i].lrn == True:
-                    u_lrn.loc[{'row': range(k, k + iti + 1), 'u_name': stage_list[i].u_psb}] = 1.0
+                x.loc[{'row': range(k, k + iti + 1), 'x_name': stages[st].x_bg}] = stages[st].x_value.loc[stages[st].x_bg] # background cues (x_bg)
+                u_psb.loc[{'row': range(k, k + iti + 1), 'u_name': stages[st].u_psb}] = 1.0
+                if stages[st].lrn == True:
+                    u_lrn.loc[{'row': range(k, k + iti + 1), 'u_name': stages[st].u_psb}] = 1.0
                 # yet more information
                 has_main = has_x_pn or has_u # indicates whether there is a 'main' time step
                 if has_main:
@@ -224,21 +231,22 @@ class schedule:
                     if iti > 0:
                         t_name += (iti - 1)*['bg']
                         t_name += ['pre_main']
-                        ex_name += iti*['.'.join(x_names_ex[stage_list[i].x_bg])]
+                        ex_name += iti*['.'.join(x_names_ex[stages[st].x_bg])]
                     # set up 'main', i.e. time step with punctate cues/outcomes
                     t_name += ['main']
                     if has_x_pn:
-                        x.loc[{'row': k + iti, 'x_name': stage_list[i].x_pn[j]}] = stage_list[i].x_value.loc[stage_list[i].x_pn[j]] # punctate cues (x_pn)
-                        ex_name += ['.'.join(x_names_ex[stage_list[i].x_bg + stage_list[i].x_pn[j]])]
+                        x.loc[{'row': k + iti, 'x_name': stages[st].x_pn[j]}] = stages[st].x_value.loc[stages[st].x_pn[j]] # punctate cues (x_pn)
+                        ex_name += ['.'.join(x_names_ex[stages[st].x_bg + stages[st].x_pn[j]])]
                     else:
-                        ex_name += ['.'.join(x_names_ex[stage_list[i].x_bg])]
+                        ex_name += ['.'.join(x_names_ex[stages[st].x_bg])]
                     if has_u:
-                        u.loc[{'row': k + iti, 'u_name': stage_list[i].u[j]}] = stage_list[i].u_value.loc[stage_list[i].u[j]]
+                        u.loc[{'row': k + iti, 'u_name': stages[st].u[j]}] = stages[st].u_value.loc[stages[st].u[j]]
                 else:
                     t_name += (iti + 1)*['bg']
-                    ex_name += (iti + 1)*['.'.join(x_names_ex[stage_list[i].x_bg])]
-                # advance time step index
-                k += iti + 1                
+                    ex_name += (iti + 1)*['.'.join(x_names_ex[stages[st].x_bg])]
+                # advance time step and stage indices
+                k += iti + 1
+                i += 1
 
         # create dataset for trial type definitions ('trial_def')
         trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x),
@@ -253,26 +261,25 @@ class schedule:
                                          'stage': ('t', stage),
                                          'stage_name': ('t', stage_name),
                                          'x_name': x_names,
-                                         'u_name': u_names,
-                                         'schedule': name})
+                                         'u_name': u_names})
         
         # create a dataframe for exemplars, and attach to trial type dataset as an attribute
         ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
         ex_names = trial_def['ex'].loc[{'t': ex_index}].values
         x_ex = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
-        trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names, resp_type = resp_type, schedule = name)
+        trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names, resp_type = resp_type)
 
         # make sure that no trial type is duplicated within any stage
-        for i in range(n_stage):
-            indexer = (trial_def.stage == i) & (trial_def.t_name == 'main')
+        for st in stages:
+            indexer = (trial_def.stage_name == st) & (trial_def.t_name == 'main')
             trial_names = trial_def.loc[{'t' : indexer}].trial_name
             all_unique = len(trial_names) == len(np.unique(trial_names))
-            assert all_unique, 'Duplicate trial definition found in stage "{}" of schedule "{}".'.format(stage_list[i].name, name)
+            assert all_unique, 'Duplicate trial definition found in stage "{}" of schedule "{}".'.format(stages[st].name, name)
                 
         # record information in new object ('self')
-        self.name = name
+        self.name = None # the schedule doesn't get a real name attribute until put in an experiment object
         self.resp_type = resp_type
-        self.stage_list = stage_list
+        self.stages = stages
         if delays is None:
             self.delays = (n_stage - 1)*[0]
         else:

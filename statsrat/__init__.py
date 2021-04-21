@@ -199,7 +199,7 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         new_dims.remove('t') # remove dimensions other than time step ('t')
         new_df = new_ds_var.to_dataframe()
         new_df = new_df.reset_index()
-        new_df['schedule'] = new_ds_var.schedule.values
+        new_df['schedule'] = ds.attrs['schedule']
         df_list += [new_df]
         i += 1
 

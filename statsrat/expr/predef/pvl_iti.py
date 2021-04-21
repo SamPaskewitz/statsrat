@@ -24,72 +24,63 @@ n_rep_no_stim = 10
 
 ##### DEFINE STAGES #####
 
-no_stim_stage = expr.stage(name = 'no_stim',
-                           x_pn = [[]],
+no_stim_stage = expr.stage(x_pn = [[]],
                            x_bg = ['ctx'],
                            u_psb = ['us'],
                            order_fixed = True,
                            iti = 0,
                            n_rep = n_rep_no_stim)
 
-no_stim_ctx_a_stage = expr.stage(name = 'no_stim',
-                                 x_pn = [[]],
+no_stim_ctx_a_stage = expr.stage(x_pn = [[]],
                                  x_bg = ['ctx_a'],
                                  u_psb = ['us'],
                                  order_fixed = True,
                                  iti = 0,
                                  n_rep = n_rep_no_stim)
 
-test_stage = expr.stage(name = 'test',
-                        x_pn = [['cs']],
+test_stage = expr.stage(x_pn = [['cs']],
                         x_bg = ['ctx'],
                         u_psb = ['us'],
                         order_fixed = True,
                         iti = iti,
                         n_rep = n_rep_test)
 
-test_cs2_stage = expr.stage(name = 'test',
-                            x_pn = [['cs2']],
+test_cs2_stage = expr.stage(x_pn = [['cs2']],
                             x_bg = ['ctx'],
                             u_psb = ['us'],
                             order_fixed = False,
                             iti = iti,
                             n_rep = n_rep_test)
 
-test_ctx_a_stage = expr.stage(name = 'test',
-                              x_pn = [['cs']],
+test_ctx_a_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_a'],
                               u_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_test)
 
-test_ctx_b_stage = expr.stage(name = 'test',
-                              x_pn = [['cs']],
+test_ctx_b_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_b'],
                               u_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_test)
 
-test_ctx_c_stage = expr.stage(name = 'test',
-                              x_pn = [['cs']],
+test_ctx_c_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_c'],
                               u_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_test)
 
-delay_stage = expr.stage(name = 'delay',
-                         x_pn = [[]],
+delay_stage = expr.stage(x_pn = [[]],
                          x_bg = ['home_cage'],
                          u_psb = ['us'],
                          order_fixed = True,
                          iti = 0,
                          n_rep = 400)
 
-one_cue_stage = expr.stage(name = 'one_cue',
-                           x_pn = [['cs1']],
+one_cue_stage = expr.stage(x_pn = [['cs1']],
                            x_bg = ['ctx'],
                            u = [['us']],
                            u_psb = ['us'],
@@ -97,8 +88,7 @@ one_cue_stage = expr.stage(name = 'one_cue',
                            iti = iti,
                            n_rep = n_rep_train)
 
-two_cue_stage = expr.stage(name = 'two_cue',
-                           x_pn = [['cs1', 'cs2']],
+two_cue_stage = expr.stage(x_pn = [['cs1', 'cs2']],
                            x_bg = ['ctx'],
                            u = [['us']],
                            u_psb = ['us'],
@@ -106,24 +96,21 @@ two_cue_stage = expr.stage(name = 'two_cue',
                            iti = iti,
                            n_rep = n_rep_train)
 
-pre_exp_stage = expr.stage(name = 'pre_exposure',
-                           x_pn = [['cs']],
+pre_exp_stage = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx'],
                            u_psb = ['us'],
                            order_fixed = True,
                            iti = iti,
                            n_rep = n_rep_pre_exp)
 
-pre_exp_ctx_a_stage = expr.stage(name = 'pre_exposure',
-                                 x_pn = [['cs']],
+pre_exp_ctx_a_stage = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_a'],
                                  u_psb = ['us'],
                                  order_fixed = True,
                                  iti = iti,
                                  n_rep = n_rep_pre_exp)
 
-training_stage = expr.stage(name = 'training',
-                            x_pn = [['cs']],
+training_stage = expr.stage(x_pn = [['cs']],
                             x_bg = ['ctx'],
                             u = [['us']],
                             u_psb = ['us'],
@@ -131,8 +118,7 @@ training_stage = expr.stage(name = 'training',
                             iti = iti,
                             n_rep = n_rep_train)
 
-training_ctx_a_stage = expr.stage(name = 'training',
-                                  x_pn = [['cs']],
+training_ctx_a_stage = expr.stage(x_pn = [['cs']],
                                   x_bg = ['ctx_a'],
                                   u = [['us']],
                                   u_psb = ['us'],
@@ -140,8 +126,7 @@ training_ctx_a_stage = expr.stage(name = 'training',
                                   iti = iti,
                                   n_rep = n_rep_train)
 
-training_ctx_b_stage = expr.stage(name = 'training',
-                                  x_pn = [['cs']],
+training_ctx_b_stage = expr.stage(x_pn = [['cs']],
                                   x_bg = ['ctx_b'],
                                   u = [['us']],
                                   u_psb = ['us'],
@@ -149,32 +134,28 @@ training_ctx_b_stage = expr.stage(name = 'training',
                                   iti = iti,
                                   n_rep = n_rep_train)
 
-extn_stage = expr.stage(name = 'extinction',
-                        x_pn = [['cs']],
+extn_stage = expr.stage(x_pn = [['cs']],
                         x_bg = ['ctx'],
                         u_psb = ['us'],
                         order_fixed = True,
                         iti = iti,
                         n_rep = n_rep_extn)
 
-extn_ctx_a_stage = expr.stage(name = 'extinction',
-                              x_pn = [['cs']],
+extn_ctx_a_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_a'],
                               u_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_extn)
 
-extn_ctx_b_stage = expr.stage(name = 'extinction',
-                              x_pn = [['cs']],
+extn_ctx_b_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_b'],
                               u_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_extn)
 
-extra_us_stage = expr.stage(name = 'extra_us',
-                            x_pn = [[]],
+extra_us_stage = expr.stage(x_pn = [[]],
                             x_bg = ['ctx'],
                             u = [['us']],
                             u_psb = ['us'],
@@ -182,8 +163,7 @@ extra_us_stage = expr.stage(name = 'extra_us',
                             iti = iti,
                             n_rep = n_rep_train)
 
-extra_us_ctl_stage = expr.stage(name = 'extra_us',
-                                x_pn = [[]],
+extra_us_ctl_stage = expr.stage(x_pn = [[]],
                                 x_bg = ['ctx'],
                                 u_psb = ['us'],
                                 order_fixed = True,
@@ -193,52 +173,52 @@ extra_us_ctl_stage = expr.stage(name = 'extra_us',
 ##### DEFINE SCHEDULES #####
 
 # no conditioning (as a very basic control)
-no_cond = expr.schedule(name = 'no_conditioning', resp_type = 'exct', stage_list = [test_stage])
+no_cond = expr.schedule(resp_type = 'exct', stages = {'test': test_stage})
 
 # basic conditioning
-cond = expr.schedule(name = 'conditioning', resp_type = 'exct', stage_list = [training_stage, test_stage])
+cond = expr.schedule(resp_type = 'exct', stages = {'training': training_stage, 'test': test_stage})
 
 # blocking
-blocking = expr.schedule(name = 'blocking', resp_type = 'exct', stage_list = [one_cue_stage, two_cue_stage, test_cs2_stage])
+blocking = expr.schedule(resp_type = 'exct', stages = {'one_cue': one_cue_stage, 'two_cue': two_cue_stage, 'test': test_cs2_stage})
 
 # two cue conditioning (e.g. overshadowing)
-two_cue = expr.schedule(name = 'two_cue', resp_type = 'exct', stage_list = [two_cue_stage, test_cs2_stage])
+two_cue = expr.schedule(resp_type = 'exct', stages = {'two_cue': two_cue_stage, 'test': test_cs2_stage})
 
 # pre-exposure (for latent inhibition)
-pre_exp = expr.schedule(name = 'pre_exposure', resp_type = 'exct', stage_list = [pre_exp_stage, training_stage, test_stage])
+pre_exp = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_stage, 'training': training_stage, 'test': test_stage})
 
 # pre-exposure (ABC)
-pre_exp_abc = expr.schedule(name = 'pre_exposure_abc', resp_type = 'exct', stage_list = [pre_exp_ctx_a_stage, training_ctx_b_stage, test_ctx_c_stage])
+pre_exp_abc = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_ctx_a_stage, 'training': training_ctx_b_stage, 'test': test_ctx_c_stage})
 
 # extinction
-extn = expr.schedule(name = 'extinction', resp_type = 'exct', stage_list = [training_stage, extn_stage, test_stage])
+extn = expr.schedule(resp_type = 'exct', stages = {'training': training_stage, 'extinction': extn_stage, 'test': test_stage})
 
 # extinction (AAA)
-extn_aaa = expr.schedule(name = 'extinction_aaa', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_a_stage, test_ctx_a_stage])
+extn_aaa = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage, 'extinction': extn_ctx_a_stage, 'test': test_ctx_a_stage})
 
 # extinction (ABA)
-extn_aba = expr.schedule(name = 'extinction_aba', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_b_stage, test_ctx_a_stage])
+extn_aba = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage, 'extinction': extn_ctx_b_stage, 'test': test_ctx_a_stage})
 
 # extinction (ABC)
-extn_abc = expr.schedule(name = 'extinction_abc', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_b_stage, test_ctx_c_stage])
+extn_abc = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage, 'extinction': extn_ctx_b_stage, 'test': test_ctx_c_stage})
 
 # extinction (AAB)
-extn_aab = expr.schedule(name = 'extinction_aab', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_a_stage, test_ctx_b_stage])
+extn_aab = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage, 'extinction': extn_ctx_a_stage, 'test': test_ctx_b_stage})
 
 # extinction (ABB)
-extn_abb = expr.schedule(name = 'extinction_abb', resp_type = 'exct', stage_list = [training_ctx_a_stage, extn_ctx_b_stage, test_ctx_b_stage])
+extn_abb = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage, 'extinction': extn_ctx_b_stage, 'test': test_ctx_b_stage})
 
 # extinction with extra US (for reinstatement)
-extn_extra_us = expr.schedule(name = 'extra_us', resp_type = 'exct', stage_list = [training_stage, extn_stage, extra_us_stage, test_stage])
+extn_extra_us = expr.schedule(resp_type = 'exct', stages = {'training': training_stage, 'extinction': extn_stage, 'extra_us': extra_us_stage, 'test': test_stage})
 
 # control condition for extinction with US (for reinstatement)
-extn_extra_us_ctl = expr.schedule(name = 'extra_us_control', resp_type = 'exct', stage_list = [training_stage, extn_stage, extra_us_ctl_stage, test_stage])
+extn_extra_us_ctl = expr.schedule(resp_type = 'exct', stages = {'training': training_stage, 'extinction': extn_stage, 'extra_us': extra_us_ctl_stage, 'test': test_stage})
 
 # extinction with delay before test (explicit)
-extn_delay_explicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [training_stage, extn_stage, delay_stage, test_stage])
+extn_delay_explicit = expr.schedule(resp_type = 'exct', stages = {'training': training_stage, 'extinction': extn_stage, 'delay': delay_stage, 'test': test_stage})
 
 # extinction with delay before test (implicit)
-extn_delay_implicit = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [training_stage, extn_stage, test_stage], delays = [0, 100])
+extn_delay_implicit = expr.schedule(resp_type = 'exct', stages = {'training': training_stage, 'extinction': extn_stage, 'test': test_stage}, delays = [0, 100])
 
 ##### DEFINE BEHAVIORAL SCORES #####
 

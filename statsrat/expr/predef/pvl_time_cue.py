@@ -18,8 +18,7 @@ n_rep_no_stim = 10
 
 ##### DEFINE STAGES #####
 
-no_stim_stage_t0 = expr.stage(name = 'no_stim',
-                              x_pn = [[]],
+no_stim_stage_t0 = expr.stage(x_pn = [[]],
                               x_bg = ['ctx', 'time'],
                               x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 0.0}),
                               u_psb = ['us'],
@@ -27,8 +26,7 @@ no_stim_stage_t0 = expr.stage(name = 'no_stim',
                               iti = 0,
                               n_rep = n_rep_no_stim)
 
-no_stim_ctx_a_stage_t0 = expr.stage(name = 'no_stim',
-                                    x_pn = [[]],
+no_stim_ctx_a_stage_t0 = expr.stage(x_pn = [[]],
                                     x_bg = ['ctx_a', 'time'],
                                     x_value = pd.Series({'cs': 1.0, 'ctx_a': 1.0, 'time': 0.0}),
                                     u_psb = ['us'],
@@ -36,8 +34,7 @@ no_stim_ctx_a_stage_t0 = expr.stage(name = 'no_stim',
                                     iti = 0,
                                     n_rep = n_rep_no_stim)
 
-test_stage_t0 = expr.stage(name = 'test',
-                           x_pn = [['cs']],
+test_stage_t0 = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx', 'time'],
                            x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 0.0}),
                            u_psb = ['us'],
@@ -45,8 +42,7 @@ test_stage_t0 = expr.stage(name = 'test',
                            iti = iti,
                            n_rep = n_rep_test)
 
-test_stage_t1 = expr.stage(name = 'test',
-                           x_pn = [['cs']],
+test_stage_t1 = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx', 'time'],
                            x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 1.0}),
                            u_psb = ['us'],
@@ -54,8 +50,7 @@ test_stage_t1 = expr.stage(name = 'test',
                            iti = iti,
                            n_rep = n_rep_test)
 
-test_stage_t2 = expr.stage(name = 'test',
-                           x_pn = [['cs']],
+test_stage_t2 = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx', 'time'],
                            x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 2.0}),
                            u_psb = ['us'],
@@ -63,8 +58,7 @@ test_stage_t2 = expr.stage(name = 'test',
                            iti = iti,
                            n_rep = n_rep_test)
 
-test_stage_t3 = expr.stage(name = 'test',
-                           x_pn = [['cs']],
+test_stage_t3 = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx', 'time'],
                            x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 3.0}),
                            u_psb = ['us'],
@@ -72,8 +66,7 @@ test_stage_t3 = expr.stage(name = 'test',
                            iti = iti,
                            n_rep = n_rep_test)
 
-test_stage_t5 = expr.stage(name = 'test',
-                           x_pn = [['cs']],
+test_stage_t5 = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx', 'time'],
                            x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 5.0}),
                            u_psb = ['us'],
@@ -81,8 +74,7 @@ test_stage_t5 = expr.stage(name = 'test',
                            iti = iti,
                            n_rep = n_rep_test)
 
-test_cs2_stage_t1 = expr.stage(name = 'test',
-                               x_pn = [['cs2']],
+test_cs2_stage_t1 = expr.stage(x_pn = [['cs2']],
                                x_bg = ['ctx', 'time'],
                                x_value = pd.Series({'cs2': 1.0, 'ctx': 1.0, 'time': 1.0}),
                                u_psb = ['us'],
@@ -90,8 +82,7 @@ test_cs2_stage_t1 = expr.stage(name = 'test',
                                iti = iti,
                                n_rep = n_rep_test)
 
-test_cs2_stage_t2 = expr.stage(name = 'test',
-                               x_pn = [['cs2']],
+test_cs2_stage_t2 = expr.stage(x_pn = [['cs2']],
                                x_bg = ['ctx', 'time'],
                                x_value = pd.Series({'cs2': 1.0, 'ctx': 1.0, 'time': 2.0}),
                                u_psb = ['us'],
@@ -99,8 +90,7 @@ test_cs2_stage_t2 = expr.stage(name = 'test',
                                iti = iti,
                                n_rep = n_rep_test)
 
-test_ctx_a_stage_t2 = expr.stage(name = 'test',
-                                 x_pn = [['cs']],
+test_ctx_a_stage_t2 = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_a', 'time'],
                                  x_value = pd.Series({'cs': 1.0, 'ctx_a': 1.0, 'time': 2.0}),
                                  u_psb = ['us'],
@@ -108,8 +98,7 @@ test_ctx_a_stage_t2 = expr.stage(name = 'test',
                                  iti = iti,
                                  n_rep = n_rep_test)
 
-test_ctx_b_stage_t2 = expr.stage(name = 'test',
-                                 x_pn = [['cs']],
+test_ctx_b_stage_t2 = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_b', 'time'],
                                  x_value = pd.Series({'cs': 1.0, 'ctx_b': 1.0, 'time': 2.0}),
                                  u_psb = ['us'],
@@ -117,8 +106,7 @@ test_ctx_b_stage_t2 = expr.stage(name = 'test',
                                  iti = iti,
                                  n_rep = n_rep_test)
 
-test_ctx_c_stage_t2 = expr.stage(name = 'test',
-                                 x_pn = [['cs']],
+test_ctx_c_stage_t2 = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_c', 'time'],
                                  x_value = pd.Series({'cs': 1.0, 'ctx_c': 1.0, 'time': 2.0}),
                                  u_psb = ['us'],
@@ -126,8 +114,7 @@ test_ctx_c_stage_t2 = expr.stage(name = 'test',
                                  iti = iti,
                                  n_rep = n_rep_test)
 
-one_cue_stage_t0 = expr.stage(name = 'one_cue',
-                              x_pn = [['cs1']],
+one_cue_stage_t0 = expr.stage(x_pn = [['cs1']],
                               x_bg = ['ctx', 'time'],
                               x_value = pd.Series({'cs1': 1.0, 'ctx': 1.0, 'time': 0.0}),
                               u = [['us']],
@@ -136,8 +123,7 @@ one_cue_stage_t0 = expr.stage(name = 'one_cue',
                               iti = iti,
                               n_rep = n_rep_train)
 
-two_cue_stage_t0 = expr.stage(name = 'two_cue',
-                              x_pn = [['cs1', 'cs2']],
+two_cue_stage_t0 = expr.stage(x_pn = [['cs1', 'cs2']],
                               x_bg = ['ctx', 'time'],
                               x_value = pd.Series({'cs1': 1.0, 'cs2': 1.0, 'ctx': 1.0, 'time': 0.0}),
                               u = [['us']],
@@ -146,8 +132,7 @@ two_cue_stage_t0 = expr.stage(name = 'two_cue',
                               iti = iti,
                               n_rep = n_rep_train)
 
-two_cue_stage_t1 = expr.stage(name = 'two_cue',
-                              x_pn = [['cs1', 'cs2']],
+two_cue_stage_t1 = expr.stage(x_pn = [['cs1', 'cs2']],
                               x_bg = ['ctx', 'time'],
                               x_value = pd.Series({'cs1': 1.0, 'cs2': 1.0, 'ctx': 1.0, 'time': 1.0}),
                               u = [['us']],
@@ -156,8 +141,7 @@ two_cue_stage_t1 = expr.stage(name = 'two_cue',
                               iti = iti,
                               n_rep = n_rep_train)
 
-pre_exp_stage_t0 = expr.stage(name = 'pre_exposure',
-                              x_pn = [['cs']],
+pre_exp_stage_t0 = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx', 'time'],
                               x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 0.0}),
                               u_psb = ['us'],
@@ -165,8 +149,7 @@ pre_exp_stage_t0 = expr.stage(name = 'pre_exposure',
                               iti = iti,
                               n_rep = n_rep_pre_exp)
 
-pre_exp_ctx_a_stage_t0 = expr.stage(name = 'pre_exposure',
-                                    x_pn = [['cs']],
+pre_exp_ctx_a_stage_t0 = expr.stage(x_pn = [['cs']],
                                     x_bg = ['ctx_a', 'time'],
                                     x_value = pd.Series({'cs': 1.0, 'ctx_a': 1.0, 'time': 0.0}),
                                     u_psb = ['us'],
@@ -174,8 +157,7 @@ pre_exp_ctx_a_stage_t0 = expr.stage(name = 'pre_exposure',
                                     iti = iti,
                                     n_rep = n_rep_pre_exp)
 
-training_stage_t0 = expr.stage(name = 'training',
-                               x_pn = [['cs']],
+training_stage_t0 = expr.stage(x_pn = [['cs']],
                                x_bg = ['ctx', 'time'],
                                x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 0.0}),
                                u = [['us']],
@@ -184,8 +166,7 @@ training_stage_t0 = expr.stage(name = 'training',
                                iti = iti,
                                n_rep = n_rep_train)
 
-training_stage_t1 = expr.stage(name = 'training',
-                               x_pn = [['cs']],
+training_stage_t1 = expr.stage(x_pn = [['cs']],
                                x_bg = ['ctx', 'time'],
                                x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 1.0}),
                                u = [['us']],
@@ -194,8 +175,7 @@ training_stage_t1 = expr.stage(name = 'training',
                                iti = iti,
                                n_rep = n_rep_train)
 
-training_ctx_a_stage_t0 = expr.stage(name = 'training',
-                                     x_pn = [['cs']],
+training_ctx_a_stage_t0 = expr.stage(x_pn = [['cs']],
                                      x_bg = ['ctx_a', 'time'],
                                      x_value = pd.Series({'cs': 1.0, 'ctx_a': 1.0, 'time': 0.0}),
                                      u = [['us']],
@@ -204,8 +184,7 @@ training_ctx_a_stage_t0 = expr.stage(name = 'training',
                                      iti = iti,
                                      n_rep = n_rep_train)
 
-training_ctx_b_stage_t0 = expr.stage(name = 'training',
-                                     x_pn = [['cs']],
+training_ctx_b_stage_t0 = expr.stage(x_pn = [['cs']],
                                      x_bg = ['ctx_b', 'time'],
                                      x_value = pd.Series({'cs': 1.0, 'ctx_b': 1.0, 'time': 0.0}),
                                      u = [['us']],
@@ -214,8 +193,7 @@ training_ctx_b_stage_t0 = expr.stage(name = 'training',
                                      iti = iti,
                                      n_rep = n_rep_train)
 
-training_ctx_b_stage_t1 = expr.stage(name = 'training',
-                                     x_pn = [['cs']],
+training_ctx_b_stage_t1 = expr.stage(x_pn = [['cs']],
                                      x_bg = ['ctx_b', 'time'],
                                      x_value = pd.Series({'cs': 1.0, 'ctx_b': 1.0, 'time': 1.0}),
                                      u = [['us']],
@@ -224,8 +202,7 @@ training_ctx_b_stage_t1 = expr.stage(name = 'training',
                                      iti = iti,
                                      n_rep = n_rep_train)
 
-extn_stage_t1 = expr.stage(name = 'extinction',
-                           x_pn = [['cs']],
+extn_stage_t1 = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx', 'time'],
                            x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 1.0}),
                            u_psb = ['us'],
@@ -233,8 +210,7 @@ extn_stage_t1 = expr.stage(name = 'extinction',
                            iti = iti,
                            n_rep = n_rep_extn)
 
-extn_ctx_a_stage_t1 = expr.stage(name = 'extinction',
-                                 x_pn = [['cs']],
+extn_ctx_a_stage_t1 = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_a', 'time'],
                                  x_value = pd.Series({'cs': 1.0, 'ctx_a': 1.0, 'time': 1.0}),
                                  u_psb = ['us'],
@@ -242,8 +218,7 @@ extn_ctx_a_stage_t1 = expr.stage(name = 'extinction',
                                  iti = iti,
                                  n_rep = n_rep_extn)
 
-extn_ctx_b_stage_t1 = expr.stage(name = 'extinction',
-                                 x_pn = [['cs']],
+extn_ctx_b_stage_t1 = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_b', 'time'],
                                  x_value = pd.Series({'cs': 1.0, 'ctx_b': 1.0, 'time': 2.0}),
                                  u_psb = ['us'],
@@ -251,8 +226,7 @@ extn_ctx_b_stage_t1 = expr.stage(name = 'extinction',
                                  iti = iti,
                                  n_rep = n_rep_extn)
 
-extra_us_stage_t2 = expr.stage(name = 'extra_us',
-                               x_pn = [[]],
+extra_us_stage_t2 = expr.stage(x_pn = [[]],
                                x_bg = ['ctx', 'time'],
                                x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 2.0}),
                                u = [['us']],
@@ -261,8 +235,7 @@ extra_us_stage_t2 = expr.stage(name = 'extra_us',
                                iti = iti,
                                n_rep = n_rep_train)
 
-extra_us_ctl_stage_t2 = expr.stage(name = 'extra_us',
-                                   x_pn = [[]],
+extra_us_ctl_stage_t2 = expr.stage(x_pn = [[]],
                                    x_bg = ['ctx', 'time'],
                                    x_value = pd.Series({'cs': 1.0, 'ctx': 1.0, 'time': 2.0}),
                                    u_psb = ['us'],
@@ -273,49 +246,49 @@ extra_us_ctl_stage_t2 = expr.stage(name = 'extra_us',
 ##### DEFINE SCHEDULES #####
 
 # no conditioning (as a very basic control)
-no_cond = expr.schedule(name = 'no_conditioning', resp_type = 'exct', stage_list = [test_stage_t0])
+no_cond = expr.schedule(resp_type = 'exct', stages = {'test': test_stage_t0})
 
 # basic conditioning
-cond = expr.schedule(name = 'conditioning', resp_type = 'exct', stage_list = [training_stage_t0, test_stage_t1])
+cond = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'test': test_stage_t1})
 
 # blocking
-blocking = expr.schedule(name = 'blocking', resp_type = 'exct', stage_list = [one_cue_stage_t0, two_cue_stage_t1, test_cs2_stage_t2])
+blocking = expr.schedule(resp_type = 'exct', stages = {'one_cue': one_cue_stage_t0, 'two_cue': two_cue_stage_t1, 'test': test_cs2_stage_t2})
 
 # two cue conditioning (e.g. overshadowing)
-two_cue = expr.schedule(name = 'two_cue', resp_type = 'exct', stage_list = [two_cue_stage_t0, test_cs2_stage_t1])
+two_cue = expr.schedule(resp_type = 'exct', stages = {'two_cue': two_cue_stage_t0, 'test': test_cs2_stage_t1})
 
 # pre-exposure (for latent inhibition)
-pre_exp = expr.schedule(name = 'pre_exposure', resp_type = 'exct', stage_list = [pre_exp_stage_t0, training_stage_t1, test_stage_t2])
+pre_exp = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_stage_t0, 'training': training_stage_t1, 'test': test_stage_t2})
 
 # pre-exposure (ABC)
-pre_exp_abc = expr.schedule(name = 'pre_exposure_abc', resp_type = 'exct', stage_list = [pre_exp_ctx_a_stage_t0, training_ctx_b_stage_t1, test_ctx_c_stage_t2])
+pre_exp_abc = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_ctx_a_stage_t0, 'training': training_ctx_b_stage_t1, 'test': test_ctx_c_stage_t2})
 
 # extinction
-extn = expr.schedule(name = 'extinction', resp_type = 'exct', stage_list = [training_stage_t0, extn_stage_t1, test_stage_t2])
+extn = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'test': test_stage_t2})
 
 # extinction (AAA)
-extn_aaa = expr.schedule(name = 'extinction_aaa', resp_type = 'exct', stage_list = [training_ctx_a_stage_t0, extn_ctx_a_stage_t1, test_ctx_a_stage_t2])
+extn_aaa = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_a_stage_t1, 'test': test_ctx_a_stage_t2})
 
 # extinction (ABA)
-extn_aba = expr.schedule(name = 'extinction_aba', resp_type = 'exct', stage_list = [training_ctx_a_stage_t0, extn_ctx_b_stage_t1, test_ctx_a_stage_t2])
+extn_aba = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_a_stage_t2})
 
 # extinction (ABC)
-extn_abc = expr.schedule(name = 'extinction_abc', resp_type = 'exct', stage_list = [training_ctx_a_stage_t0, extn_ctx_b_stage_t1, test_ctx_c_stage_t2])
+extn_abc = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_c_stage_t2})
 
 # extinction (AAB)
-extn_aab = expr.schedule(name = 'extinction_aab', resp_type = 'exct', stage_list = [training_ctx_a_stage_t0, extn_ctx_a_stage_t1, test_ctx_b_stage_t2])
+extn_aab = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_a_stage_t1, 'test': test_ctx_b_stage_t2})
 
 # extinction (ABB)
-extn_abb = expr.schedule(name = 'extinction_abb', resp_type = 'exct', stage_list = [training_ctx_a_stage_t0, extn_ctx_b_stage_t1, test_ctx_b_stage_t2])
+extn_abb = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_b_stage_t2})
 
 # extinction with extra US (for reinstatement)
-extn_extra_us = expr.schedule(name = 'extra_us', resp_type = 'exct', stage_list = [training_stage_t0, extn_stage_t1, extra_us_stage_t2, test_stage_t3])
+extn_extra_us = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'extra_us': extra_us_stage_t2, 'test': test_stage_t3})
 
 # control condition for extinction with US (for reinstatement)
-extn_extra_us_ctl = expr.schedule(name = 'extra_us_control', resp_type = 'exct', stage_list = [training_stage_t0, extn_stage_t1, extra_us_ctl_stage_t2, test_stage_t3])
+extn_extra_us_ctl = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'extra_us': extra_us_ctl_stage_t2, 'test': test_stage_t3})
 
 # extinction with delay before test (represented by time cue)
-extn_delay = expr.schedule(name = 'extinction_delay', resp_type = 'exct', stage_list = [training_stage_t0, extn_stage_t1, test_stage_t5])
+extn_delay = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'test': test_stage_t5})
 
 ##### DEFINE BEHAVIORAL SCORES #####
 
