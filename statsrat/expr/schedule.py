@@ -154,7 +154,6 @@ class schedule:
         n_t = 0 # total number of time steps in the whole experiment
         n_t_trial_def = 0 # total number of time steps with one trial of each type
         # loop through stages
-        has_varying_x_value = [] # cues that have x_value which varies (more accurately is sometimes different from 0 or 1)
         i = 0 # index for stages
         for st in stages:
             n_t_trial_def += (stages[st].iti + 1)*stages[st].n_trial_type
@@ -166,11 +165,7 @@ class schedule:
             for j in range(stages[st].n_trial_type):
                 u_new = stages[st].u[j]
                 u_names += u_new
-            for xn in stages[st].x_names:
-                if not stages[st].x_value[xn] in [0.0, 1.0]:
-                    has_varying_x_value += [xn]
             i += 1
-        has_varying_x_value = list(np.unique(has_varying_x_value))
         x_names = list(np.unique(x_names))
         u_names = list(np.unique(u_names))
         n_x = len(x_names)
@@ -178,7 +173,16 @@ class schedule:
         # this is the number of trial types, not the number of trials in the experiment
         n_trial = 0
         for st in stages:
-            n_trial += stages[st].n_trial_type            
+            n_trial += stages[st].n_trial_type
+        # check if cues (x) have varying values
+        has_varying_x_value = [] # cues that have x_value which varies
+        for xn in stages[st].x_names:
+            x_val_st = [] # value for cue xn in each stage
+            for st in stages:
+                if xn in stages[st].x_names:
+                    x_val_st += [stages[st].x_value[xn]]
+            if len(np.unique(x_val_st)) > 1:
+                has_varying_x_value += [xn] # more than one value of cue xn across stages -> add to cue xn list
             
         # loop through trial types to add information
         x = xr.DataArray(np.zeros((n_t_trial_def, n_x)), [range(n_t_trial_def), x_names], ['row', 'x_name'])
