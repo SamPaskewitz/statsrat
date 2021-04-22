@@ -4,6 +4,7 @@ import xarray as xr
 import glob
 from statsrat.expr.schedule import schedule
 from statsrat.expr.oat import oat
+from copy import deepcopy
 
 class experiment:
     """
@@ -70,7 +71,7 @@ class experiment:
                 match_resp_type += [self.resp_type == s.resp_type]
             assert not (False in match_resp_type), 'Schedules have non-matching response types (resp_type).'
         # add other data to 'self'
-        self.schedules = schedules
+        self.schedules = deepcopy(schedules)
         for s in self.schedules:
             self.schedules[s].name = s # assign schedule name attributes based on dictionary keys
         self.oats = oats

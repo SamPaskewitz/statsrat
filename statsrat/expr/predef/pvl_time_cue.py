@@ -220,7 +220,7 @@ extn_ctx_a_stage_t1 = expr.stage(x_pn = [['cs']],
 
 extn_ctx_b_stage_t1 = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_b', 'time'],
-                                 x_value = pd.Series({'cs': 1.0, 'ctx_b': 1.0, 'time': 2.0}),
+                                 x_value = pd.Series({'cs': 1.0, 'ctx_b': 1.0, 'time': 1.0}),
                                  u_psb = ['us'],
                                  order_fixed = True,
                                  iti = iti,

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
+from copy import deepcopy
 
 class schedule:
     """
@@ -156,7 +157,6 @@ class schedule:
         has_varying_x_value = [] # cues that have x_value which varies (more accurately is sometimes different from 0 or 1)
         i = 0 # index for stages
         for st in stages:
-            stages[st].name = st # assign stage name attribute based on dictionary key
             n_t_trial_def += (stages[st].iti + 1)*stages[st].n_trial_type
             n_t += (stages[st].iti + 1)*np.sum(stages[st].freq)*stages[st].n_rep
             stage_names += [stages[st].n_trial_type*st]
@@ -279,7 +279,9 @@ class schedule:
         # record information in new object ('self')
         self.name = None # the schedule doesn't get a real name attribute until put in an experiment object
         self.resp_type = resp_type
-        self.stages = stages
+        self.stages = deepcopy(stages)
+        for st in stages:
+            self.stages[st].name = st # assign stage name attribute based on dictionary key
         if delays is None:
             self.delays = (n_stage - 1)*[0]
         else:

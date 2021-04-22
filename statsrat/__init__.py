@@ -122,7 +122,7 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     
     return plot
 
-def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
+def multi_plot(ds_list, var, sel = None, rename_coords = None, rename_schedules = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     
@@ -141,6 +141,9 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         sets).
     rename_coords : dict or None, optional
         Either a dictionary for re-naming coordinates (keys are old names and
+        values are new names), or None (don't re-name).  Defaults to None.
+    rename_schedules : dict or None, optional
+        Either a dictionary for re-naming schedules (keys are old names and
         values are new names), or None (don't re-name).  Defaults to None.
     schedule_facet : boolean, optional
         Whether or not schedules should be on different facets instead
@@ -199,7 +202,10 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, schedule_facet = 
         new_dims.remove('t') # remove dimensions other than time step ('t')
         new_df = new_ds_var.to_dataframe()
         new_df = new_df.reset_index()
-        new_df['schedule'] = ds.attrs['schedule']
+        if rename_schedules is None:
+            new_df['schedule'] = ds.attrs['schedule']
+        else:
+            new_df['schedule'] = rename_schedules[ds.attrs['schedule']]
         df_list += [new_df]
         i += 1
 
