@@ -278,7 +278,7 @@ class schedule:
             indexer = (trial_def.stage_name == st) & (trial_def.t_name == 'main')
             trial_names = trial_def.loc[{'t' : indexer}].trial_name
             all_unique = len(trial_names) == len(np.unique(trial_names))
-            assert all_unique, 'Duplicate trial definition found in stage "{}" of schedule "{}".'.format(stages[st].name, name)
+            assert all_unique, 'Duplicate trial definition found in stage "{}".'.format(st)
                 
         # record information in new object ('self')
         self.name = None # the schedule doesn't get a real name attribute until put in an experiment object

@@ -19,8 +19,9 @@ class stage:
     n_t : int
         Total number of time steps in stage.
     order : list
-        Used by the 'make_trials' method to determine trial
-        order (typically after random reshuffling).
+        Trial order (if order_fixed == True) or else simply
+        something used by the 'make_trials' method to determine
+        trial order after random reshuffling.
     x_pn : list
         Should have one list for each trial type of strings
         specifying the punctate cues, i.e. cues that
@@ -62,7 +63,7 @@ class stage:
         that outcomes cannot occur during the ITI, as in most
         human category learning experiments.
     """
-    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, u = None, u_psb = None, u_value = None, lrn = True, order_fixed = False, iti = 0):
+    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, u = None, u_psb = None, u_value = None, lrn = True, order = None, order_fixed = False, iti = 0):
         """
         Parameters
         ----------
@@ -84,7 +85,8 @@ class stage:
         freq : list or None, optional
             List of integers specifying the number of times each trial
             type is presented during each repetition (i.e. block).
-            Defaults to None, which produces equal trial frequencies.
+            Defaults to None, which produces equal trial frequencies
+            (if order is None) or else is determined by the order argument.
         u : list or None, optional
             List of lists: should have one list for each trial type of strings
             specifying the outcomes for each trial type.  Defaults to None,
@@ -103,6 +105,10 @@ class stage:
             Indicates whether learning is possible during this
             stage.  Typically True except for test stages of human
             tasks.  Defaults to True.
+        order : list or None, optional
+            If a list, then this specifies trial order.
+            If None (default) then trial order is simply
+            determined by the freq argument.
         order_fixed : logical, optional
             Indicates whether trial order should be fixed
             or randomized.  Defaults to False.
@@ -110,7 +116,31 @@ class stage:
             The inter-trial interval, i.e. number of time steps
             between outcomes.  Should be 0 if the learner knows
             that outcomes cannot occur during the ITI, as in most
-            human category learning experiments.  Defaults to 0.      
+            human category learning experiments.  Defaults to 0.
+            
+        Notes
+        -----
+        There are several valid ways to specify the freq, order and order_fixed arguments:
+        
+        1) Omit all arguments (all have their defaults): each trial type
+        is given once per repetition (block) in the order that they are defined.
+        
+        2) Specify freq, order_fixed = True: each trial type is presented freq[i]
+        times in a row.
+        
+        3) Specify freq, order_fixed = False: trials are presented in random order
+        with frequency given by the freq argument.
+        
+        4) Specify order_fixed = False: trials are presented in random order
+        with once each per repetition (block).
+        
+        5) Specify order (freq = None, order_fixed = False i.e. the defaults): trials
+        are presented in the order specified by the order argument.
+        
+        It is not intended to specify these arguments in any other combination.  Thus,
+        the freq and order_fixed arguments will be ignored if the order argument is specified
+        (i.e. not None, the default): the freq attribute will be filled out based on order,
+        and order_fixed will be set to True.
         """
         self.name = None # stages only get a real name attribute when used to create a schedule
         self.n_rep = n_rep
@@ -125,17 +155,25 @@ class stage:
         if x_value is None:
             self.x_value = pd.Series(1.0, index = self.x_names)
         else:
-            self.x_value = x_value
-        if freq is None:
-            self.freq = self.n_trial_type*[1]
+            self.x_value = x_value        
+        if order is None:
+            if freq is None:
+                self.freq = self.n_trial_type*[1]
+            else:
+                self.freq = freq
+            self.order = []
+            for j in range(self.n_trial_type):
+                self.order += self.freq[j]*[j]
+            self.order_fixed = order_fixed
         else:
-            self.freq = freq
+            self.order = order
+            freq_tally = np.zeros(self.n_trial_type)
+            for i in range(len(order)):
+                freq_tally[order[i]] += 1
+            self.freq = list(freq_tally)
+            self.order_fixed = True
         self.n_t = n_rep*np.sum(self.freq*(1 + iti)) # number of time steps
-        order = []
-        for j in range(self.n_trial_type):
-            order += self.freq[j]*[j]
-        self.order = order
-        self.n_trial = len(order)
+        self.n_trial = len(self.order)
         # set u
         if u is None:
             self.u = self.n_trial_type*[[]]
