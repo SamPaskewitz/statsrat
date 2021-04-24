@@ -8,7 +8,7 @@ class basic:
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
         self.data = {'f_counts': np.zeros((n_t, n_f))}
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[0:(t+1), :] > 0)
         
     def add_data(self, ds):
@@ -20,7 +20,7 @@ class drva:
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
         self.data = {'atn': np.zeros((n_t, n_f))}
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         abs_w_sum = np.sum(abs(w[t, :]), axis = 1)
         abv_min = abs_w_sum >= sim_pars['atn_min']
         blw_max = abs_w_sum < 1
@@ -43,10 +43,10 @@ class tdrva:
         denom = (1/sim_pars['tau0'] + 1)**sim_pars['power']
         self.data['atn'][0, :] = 0.5/denom + sim_pars['lrate_min']
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         abs_w_mean = np.mean(abs(w[t, :]), axis = 1)
-        x_present = x > 0
-        self.data['tau'][t + 1, :] = self.data['tau'][t, :] + x_present*sim_pars['lrate_tau']*(abs_w_mean - self.data['tau'][t, :])
+        f_present = f_x > 0
+        self.data['tau'][t + 1, :] = self.data['tau'][t, :] + f_present*sim_pars['lrate_tau']*(abs_w_mean - self.data['tau'][t, :])
         denom = (1/self.data['tau'][t + 1, :] + 1)**sim_pars['power']
         self.data['atn'][t + 1, :] = 0.5/denom + sim_pars['lrate_min']
 
@@ -62,7 +62,7 @@ class grad:
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         self.data['atn'][0, :] = 0.5
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_direct').'''
         w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
         ngrad = delta[t, :] @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
@@ -83,7 +83,7 @@ class gradcomp:
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         self.data['atn'][0, :] = 1
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').'''
         w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
         u_hat_alone = w_psb.T @ np.diag(fbase[t, :])
@@ -106,7 +106,7 @@ class Kalman:
         for i in range(n_u):
             self.data['Sigma'][0, i, :, :] = sim_pars['w_var0']*np.identity(n_f) # initialize weight covariance matrix
     
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         for i in range(n_u):
             f = fbase[t, :].reshape((n_f, 1))
             drift_mat = sim_pars['drift_var']*np.identity(n_f)
@@ -145,7 +145,7 @@ class grad_atn0:
         atn0[x_dims[first_dim]] = sim_pars['atn0']
         self.data['atn'][0] = atn0
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_direct').'''
         w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
         ngrad = delta[t, :] @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
@@ -181,7 +181,7 @@ class gradcomp_eta0:
         eta0[x_dims[first_dim]] = sim_pars['eta0']
         self.data['atn'][0] = eta0
 
-    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, x, u_psb, u_hat, delta, w):
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').'''
         w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
         u_hat_alone = w_psb.T @ np.diag(fbase[t, :])

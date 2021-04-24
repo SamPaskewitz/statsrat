@@ -165,7 +165,7 @@ class model:
             u_hat[t, :] = self.pred(u_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
             b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
-            aux.update(sim_pars, n_u, n_f, t, fbase, fweight, x[t, :], u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
+            aux.update(sim_pars, n_u, n_f, t, fbase, fweight, f_x[t, :], u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
             lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_u, sim_pars) # learning rates for this time step
             drate[t, :, :] = self.drate(aux, t, w, n_f, n_u, sim_pars) # decay rates for this time step
             w[t+1, :, :] = w[t, :, :] + u_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_u)) - drate[t, :, :]*w[t, :, :] # association learning

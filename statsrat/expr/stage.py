@@ -198,5 +198,4 @@ class stage:
             # set u_value as specified by the user
             self.u_value = u_value
         self.lrn = lrn
-        self.order_fixed = order_fixed
         self.iti = iti

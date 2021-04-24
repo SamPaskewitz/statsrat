@@ -118,7 +118,7 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
     plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
-    plot += theme(figure_size = (4.0, 4.0))
+    plot += theme(figure_size = figure_size)
     
     return plot
 
