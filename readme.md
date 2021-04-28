@@ -16,6 +16,7 @@ The package's core functionality includes the following:
 -examine model performance through graphs of association weights, attention weights, prediction error etc.
 
 Note: as of 4/27/2021 the package is still in development.  There may be some bugs, and the documentation
-is not yet complete.
+and examples are not yet complete or up to date.  When this gets to a more finished state I plan to
+actually publish the package.
 
 author: Samuel Paskewitz
