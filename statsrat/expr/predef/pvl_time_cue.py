@@ -249,7 +249,7 @@ extra_us_ctl_stage_t2 = expr.stage(x_pn = [[]],
 no_cond = expr.schedule(resp_type = 'exct', stages = {'test': test_stage_t0})
 
 # basic conditioning
-cond = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'test': test_stage_t1})
+cond = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage_t0, 'test': test_stage_t1})
 
 # blocking
 blocking = expr.schedule(resp_type = 'exct', stages = {'one_cue': one_cue_stage_t0, 'two_cue': two_cue_stage_t1, 'test': test_cs2_stage_t2})
@@ -258,37 +258,37 @@ blocking = expr.schedule(resp_type = 'exct', stages = {'one_cue': one_cue_stage_
 two_cue = expr.schedule(resp_type = 'exct', stages = {'two_cue': two_cue_stage_t0, 'test': test_cs2_stage_t1})
 
 # pre-exposure (for latent inhibition)
-pre_exp = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_stage_t0, 'training': training_stage_t1, 'test': test_stage_t2})
+pre_exp = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_stage_t0, 'cond': training_stage_t1, 'test': test_stage_t2})
 
 # pre-exposure (ABC)
-pre_exp_abc = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_ctx_a_stage_t0, 'training': training_ctx_b_stage_t1, 'test': test_ctx_c_stage_t2})
+pre_exp_abc = expr.schedule(resp_type = 'exct', stages = {'pre_exposure': pre_exp_ctx_a_stage_t0, 'cond': training_ctx_b_stage_t1, 'test': test_ctx_c_stage_t2})
 
 # extinction
-extn = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'test': test_stage_t2})
+extn = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage_t0, 'extinction': extn_stage_t1, 'test': test_stage_t2})
 
 # extinction (AAA)
-extn_aaa = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_a_stage_t1, 'test': test_ctx_a_stage_t2})
+extn_aaa = expr.schedule(resp_type = 'exct', stages = {'cond': training_ctx_a_stage_t0, 'extinction': extn_ctx_a_stage_t1, 'test': test_ctx_a_stage_t2})
 
 # extinction (ABA)
-extn_aba = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_a_stage_t2})
+extn_aba = expr.schedule(resp_type = 'exct', stages = {'cond': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_a_stage_t2})
 
 # extinction (ABC)
-extn_abc = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_c_stage_t2})
+extn_abc = expr.schedule(resp_type = 'exct', stages = {'cond': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_c_stage_t2})
 
 # extinction (AAB)
-extn_aab = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_a_stage_t1, 'test': test_ctx_b_stage_t2})
+extn_aab = expr.schedule(resp_type = 'exct', stages = {'cond': training_ctx_a_stage_t0, 'extinction': extn_ctx_a_stage_t1, 'test': test_ctx_b_stage_t2})
 
 # extinction (ABB)
-extn_abb = expr.schedule(resp_type = 'exct', stages = {'training': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_b_stage_t2})
+extn_abb = expr.schedule(resp_type = 'exct', stages = {'cond': training_ctx_a_stage_t0, 'extinction': extn_ctx_b_stage_t1, 'test': test_ctx_b_stage_t2})
 
 # extinction with extra US (for reinstatement)
-extn_extra_us = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'extra_us': extra_us_stage_t2, 'test': test_stage_t3})
+extn_extra_us = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage_t0, 'extinction': extn_stage_t1, 'extra_us': extra_us_stage_t2, 'test': test_stage_t3})
 
 # control condition for extinction with US (for reinstatement)
-extn_extra_us_ctl = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'extra_us': extra_us_ctl_stage_t2, 'test': test_stage_t3})
+extn_extra_us_ctl = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage_t0, 'extinction': extn_stage_t1, 'extra_us': extra_us_ctl_stage_t2, 'test': test_stage_t3})
 
 # extinction with delay before test (represented by time cue)
-extn_delay = expr.schedule(resp_type = 'exct', stages = {'training': training_stage_t0, 'extinction': extn_stage_t1, 'test': test_stage_t5})
+extn_delay = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage_t0, 'extinction': extn_stage_t1, 'test': test_stage_t5})
 
 ##### DEFINE BEHAVIORAL SCORES #####
 

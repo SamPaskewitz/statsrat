@@ -189,6 +189,7 @@ class model:
         ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
                         'u_lrn' : (['t', 'u_name'], u_lrn),
                         'fbase' : (['t', 'f_name'], fbase),
+                        'fweight' : (['t', 'f_name'], fweight),
                         'f_x' : (['t', 'f_name'], f_x),
                         'u_hat' : (['t', 'u_name'], u_hat),
                         'b_hat' : (['t', 'u_name'], b_hat),

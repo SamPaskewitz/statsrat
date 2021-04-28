@@ -63,10 +63,10 @@ test_different = expr.stage(x_pn = [['cs1']],
                             n_rep = n_rep_test)
 
 # group "same"
-same = expr.schedule(resp_type = 'exct', stages = {'training': training, 'ex_cs1': extinction_cs1, 'ex_cs2': extinction_cs2, 'ex_cs2': extinction_cs2, 'ex_cs1': extinction_cs1, 'test': test_same})
+same = expr.schedule(resp_type = 'exct', stages = {'cond': training, 'ex_cs1': extinction_cs1, 'ex_cs2': extinction_cs2, 'ex_cs2': extinction_cs2, 'ex_cs1': extinction_cs1, 'test': test_same})
 
 # group "different"
-different = expr.schedule(resp_type = 'exct', stages = {'training': training, 'ex_cs1': extinction_cs1, 'ex_cs2': extinction_cs2, 'ex_cs2': extinction_cs2, 'ex_cs1': extinction_cs1, 'test': test_different})
+different = expr.schedule(resp_type = 'exct', stages = {'cond': training, 'ex_cs1': extinction_cs1, 'ex_cs2': extinction_cs2, 'ex_cs2': extinction_cs2, 'ex_cs1': extinction_cs1, 'test': test_different})
 
 # behavioral score
 cs1_score = expr.behav_score(stage = 'test',

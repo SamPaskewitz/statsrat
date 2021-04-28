@@ -32,6 +32,25 @@ def from_aux_norm(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     return new_lrate
 from_aux_norm.par_names = ['lrate', 'metric']
 
+def power_from_aux_norm(aux, t, fbase, fweight, n_f, n_u, sim_pars):
+    '''
+    Combines the from_aux_norm (CompAct style) learning rate with power law learning
+    rates (learning rates decrease each time a feature is observed).  Both styles of
+    learning rate are multiplied together.
+    '''
+    # from_aux_norm part of learning rate
+    atn_gain = aux.data['atn'][t, :]*fbase[t, :]
+    atn_gain[atn_gain < 0.01] = 0.01 # Added this in to make this consistent with the R code.
+    norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+    norm_atn = atn_gain/norm
+    from_aux_norm_lrate = norm_atn.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose()
+    # power law part of learning rate
+    denom = (aux.data['f_counts'][t, :] + 1)**sim_pars['power']
+    power_lrate = 0.5/denom + sim_pars['lrate_min']
+    power_lrate = power_lrate.reshape((n_f, 1))*np.array(n_u*[fbase[t, :].tolist()]).transpose()
+    return from_aux_norm_lrate*power_lrate
+power_from_aux_norm.par_names = ['power', 'lrate_min', 'metric']
+
 def from_aux_feature(aux, t, fbase, fweight, n_f, n_u, sim_pars):
     '''
     Learning rate determined by 'aux' (variable name 'atn') and the 'lrate' parameter.

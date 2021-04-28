@@ -98,6 +98,34 @@ class gradcomp:
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
 gradcomp.par_names = ['lrate_atn', 'metric']
 
+class gradcomp_feature_counts:
+    '''
+    Competitive attention learning from gradient descent (i.e. CompAct's learning rule),
+    but also keeps track of feature counts.
+    '''
+    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f)), 'f_counts': np.zeros((n_t, n_f))}
+        self.data['atn'][0, :] = 1
+
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
+        # Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').
+        w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
+        u_hat_alone = w_psb.T @ np.diag(fbase[t, :])
+        comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
+        u_hat_dif = u_hat_alone - np.outer(u_hat[t, :], comp_factor)
+        atn_gain = self.data['atn'][t, :]*fbase[t, :]
+        norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+        ngrad = delta[t, :].reshape((1, n_u)) @ u_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
+        # Update feature counts.
+        self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[0:(t+1), :] > 0)
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
+gradcomp_feature_counts.par_names = ['lrate_atn', 'metric']
+
 class Kalman:
     '''Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).'''
     def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
