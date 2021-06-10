@@ -204,7 +204,7 @@ class model:
                     T = np.diag(mean_tausq_inv[t, :, j])
                     # compute hpar_w
                     hpar0_w[t:n_t, :, j] = sufstat0_w[t, :, j]
-                    hpar1_w[t:n_t, :, :, j] = (T + sufstat1_w[t, :, :, j]) # precision matrix
+                    hpar1_w[t:n_t, :, :, j] = T + sufstat1_w[t, :, :, j] # precision matrix
                     # compute mean_w
                     P_inv = np.diag(1/np.diag(hpar1_w[t, :, :, j])) # Jacobi preconditioning matrix
                     shrink_cond[t, j] = cond(P_inv@hpar1_w[t, :, :, j]) # condition number

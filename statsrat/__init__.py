@@ -652,7 +652,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, x0 = None, tau = None, max_time = 10):
+def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15):
     """
     Fit the model to time step data by individual MLE/MAP.
     
@@ -674,9 +674,13 @@ def fit_indv(model, ds, x0 = None, tau = None, max_time = 10):
         Natural parameters of the log-normal prior.
         Defaults to None (don't use log-normal prior).
         
-    max_time: int, optional
-        Maximum time (in seconds) per individual.
-        Defaults to 10.
+    global_time: int, optional
+        Maximum time (in seconds) per individual for global optimization.
+        Defaults to 15.
+        
+    local_time: int, optional
+        Maximum time (in seconds) per individual for local optimization.
+        Defaults to 15.
 
     Returns
     -------
@@ -692,76 +696,85 @@ def fit_indv(model, ds, x0 = None, tau = None, max_time = 10):
     types of prior in the future.
 
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
+    
+    The model is fitted by first using a global non-linear optimization algorithm (GN_ORIG_DIRECT)
+    and then a local non-linear optimization algorithm (LN_SBPLX) for refining the answer.  Both
+    algorithms are from the nlopt package.
     """
-    # count things, set up parameter space boundaries etc.
-    n = len(ds.ident)
+    # count things etc.
+    idents = ds['ident'].values
+    n = len(idents)
     par_names = list(model.pars.index)
     n_p = len(par_names)
-    lower = model.pars['min']
-    bounds = []
-    for i in range(len(model.pars)):
-        bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
-        
+    lower = model.pars['min']   
     # set up data frame
     col_index = par_names + ['prop_log_post']
-    df = pd.DataFrame(0.0, index = range(n), columns = col_index) 
+    df = pd.DataFrame(0.0, index = idents, columns = col_index)
+    # list of participants to drop because their data could not be fit (if any)
+    idents_to_drop = []
     
     # maximize log-likelihood/posterior
     for i in range(n):
-        pct = np.round(100*(i + 1)/n, 1)
-        print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
-        ds_i = ds.loc[{'ident' : ds.ident[i]}].squeeze()
-        
-        # define objective function
-        if tau is None:
-            # uniform prior
-            def f(x, grad = None):
-                if grad.size > 0:
-                    grad = None
-                par_val = x
-                return log_lik(model, ds_i, par_val)
-        else:
-            # log-normal prior
-            def f(x, grad = None):
-                if grad.size > 0:
-                    grad = None
-                par_val = x
-                ll = log_lik(model, ds_i, par_val)
-                # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
-                prop_log_prior = 0
-                for j in range(n_p):
-                    y = np.log(np.sign(par_val[j] - lower[j]))
-                    prop_log_prior += tau[0]*y + tau[1]*y**2
-                prop_log_post = ll + prop_log_prior
-                return prop_log_post
-        
-        # global optimization (to find approximate optimum)
-        if x0 is None:
-            x0_i = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
-        else:
-            x0_i = np.array(x0.iloc[i])
-        gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
-        gopt.set_max_objective(f)
-        gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
-        gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
-        gopt.set_maxtime(max_time/2)
-        gxopt = gopt.optimize(x0_i)
-        # local optimization (to refine answer)
-        lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
-        lopt.set_max_objective(f)
-        lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
-        lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
-        lopt.set_maxtime(max_time/2)
-        lxopt = lopt.optimize(gxopt)
-        
-        df.loc[i, par_names] = lxopt
-        df.loc[i, 'prop_log_post'] = lopt.last_optimum_value()
-    # set index to 'ident'
-    df = df.set_index(ds.ident.to_series(), drop = True)
-        
+        try:
+            pct = np.round(100*(i + 1)/n, 1)
+            print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
+            ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
+
+            # define objective function
+            if tau is None:
+                # uniform prior
+                def f(x, grad = None):
+                    if grad.size > 0:
+                        grad = None
+                    par_val = x
+                    return log_lik(model, ds_i, par_val)
+            else:
+                # log-normal prior
+                def f(x, grad = None):
+                    if grad.size > 0:
+                        grad = None
+                    par_val = x
+                    ll = log_lik(model, ds_i, par_val)
+                    # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
+                    prop_log_prior = 0
+                    for j in range(n_p):
+                        y = np.log(np.sign(par_val[j] - lower[j]))
+                        prop_log_prior += tau[0]*y + tau[1]*y**2
+                    prop_log_post = ll + prop_log_prior
+                    return prop_log_post
+
+            # global optimization (to find approximate optimum)
+            if x0 is None:
+                x0_i = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
+            else:
+                x0_i = np.array(x0.iloc[i])
+            gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
+            gopt.set_max_objective(f)
+            gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
+            gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+            gopt.set_maxtime(global_time)
+            gxopt = gopt.optimize(x0_i)
+            # local optimization (to refine answer)
+            lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
+            lopt.set_max_objective(f)
+            lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
+            lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+            lopt.set_maxtime(local_time)
+            lxopt = lopt.optimize(gxopt)
+
+            df.loc[idents[i], par_names] = lxopt
+            df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
+        except:
+            print('There was a problem fitting the model to data from participant ' + idents[i] + ' (' + str(i + 1) + ' of ' + str(n) + ')')
+            idents_to_drop += [idents[i]] # record that this participant's data could not be fit.
+    
+    # drop participants (rows) if data could not be fit (if any)
+    if len(idents_to_drop) > 0:
+        df = df.drop(idents_to_drop)
+    
     return df
 
-def fit_em(model, ds, max_em_iter = 5, max_time = 10):
+def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -778,9 +791,13 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
         Maximum number of EM algorithm iterations.
         Defaults to 5.
         
-    max_time: int, optional
-        Maximum time (in seconds) per individual per EM iteration.
-        Defaults to 10.
+    global_time: int, optional
+        Maximum time (in seconds) per individual for global optimization.
+        Defaults to 15.
+        
+    local_time: int, optional
+        Maximum time (in seconds) per individual for local optimization.
+        Defaults to 15.
 
     Returns
     -------
@@ -850,7 +867,7 @@ def fit_em(model, ds, max_em_iter = 5, max_time = 10):
             E_tau1 = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
         x0 = result.drop(columns = 'prop_log_post')
-        result = fit_indv(model, ds, x0, [E_tau0, E_tau1], max_time)
+        result = fit_indv(model, ds, x0, [E_tau0, E_tau1], global_time, local_time)
         new_est_psych_par = np.array(result.loc[:, par_names])
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
