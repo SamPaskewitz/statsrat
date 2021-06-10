@@ -652,7 +652,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15):
+def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data by individual MLE/MAP.
     
@@ -681,6 +681,9 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     local_time: int, optional
         Maximum time (in seconds) per individual for local optimization.
         Defaults to 15.
+        
+    algorithm: object, optional
+        The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
 
     Returns
     -------
@@ -697,9 +700,9 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
 
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
     
-    The model is fitted by first using a global non-linear optimization algorithm (GN_ORIG_DIRECT)
-    and then a local non-linear optimization algorithm (LN_SBPLX) for refining the answer.  Both
-    algorithms are from the nlopt package.
+    The model is fitted by first using a global non-linear optimization algorithm (specified by the
+    'algorithm parameter', with GN_ORIG_DIRECT as default), and then a local non-linear optimization
+    algorithm (LN_SBPLX) for refining the answer.  Both algorithms are from the nlopt package.
     """
     # count things etc.
     idents = ds['ident'].values
@@ -748,22 +751,25 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
                 x0_i = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
             else:
                 x0_i = np.array(x0.iloc[i])
-            gopt = nlopt.opt(nlopt.GN_ORIG_DIRECT, n_p)
+            gopt = nlopt.opt(algorithm, n_p)
             gopt.set_max_objective(f)
             gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
             gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
             gopt.set_maxtime(global_time)
             gxopt = gopt.optimize(x0_i)
-            # local optimization (to refine answer)
-            lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
-            lopt.set_max_objective(f)
-            lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
-            lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
-            lopt.set_maxtime(local_time)
-            lxopt = lopt.optimize(gxopt)
-
-            df.loc[idents[i], par_names] = lxopt
-            df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
+            if local_time > 0:
+                # local optimization (to refine answer)
+                lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
+                lopt.set_max_objective(f)
+                lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
+                lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+                lopt.set_maxtime(local_time)
+                lxopt = lopt.optimize(gxopt)
+                df.loc[idents[i], par_names] = lxopt
+                df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
+            else:
+                df.loc[idents[i], par_names] = gxopt
+                df.loc[idents[i], 'prop_log_post'] = gopt.last_optimum_value()
         except:
             print('There was a problem fitting the model to data from participant ' + idents[i] + ' (' + str(i + 1) + ' of ' + str(n) + ')')
             idents_to_drop += [idents[i]] # record that this participant's data could not be fit.
@@ -774,7 +780,7 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     
     return df
 
-def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15):
+def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -798,6 +804,9 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15):
     local_time: int, optional
         Maximum time (in seconds) per individual for local optimization.
         Defaults to 15.
+        
+    algorithm: object, optional
+            The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
 
     Returns
     -------
@@ -867,7 +876,7 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15):
             E_tau1 = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
         x0 = result.drop(columns = 'prop_log_post')
-        result = fit_indv(model, ds, x0, [E_tau0, E_tau1], global_time, local_time)
+        result = fit_indv(model, ds, x0, [E_tau0, E_tau1], global_time, local_time, algorithm)
         new_est_psych_par = np.array(result.loc[:, par_names])
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
