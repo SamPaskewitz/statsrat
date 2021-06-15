@@ -204,6 +204,9 @@ class experiment:
         the outcome ('u').  It is only really valid for category learning and similar
         experiments, and does not mean anything for stages without feedback (i.e. test stages).
         
+        Participant IDs (called 'ident') should be unique.  Any duplicates will be modified by
+        adding "-1" to the end of the ID string.
+        
         Current Limitations:
         
         For now, I assume that each time step represents a trial (i.e. iti = 0).
@@ -239,7 +242,7 @@ class experiment:
             
         # **** loop through files ****
         n_f = len(file_set)
-        ds_list = []
+        ds_dict = {}
         did_not_work_read = []
         did_not_work_ident = []
         did_not_work_b = []
@@ -281,9 +284,12 @@ class experiment:
                             if ident.dtype == float:
                                 ident = ident.astype(int)
                             ident = ident.astype(str)
+                        # **** if the participant ID is a duplicate, modify it ****
+                        if ident in list(ds_dict.keys()):
+                            ident += '-1'
                     except Exception as e:
                         print(e)
-                        did_not_work_ident += [file_set[i]]    
+                        did_not_work_ident += [file_set[i]]
             if not file_set[i] in (did_not_work_read + did_not_work_ident + did_not_work_misc):   
                 try:
                     # **** determine b (response) from raw data ****
@@ -366,8 +372,8 @@ class experiment:
                             index = np.array(ds_new.stage_name == stage_name)
                             var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
                             pct_correct[var_name] += [100*ds_new['correct'].loc[{'t': index}][-n_final:].mean().values]    
-                    # **** add dataset to list ****
-                    ds_list += [ds_new]
+                    # **** add individuals' dataset to ds_dict ****
+                    ds_dict[ident] = ds_new
                 except Exception as e:
                     print(e)
                     did_not_work_misc += [file_set[i]]
@@ -398,7 +404,7 @@ class experiment:
 
         # **** merge datasets together ****
         try:
-            ds = xr.combine_nested(ds_list, concat_dim = 'ident', combine_attrs = 'override')
+            ds = xr.combine_nested(list(ds_dict.values()), concat_dim = 'ident', combine_attrs = 'override')
         except Exception as e:
             print(e)
             print('There was a problem merging individual datasets together.')
