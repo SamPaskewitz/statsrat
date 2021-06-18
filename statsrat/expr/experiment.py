@@ -205,7 +205,8 @@ class experiment:
         experiments, and does not mean anything for stages without feedback (i.e. test stages).
         
         Participant IDs (called 'ident') should be unique.  Any duplicates will be modified by
-        adding "-1" to the end of the ID string.
+        adding '-1', '-2', '-3' etc. (respectively for the second, third, fourth etc. instance
+        of the ID) to the end of the ID string.
         
         Current Limitations:
         
@@ -285,8 +286,13 @@ class experiment:
                                 ident = ident.astype(int)
                             ident = ident.astype(str)
                         # **** if the participant ID is a duplicate, modify it ****
-                        if ident in list(ds_dict.keys()):
-                            ident += '-1'
+                        if i > 0:
+                            ident_array = np.array(list(ds_dict.keys())) # array of IDs already imported
+                            n_repeat = np.sum(ident_array == ident) # number of times the ID has already been imported
+                        else:
+                            n_repeat = 0 # obviously the first ID won't already be in the imported data
+                        if n_repeat > 0:
+                            ident += '-' + str(n_repeat)
                     except Exception as e:
                         print(e)
                         did_not_work_ident += [file_set[i]]
@@ -372,7 +378,7 @@ class experiment:
                             index = np.array(ds_new.stage_name == stage_name)
                             var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
                             pct_correct[var_name] += [100*ds_new['correct'].loc[{'t': index}][-n_final:].mean().values]    
-                    # **** add individuals' dataset to ds_dict ****
+                    # **** add individual's dataset to ds_dict ****
                     ds_dict[ident] = ds_new
                 except Exception as e:
                     print(e)
