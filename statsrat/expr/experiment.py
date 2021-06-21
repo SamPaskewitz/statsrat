@@ -236,11 +236,11 @@ class experiment:
         n_stage = len(scd.stages)
         pct_correct = dict()
         for st in scd.stages:
-            not_test = scd.stages[st].lrn == True
+            not_test = scd.stages[st].lrn
             if not_test:
                 var_name = st + '_' + 'last' + str(n_final) + '_pct_correct'
                 pct_correct[var_name] = []
-            
+
         # **** loop through files ****
         n_f = len(file_set)
         ds_dict = {}
@@ -248,6 +248,7 @@ class experiment:
         did_not_work_ident = []
         did_not_work_b = []
         did_not_work_misc = []
+        raw_ident = [] # raw particpant IDs (used to detect duplicates)
         n_xc = len(x_col) # number of cue columns in raw data frame
         n_rc = len(resp_col) # number of response columns in raw data frame
         if conf_col is None: 
@@ -285,9 +286,10 @@ class experiment:
                             if ident.dtype == float:
                                 ident = ident.astype(int)
                             ident = ident.astype(str)
+                        raw_ident += [ident]
                         # **** if the participant ID is a duplicate, modify it ****
                         if i > 0:
-                            ident_array = np.array(list(ds_dict.keys())) # array of IDs already imported
+                            ident_array = np.array(raw_ident) # array of IDs already imported
                             n_repeat = np.sum(ident_array == ident) # number of times the ID has already been imported
                         else:
                             n_repeat = 0 # obviously the first ID won't already be in the imported data
@@ -372,7 +374,7 @@ class experiment:
                     ds_new = ds_new.assign(correct = correct)
                     # **** calculate percent correct per stage (excluding test stages) ****
                     for st in scd.stages:
-                        not_test = scd.stages[st].lrn == True
+                        not_test = scd.stages[st].lrn
                         if not_test:
                             stage_name = scd.stages[st].name
                             index = np.array(ds_new.stage_name == stage_name)
@@ -419,7 +421,7 @@ class experiment:
         summary = ds.drop_dims(['t', 'x_name', 'u_name']).to_dataframe()
         # **** add pct_correct ****
         for st in scd.stages:
-            not_test = scd.stages[st].lrn == True
+            not_test = scd.stages[st].lrn
             if not_test:
                 stage_name = scd.stages[st].name
                 var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
