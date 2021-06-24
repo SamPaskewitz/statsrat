@@ -20,7 +20,8 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
         data in 'var' are plotted).
     rename_coords : dict or None, optional
         Either a dictionary for re-naming coordinates (keys are old names and
-        values are new names), or None (don't re-name).  Defaults to None.
+        values are new names), or None (don't re-name).  This dict must include
+        ALL variable names.  Defaults to None.
     color_var : string, optional
         Variable to be represented by color.
         Defaults to None (see notes).
@@ -320,6 +321,9 @@ def log_lik(model, ds, par_val):
 
     Parameters
     ----------
+    model : object
+        A learning model object.
+    
     ds : dataset
         Experimental data, including cues, behavioral responses,
         outcomes etc. from one individual and schedule.

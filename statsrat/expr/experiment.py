@@ -286,13 +286,13 @@ class experiment:
                             if ident.dtype == float:
                                 ident = ident.astype(int)
                             ident = ident.astype(str)
-                        raw_ident += [ident]
                         # **** if the participant ID is a duplicate, modify it ****
                         if i > 0:
                             ident_array = np.array(raw_ident) # array of IDs already imported
                             n_repeat = np.sum(ident_array == ident) # number of times the ID has already been imported
                         else:
                             n_repeat = 0 # obviously the first ID won't already be in the imported data
+                        raw_ident += [ident]
                         if n_repeat > 0:
                             ident += '-' + str(n_repeat)
                     except Exception as e:
