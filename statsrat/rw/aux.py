@@ -2,6 +2,30 @@ import numpy as np
 import pandas as pd
 
 ########## GENERAL PURPOSE AUXILIARY LEARNING OBJECTS ##########
+'''
+Defines auxilliary learning (e.g. for selective attention) in the form of classes.
+
+basic: Basic auxiliary learning (keeps track of feature counts).
+
+drva: Derived attention (Le Pelley et al, 2016).
+
+tdrva: Derived attention, but with trial by trial tracking of associative strength.
+    Attention is a sigmoidal function of mean associative strength (tau).
+    This is a bit like the model of Frey and Sears (1978), but is simpler.
+
+grad: Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).
+
+gradcomp: Competitive attention learning from gradient descent (i.e. CompAct's learning rule).
+
+gradcomp_feature_counts: Competitive attention learning from gradient descent (i.e. CompAct's learning rule),
+    but also keeps track of feature counts.
+    
+Kalman: Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).
+
+grad_atn0: Non-competitive attention learning from gradient descent with one free initial attention parameter.
+
+gradcomp_eta0: Competitive attention learning with one free initial attention parameter.
+'''
 
 class basic:
     '''Basic auxiliary learning (keeps track of feature counts).'''

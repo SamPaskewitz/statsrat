@@ -5,6 +5,37 @@ from scipy import stats
 import nlopt
 from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity, theme_classic
 
+'''
+Defines functions for running and analyzing simulations.
+
+learn_plot: Plots learning simulation data from a single schedule (condition, group) as a function of time.
+
+multi_plot: Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
+
+multi_sim: Simulate one or more trial sequences from the same schedule with known parameters.
+
+log_lik: Compute log-likelihood of individual time step data.
+
+perform_oat: Perform an ordinal adequacy test (OAT).
+
+oat_grid: Compute ordinal adequacy test (OAT) scores while varying one model parameter
+    (at evenly spaced intervals across its entire domain) and keeping the other parameters fixed.
+    Useful for examining model behavior via plots.
+    
+fit_indv: Fit the model to time step data by individual maximum likelihood
+    estimation (ML) or maximum a posteriori (MAP) estimation.
+    
+fit_em: Fit the model to time step data using the expectation-maximization (EM) algorithm.
+
+make_sim_data: Generate simulated data given an experiment and schedule (with random parameter vectors).  NEEDS TO BE UPDATED
+
+recovery_test: Perform a parameter recovery test.  MAY NEED TO BE UPDATED.
+
+one_step_pred: One step ahead prediction test (similar to cross-validation).  MAY NEED TO BE UPDATED.
+
+split_pred: Split prediction test (similar to cross-validation).  MAY NEED TO BE UPDATED.
+'''
+
 def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
@@ -658,7 +689,8 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
         
 def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
     """
-    Fit the model to time step data by individual MLE/MAP.
+    Fit the model to time step data by individual maximum likelihood
+    estimation (ML) or maximum a posteriori (MAP) estimation.
     
     Parameters
     ----------

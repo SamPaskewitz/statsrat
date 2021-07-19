@@ -1,5 +1,25 @@
 import numpy as np
 
+'''
+Functions for updating attention weights.
+
+null: Don't update attention (it remains constant).
+
+gradient_ngsec: Gradient descent on total squared error (assuming separate attention weights for each exemplar)
+    when rtrv = normalized_sim_ex_counts and sim = Gaussian.
+    
+gradient_ngsec_common: Gradient descent on total squared error (assuming common attention weights across exemplars)
+    when rtrv = normalized_sim_ex_counts and sim = Gaussian.
+    
+gradient_ngsec_both: Gradient descent on total squared error when rtrv = normalized_sim_ex_counts and sim = Gaussian.
+    Attention weights have two parts: one that is common across exemplars (for each cue) and one
+    that is unique to each exemplar/cue.
+    
+heuristic: Heuristic designed to adjust attention toward relevant stimuli.
+    Each exemplar has a separate set of attention weights.
+    Only the current exemplar's weights are adjusted.
+'''
+
 def null(sim, x, u, u_psb, rtrv, u_hat, u_lrn, x_ex, u_ex, n_x, n_u, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
     Don't update attention (it remains constant).

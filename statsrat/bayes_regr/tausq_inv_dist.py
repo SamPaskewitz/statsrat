@@ -1,6 +1,22 @@
 import numpy as np
 from scipy import stats
 
+'''
+Distributions for prior weight precision (tausq_inv), defined as classes.
+
+constant: Prior precision (tausq_inv) is treated as constant, i.e.
+    there is no attempt to change the initial hyperparameter values.
+
+ard: Automatic relevance determination, i.e. the model tries
+    to learn the distribution of tausq_inv via variational Bayes
+    (assuming that tausq_inv has a gamma distribution).
+
+ard_drv_atn: Automatic relevance determination (assuming that tausq_inv has a gamma
+    distribution) with the assumption that all of the regression weights 
+    (w) associated with a feature share a common prior precision (tausq_inv).
+    This ends up being a form of derived attention model.
+'''
+
 class constant:
     '''
     Prior precision (tausq_inv) is treated as constant, i.e.

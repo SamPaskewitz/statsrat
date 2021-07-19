@@ -1,5 +1,9 @@
 import numpy as np
 
+'''
+Temporal kernels for the distance dependent CRP (Blei & Frazier, 2011; Zhu, Ghahramani & Lafferty).
+'''
+
 def constant(t, time, sim_pars):
     '''
     The temporal kernel is simply 1 for all time steps (i.e. there is no decay).

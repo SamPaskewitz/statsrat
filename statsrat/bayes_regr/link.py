@@ -2,7 +2,20 @@ import numpy as np
 from scipy import stats
 from scipy.linalg import solve
 
+'''
+Specifies link functions (in the form of classes) for Bayesian regression learning models.
+
+linear: Suitable for real valued outcomes.
+
+probit: Suitable for binary outcomes.
+
+multinomial_probit: Suitable for categorical outcomes.
+'''
+
 class linear:
+    '''
+    Suitable for real valued outcomes.
+    '''
     def __init__(self, n_u, n_f):
         pass
         
@@ -14,6 +27,9 @@ class linear:
 linear.par_names = ['u_var']
     
 class probit:
+    '''
+    Suitable for binary outcomes.
+    '''
     def __init__(self, n_u, n_f):
         self.n_u = n_u
         self.id_matrix = np.diag(np.ones(n_f)) # identity matrix
@@ -41,6 +57,9 @@ class probit:
 probit.par_names = []
 
 class multinomial_probit:
+    '''
+    Suitable for categorical outcomes.
+    '''
     def __init__(self, n_u, n_f):
         self.n_u = n_u
         

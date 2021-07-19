@@ -1,5 +1,15 @@
 import numpy as np
 
+'''
+Functions to define exemplar retrieval strength.
+
+equal_to_sim: Retrieval strength is equal to similarity.
+
+normalized_sim: Retrieval strength is normalized similarity.
+
+normalized_sim_ex_counts: Retrieval strength is similarity times exemplar counts, normalized.
+'''
+
 def equal_to_sim(sim, ex_counts, ex_seen_yet, sim_pars):
     '''Retrieval strength is equal to similarity.'''
     return ex_seen_yet*sim
@@ -14,6 +24,9 @@ normalized_sim.par_names = []
 def normalized_sim_ex_counts(sim, ex_counts, ex_seen_yet, sim_pars):
     '''
     Retrieval strength is similarity times exemplar counts, normalized.
+    
+    Notes
+    -----
     Combined with the right u_ex_update function (viz. ex_mean), this
     reproduces instance based learning with a normalized similarity retrieval
     function across instances.

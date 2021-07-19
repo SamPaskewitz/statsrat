@@ -1,6 +1,15 @@
 import numpy as np
 
-########## FEATURE WEIGHTING FUNCTIONS ##########
+'''
+Functions for defining trial by trial feature weighting (a form of selective attention).
+
+none: No special feature weights (vector of ones).
+
+from_aux_feature: Take feature weights directly from 'aux'.
+
+from_aux_norm: Produce weights that normalize features (e.g. CompAct).
+    So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.
+'''
 
 def none(aux, t, fbase, fweight, n_f, sim_pars):
     '''

@@ -1,7 +1,21 @@
 import numpy as np
 from itertools import combinations
 
-########## BASE FEATURE FUNCTIONS ##########
+'''
+Functions for defining base stimulus features.
+
+elem: Elemental features.
+
+elem_intercept: Elemental features with intercept term.
+
+cfg2: Binary configural features.
+
+cfg2_intercept: Binary configural features with intercept term.
+
+cfg2_half: Binary configural features; all configural features get a value of 0.5 instead of 1.0.
+
+cfg2_distinct: Adds binary configural features only when they are distinct from the corresponding elemental features.
+'''
 
 def elem(x, x_names):
     '''

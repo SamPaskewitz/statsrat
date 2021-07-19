@@ -1,6 +1,16 @@
 import numpy as np
 
-########## DECAY RATE FUNCTIONS ##########
+'''
+Functions for defining decay rates.
+
+zero: Decay rate of zero (i.e. no weight decay).
+
+cnst: Constant decay rate.
+
+only_neg: Decay rate is constant for negative weights, and zero for positive weights.
+
+hrmn: Harmonic decay rate.
+'''
 
 def zero(aux, t, w, n_f, n_u, sim_pars):
     '''Decay rate of zero (i.e. no weight decay).'''

@@ -1,9 +1,28 @@
 import numpy as np
 
+'''
+Functions to specify how u_ex (exemplar -> outcome associations) are updated.
+
+from_rtrv: Learning rates for exemplars are equal to retrieval strength
+    times a constant (lrate_par).
+
+from_rtrv_indv_delta: Learning rates for exemplars are equal to retrieval strength
+    times a constant (lrate_par), and prediction errors are for each
+    individual exemplar rather than for common.
+
+only_max: Only the most similar exemplar has a non-zero learning rate, which is constant.
+
+ex_mean: Each u_ex is simply the mean of u when that exemplar is present.
+'''
+
 def from_rtrv(sim, rtrv, u, u_hat, u_lrn, u_ex, ex_counts, n_ex, n_u, sim_pars):
     """
     Learning rates for exemplars are equal to retrieval strength
-    times a constant (lrate_par).  This (minus the 'humble teachers',
+    times a constant (lrate_par).
+    
+    Notes
+    -----
+    This (minus the 'humble teachers',
     and with retrieval strength equal to similarity) is the form of 
     learning used in ALCOVE (Kruschke, 1992).
     """
@@ -29,6 +48,9 @@ from_rtrv_indv_delta.par_names = ['lrate_par']
 def only_max(sim, rtrv, u, u_hat, u_lrn, u_ex, ex_counts, n_ex, n_u, sim_pars):
     """
     Only the most similar exemplar has a non-zero learning rate, which is constant.
+    
+    Notes
+    -----
     This is the form of learning assumed by Ghirlanda (2015) when showing the equivalence
     between exemplar and RW family models.
     """
@@ -42,6 +64,9 @@ only_max.par_names = ['lrate_par']
 def ex_mean(sim, rtrv, u, u_hat, u_lrn, u_ex, ex_counts, n_ex, n_u, sim_pars):
     """
     Each u_ex is simply the mean of u when that exemplar is present.
+    
+    Notes
+    -----
     Combined with the right type of retrieval function, this is equivalent
     to instance based learning: instances with the same cues (x)
     are simply grouped together as a single exemplar.
