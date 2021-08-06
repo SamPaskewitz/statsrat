@@ -58,6 +58,16 @@ class model:
     estimate tausq for each feature, i.e. perform automatic relevance
     determination.  Whether or not we do this and what assumptions we
     make are determined by the 'tausq_inv_dist' attribute.
+    
+    Relevant Papers
+    ---------------
+    Broderick, T., Boyd, N., Wibisono, A., Wilson, A. C., & Jordan, M. I. (2013).
+    Streaming variational Bayes.
+    ArXiv Preprint ArXiv:1307.6769.
+    
+    Dayan, P., & Kakade, S. (2001).
+    Explaining Away in Weight Space.
+    Advances in Neural Information Processing Systems, 451–457.
     '''
 
     def __init__(self, name, fbase, link, tausq_inv_dist):

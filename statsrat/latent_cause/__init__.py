@@ -11,16 +11,72 @@ from . import kernel
 
 class model:
     '''
-    Local MAP approximation/variational Bayes hybrid (not mathematically justified or thought out).
-    The local MAP approximation is used for two purposes: approximating the prior on latent causes,
-    and deciding when to add a new latent cause.  Everything else is done via streaming variational Bayes.
+    Class for Bayesian latent cause learning models (Anderson, 1991; Gershman, Blei & Niv, 2010).
     
-    *** UPDATE WITH LIST OF METHODS, ETC. ***
+    Attributes
+    ----------
+    name: str
+        Model name.
+    kernel: function
+        Temporal kernel for distance dependent prior on latent causes.
+    par_names: list
+        Names of the model's free parameters (strings).
+    pars: dict
+        Information about model parameters (min, max, default, description).
+    
+    Methods
+    -------
+    simulate(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim', sim_type = 'local_vb')
+        Simulate a trial sequence once with known model parameters using
+        either the .local_vb() or .particle() method.  This is just a wrapper
+        for those simulation methods.
+        
+    local_vb(self, trials, par_val = None, n_z = 10, random_resp = False, ident = 'sim')     
+        Simulate the model using a combination of local MAP and variational Bayes.
+    
+    particle_filter(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim')
+        Simulate the model using a particle filter algorithm.
     
     Notes
     -----
+    The local_vb method uses a local MAP approximation for two purposes:
+    approximating the prior on latent causes, and deciding when to add a 
+    new latent cause.  Everything else is done via streaming variational Bayes.
+    
+    Currently both outcomes (u) and predictor stimuli (x) are drawn from independent
+    normal distributions with the following hyperpriors:
     mu | sigma^2 ~ N(tau1/n, sigma^2/n)
     1/sigma^2 ~ Gamma((n + 3)/2, (n tau2 - tau1^2)/(2 n))
+    
+    In the future I may add other distribution options, e.g. multinomial or Bernoulli.
+    
+    Relevant Papers
+    ---------------
+    Anderson, J. R. (1991).
+    The adaptive nature of human categorization.
+    Psychological Review, 98(3), 409.
+    
+    Broderick, T., Boyd, N., Wibisono, A., Wilson, A. C., & Jordan, M. I. (2013).
+    Streaming variational Bayes.
+    ArXiv Preprint ArXiv:1307.6769.
+    
+    Gershman, S. J., Blei, D. M., & Niv, Y. (2010).
+    Context, learning, and extinction.
+    Psychological Review, 117(1), 197–209.
+    
+    Gershman, S. J., & Niv, Y. (2012).
+    Exploring a latent cause theory of classical conditioning.
+    Learning & Behavior, 40(3), 255–268.
+    
+    Huynh, V., & Phung, D. (2017). Streaming clustering with Bayesian nonparametric models.
+    Neurocomputing, 258, 52–62.
+    
+    Sanborn, A. N., Griffiths, T. L., & Navarro, D. J. (2010).
+    Rational approximations to rational models: Alternative algorithms
+    for category learning. Psychological Review, 117(4), 1144–1167.
+    
+    Zhu, X., Ghahramani, Z., & Lafferty, J. (n.d.).
+    Time-Sensitive Dirichlet Process Mixture Models.    
     '''
     def __init__(self, name, kernel):
         '''

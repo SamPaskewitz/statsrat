@@ -24,7 +24,7 @@ class model:
     par_names: list
         Names of the model's free parameters (strings).
     pars: dict
-        Information about model parameters.
+        Information about model parameters (min, max, default).
 
     Methods
     -------
@@ -38,6 +38,25 @@ class model:
     the 'init_atn' parameter of the 'simulate' method.  In the future I hope to make it possible to
     include initial attention weights as part of a model's parameter space for purposes of OATs and
     model fitting (the programming is a bit tricky to figure out).
+    
+    Relevant Papers
+    ---------------
+    Ghirlanda, S. (2015).
+    On elemental and configural models of associative learning.
+    Journal of Mathematical Psychology, 64–65, 8–16.
+    
+    Kruschke, J. K. (1992).
+    ALCOVE: An exemplar-based connectionist model of category learning.
+    Psychological Review, 99(1), 22–44.
+    
+    Medin, D. L., & Schaffer, M. M. (1978).
+    Context theory of classification learning.
+    Psychological Review, 85(3), 207.
+    
+    Nosofsky, R. M. (1986).
+    Attention, Similarity, and the Identification-Categorization Relationship.
+    Journal of Experimental Psychology: General, 115(1), 39–57.
+
     '''
     
     def __init__(self, name, sim, rtrv, atn_update, u_ex_update):

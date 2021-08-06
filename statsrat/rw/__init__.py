@@ -34,6 +34,29 @@ class model:
     -------
     simulate(trials, par_val = None, random_resp = False, ident = 'sim')
         Simulate a trial sequence once with known model parameters.
+        
+    Relevant Papers
+    ---------------
+    Dayan, P., & Kakade, S. (2001).
+    Explaining Away in Weight Space.
+    Advances in Neural Information Processing Systems, 451–457.
+    
+    Gluck, M. A., & Bower, G. H. (1988).
+    Evaluating an adaptive network model of human learning.
+    Journal of Memory and Language, 27(2), 166–195.
+    
+    Kruschke, J. K. (2001).
+    Toward a Unified Model of Attention in Associative Learning.
+    Journal of Mathematical Psychology, 45(6), 812–863.
+    
+    Paskewitz, S., & Jones, M. (2020).
+    Dissecting EXIT.
+    Journal of Mathematical Psychology, 97, 102371.
+    
+    Rescorla, R. A., & Wagner, A. R. (1972).
+    A Theory of Pavlovian Conditioning: Variations in the
+    Effectiveness of Reinforcement and Nonreinforcement.
+    Classical Conditioning II: Current Research and Theory, 2, 64–99.
     '''
 
     def __init__(self, name, pred, fbase, fweight, lrate, drate, aux):
