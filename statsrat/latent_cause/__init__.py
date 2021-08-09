@@ -50,6 +50,9 @@ class model:
     
     In the future I may add other distribution options, e.g. multinomial or Bernoulli.
     
+    *** MODIFY THE MINIMUM FOR THE NUMERATOR TO THE PARTICLE FILTER METHOD ***
+    *** EXPLAIN THE NORMAL DISTRIBUTION PARAMETERIZATION ***
+    
     Relevant Papers
     ---------------
     Anderson, J. R. (1991).
@@ -280,12 +283,14 @@ class model:
             E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
-            K = self.kernel(t, time, sim_pars).reshape((t, 1)) # temporal kernel (i.e. decay function for latent causes)
+            K = self.kernel(t, N[t], time, sim_pars) # temporal kernel (i.e. decay function for latent causes)
             r = np.sum(K*z_onehot[0:t, ind_n], axis = 0) # recency
-            sum_r = np.sum(r)
-            log_denominator = np.log(sum_r + sim_pars['stick'] + sim_pars['alpha'])
             num_old = r[ind_n] # numerator of prior for old clusters
             num_old[z[t-1]] += sim_pars['stick'] # add stickiness to most recent cluster
+            num_old[z[t-1]] = np.max([num_old[z[t-1]], 0.0001]) # minimum numerator is 0.0001 (needed sometimes with negative stickiness parameter)
+            #sum_r = np.sum(r)
+            #log_denominator = np.log(sum_r + sim_pars['stick'] + sim_pars['alpha'])
+            log_denominator = np.log(np.sum(num_old) + sim_pars['alpha'])
             E_log_prior[t, ind_n] = np.log(num_old) - log_denominator # expected log prior for old clusters
             if N[t] < n_z:
                 E_log_prior[t, N[t]] = np.log(sim_pars['alpha']) - log_denominator # new cluster
@@ -492,7 +497,6 @@ class model:
             old_z = z # previous latent cause
             z = np.zeros(n_p, dtype=int) # current latent cause
             x_sofar[x[t, :] > 0] = 1 # keep track of cues observed so far
-            K = self.kernel(t, time, sim_pars) # temporal kernel (i.e. decay function for latent causes)
             u_hat_p = np.zeros((n_p, n_u)) # y (i.e. u) predictions for each particle
             lik_x = np.zeros(n_p)
             lik_y = np.zeros(n_p)
@@ -512,6 +516,7 @@ class model:
                 ineq[p] = np.max(n[p, :])/(t + 1) # proportion of assignments to the latent cause that is active most often
                     
                 # sample latent cause for upcoming time step
+                K = self.kernel(t, N[p], time, sim_pars).reshape((N[p], t)) # temporal kernel (i.e. decay function for latent causes)
                 r = np.sum(K*z_onehot[p, 0:t, ind_n], axis = 1) # recency
                 num_prior = np.zeros(N_zt) # numerator of prior on latent causes
                 num_prior[ind_n] = r[ind_n]
@@ -621,7 +626,8 @@ par_names += ['prior_tau2_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default'
 par_names += ['prior_nu_x']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
 par_names += ['prior_tau2_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['prior_nu_y']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
-par_names += ['stick']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
+par_names += ['stick']; par_list += [{'min': -5.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
+par_names += ['window']; par_list += [{'min': 0.0, 'max': 1000.0, 'default': 100.0, 'description': 'window determining refractory period'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 
 pars = pd.DataFrame(par_list, index = par_names)
