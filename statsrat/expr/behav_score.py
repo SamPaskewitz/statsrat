@@ -87,9 +87,6 @@ class behav_score:
         ----------
         ds: dataset
             Dataset (xarray) containing behavioral and other experimental data.
-        oat: str, optional
-            Name of the OAT to use.  By default selects the first OAT
-            in the experiment object's definition.
         use_conf: boolean, optional
             If True then then responses will be multiplied by confidence when
             computing behavioral scores.  This will only work if 'conf' (confidence

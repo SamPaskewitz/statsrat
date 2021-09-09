@@ -154,6 +154,15 @@ CompAct_intercept = rw.model(name = 'CompAct_intercept',
                              drate = rw.drate.zero,
                              aux = rw.aux.gradcomp)
 
+# CompAct (with intercept term and power law decreasing learning rates).
+CompAct_intpow = rw.model(name = 'CompAct_intpow',
+                             pred = rw.pred.identity,
+                             fbase = rw.fbase.elem_intercept,
+                             fweight = rw.fweight.from_aux_norm,
+                             lrate = rw.lrate.power_from_aux_norm,
+                             drate = rw.drate.zero,
+                             aux = rw.aux.gradcomp_feature_counts)
+
 # CompAct (with intercept term and configural features).
 CompAct_cfg2_intercept = rw.model(name = 'CompAct_cfg2_intercept',
                                   pred = rw.pred.identity,

@@ -158,6 +158,7 @@ class model:
         u_names = list(trials.u_name.values)
         (fbase, f_names) = self.fbase(x, x_names).values() # features and feature names
         n_t = fbase.shape[0] # number of time points
+        n_x = x.shape[1] # number of cues/stimulus elements
         n_f = fbase.shape[1] # number of features
         n_u = u.shape[1] # number of outcomes/response options
         fweight = np.zeros((n_t, n_f))
@@ -173,7 +174,7 @@ class model:
             x_dims = trials.attrs['x_dims']
         else:
             x_dims = None
-        aux = self.aux(sim_pars, n_t, n_f, n_u, f_names, x_dims)
+        aux = self.aux(sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims)
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -234,6 +235,7 @@ par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['lrate_min']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.1}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
+par_names += ['drate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}] # decay rate for attention
 par_names += ['lrate_tau']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}] # for tdrva
 par_names += ['tau0']; par_list += [{'min': 0.01, 'max': 1.0, 'default': 0.5}] # for tdrva
 par_names += ['power']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.5}]

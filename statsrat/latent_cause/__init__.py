@@ -288,8 +288,6 @@ class model:
             num_old = r[ind_n] # numerator of prior for old clusters
             num_old[z[t-1]] += sim_pars['stick'] # add stickiness to most recent cluster
             num_old[z[t-1]] = np.max([num_old[z[t-1]], 0.0001]) # minimum numerator is 0.0001 (needed sometimes with negative stickiness parameter)
-            #sum_r = np.sum(r)
-            #log_denominator = np.log(sum_r + sim_pars['stick'] + sim_pars['alpha'])
             log_denominator = np.log(np.sum(num_old) + sim_pars['alpha'])
             E_log_prior[t, ind_n] = np.log(num_old) - log_denominator # expected log prior for old clusters
             if N[t] < n_z:

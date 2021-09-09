@@ -4,32 +4,11 @@ import pandas as pd
 ########## GENERAL PURPOSE AUXILIARY LEARNING OBJECTS ##########
 '''
 Defines auxilliary learning (e.g. for selective attention) in the form of classes.
-
-basic: Basic auxiliary learning (keeps track of feature counts).
-
-drva: Derived attention (Le Pelley et al, 2016).
-
-tdrva: Derived attention, but with trial by trial tracking of associative strength.
-    Attention is a sigmoidal function of mean associative strength (tau).
-    This is a bit like the model of Frey and Sears (1978), but is simpler.
-
-grad: Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).
-
-gradcomp: Competitive attention learning from gradient descent (i.e. CompAct's learning rule).
-
-gradcomp_feature_counts: Competitive attention learning from gradient descent (i.e. CompAct's learning rule),
-    but also keeps track of feature counts.
-    
-Kalman: Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).
-
-grad_atn0: Non-competitive attention learning from gradient descent with one free initial attention parameter.
-
-gradcomp_eta0: Competitive attention learning with one free initial attention parameter.
 '''
 
 class basic:
     '''Basic auxiliary learning (keeps track of feature counts).'''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.data = {'f_counts': np.zeros((n_t, n_f))}
 
     def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
@@ -41,7 +20,7 @@ basic.par_names = []
         
 class drva:
     '''Derived attention (Le Pelley et al, 2016).'''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.data = {'atn': np.zeros((n_t, n_f))}
 
     def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
@@ -60,7 +39,7 @@ class tdrva:
     Attention is a sigmoidal function of mean associative strength (tau).
     This is a bit like the model of Frey and Sears (1978), but is simpler.
     '''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.data = {'atn': np.zeros((n_t + 1, n_f)), # attention (i.e. learning rate for present features)
                      'tau': np.zeros((n_t + 1, n_f))} # tracks the mean of |w| across outcomes
         self.data['tau'][0, :] = sim_pars['tau0']
@@ -81,7 +60,7 @@ tdrva.par_names = ['lrate_min', 'power', 'tau0', 'lrate_tau']
 
 class grad:
     '''Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).'''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         self.data['atn'][0, :] = 0.5
@@ -102,7 +81,7 @@ grad.par_names = ['lrate_atn']
 
 class gradcomp:
     '''Competitive attention learning from gradient descent (i.e. CompAct's learning rule).'''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         self.data['atn'][0, :] = 1
@@ -122,12 +101,54 @@ class gradcomp:
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
 gradcomp.par_names = ['lrate_atn', 'metric']
 
+class gradcomp_elem_bias:
+    '''
+    Competitive attention learning from gradient descent (i.e. CompAct's learning rule).
+    Elemental features get an initial attention value of 1, while other features (e.g.
+    configural ones) get an initial attention value of 0.5.  Thus attention is biased
+    towards elemental features.
+    
+    This object also keeps track of feature counts.
+    
+    Notes
+    -----
+    This uses a simple hack to decide which features are elemental, viz. the first
+    n_x features are assumed to be the elemental ones.  This works with all of the
+    built in fbase functions because these start with elemental features and then add
+    configural features, intercept terms etc.  One should be careful when developing
+    any new fbase function to copy this behavior, or else this aux object may not work
+    as intended.
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f)), 'f_counts': np.zeros((n_t, n_f))}
+        self.data['atn'][0, :] = 0.5
+        self.data['atn'][0, range(n_x)] = 1 # the first n_x features are assumed to be the elemental ones and get higher initial attention
+
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
+        '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').'''
+        w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
+        u_hat_alone = w_psb.T @ np.diag(fbase[t, :])
+        comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
+        u_hat_dif = u_hat_alone - np.outer(u_hat[t, :], comp_factor)
+        atn_gain = self.data['atn'][t, :]*fbase[t, :]
+        norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+        ngrad = delta[t, :].reshape((1, n_u)) @ u_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
+        # Update feature counts.
+        self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[0:(t+1), :] > 0)
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
+gradcomp_elem_bias.par_names = ['lrate_atn', 'metric']
+
 class gradcomp_feature_counts:
     '''
     Competitive attention learning from gradient descent (i.e. CompAct's learning rule),
     but also keeps track of feature counts.
     '''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f)), 'f_counts': np.zeros((n_t, n_f))}
         self.data['atn'][0, :] = 1
@@ -150,9 +171,44 @@ class gradcomp_feature_counts:
                          f_counts = (['t', 'f_name'], self.data['f_counts']))   
 gradcomp_feature_counts.par_names = ['lrate_atn', 'metric']
 
+class gradcomp_atn_decay:
+    '''
+    Competitive attention learning from gradient descent (i.e. CompAct's learning rule)
+    with decay of attention for features that are present on each trial.
+    This is intended to produce latent inhibition and similar phenomena.
+    
+    Notes
+    -----
+    Preliminary simulations suggest that this does NOT produce latent inhibition,
+    but further investigation is needed.
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f))}
+        self.data['atn'][0, :] = 1
+
+    def update(self, sim_pars, n_u, n_f, t, fbase, fweight, f_x, u_psb, u_hat, delta, w):
+        '''
+        Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm')
+        with decay of 'atn' for features that are present.
+        '''
+        w_psb = w[t, :, :] @ np.diag(u_psb[t, :]) # select only columns corresponding to possible outcomes
+        u_hat_alone = w_psb.T @ np.diag(fbase[t, :])
+        comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
+        u_hat_dif = u_hat_alone - np.outer(u_hat[t, :], comp_factor)
+        atn_gain = self.data['atn'][t, :]*fbase[t, :]
+        norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+        ngrad = delta[t, :].reshape((1, n_u)) @ u_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        decay_term = sim_pars['drate_atn']*self.data['atn'][t, :]*fbase[t, :]
+        self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad - decay_term, n_f*[0.01])
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
+gradcomp_atn_decay.par_names = ['lrate_atn', 'metric', 'drate_atn']
+
 class Kalman:
     '''Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).'''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.n_t = n_t
         self.data = {'gain' : np.zeros((n_t + 1, n_f, n_u)), 'Sigma' : np.zeros((n_t + 1, n_u, n_f, n_f))}
         for i in range(n_u):
@@ -187,7 +243,7 @@ class grad_atn0:
     
     Does not work if 'x_dims' is not specified in 'trials' (i.e. is not None).
     '''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         atn0 = pd.Series(n_f*[0.5], index = f_names)
@@ -223,7 +279,7 @@ class gradcomp_eta0:
     
     Does not work if 'x_dims' is not specified in 'trials' (i.e. is not None).
     '''
-    def __init__(self, sim_pars, n_t, n_f, n_u, f_names, x_dims):
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims):
         self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f))}
         eta0 = pd.Series(n_f*[1], index = f_names)

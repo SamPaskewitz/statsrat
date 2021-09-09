@@ -3,38 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 import nlopt
-from plotnine import ggplot, geom_point, geom_line, aes, stat_smooth, facet_wrap, scale_x_continuous, theme, element_text, position_dodge, position_identity, theme_classic
-
-'''
-Defines functions for running and analyzing simulations.
-
-learn_plot: Plots learning simulation data from a single schedule (condition, group) as a function of time.
-
-multi_plot: Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
-
-multi_sim: Simulate one or more trial sequences from the same schedule with known parameters.
-
-log_lik: Compute log-likelihood of individual time step data.
-
-perform_oat: Perform an ordinal adequacy test (OAT).
-
-oat_grid: Compute ordinal adequacy test (OAT) scores while varying one model parameter
-    (at evenly spaced intervals across its entire domain) and keeping the other parameters fixed.
-    Useful for examining model behavior via plots.
-    
-fit_indv: Fit the model to time step data by individual maximum likelihood
-    estimation (ML) or maximum a posteriori (MAP) estimation.
-    
-fit_em: Fit the model to time step data using the expectation-maximization (EM) algorithm.
-
-make_sim_data: Generate simulated data given an experiment and schedule (with random parameter vectors).  NEEDS TO BE UPDATED
-
-recovery_test: Perform a parameter recovery test.  MAY NEED TO BE UPDATED.
-
-one_step_pred: One step ahead prediction test (similar to cross-validation).  MAY NEED TO BE UPDATED.
-
-split_pred: Split prediction test (similar to cross-validation).  MAY NEED TO BE UPDATED.
-'''
+from plotnine import *
 
 def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
     """
@@ -925,6 +894,89 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     
     # output
     return result
+
+def fit_time_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, time_interval_size = 10, algorithm = nlopt.GD_STOGO, algorithm_list = None):
+    """
+    Used to figure out how long to run global optimization (in fit_indv),
+    and perhaps also compare optimization algorithms.
+    The function generates plots of log-likelihood/log-posterior by optimization run time.
+    
+    This should be run on a subset of the data prior to the main model fit.
+    
+    Parameters
+    ----------
+    model: object
+        Learning model.
+        
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
+
+    x0: data frame/array-like of floats or None, optional
+        Start points for each individual in the dataset.
+        If None, then parameter search starts at the midpoint
+        of each parameter's allowed interval.  Defaults to None
+
+    tau: array-like of floats or None, optional
+        Natural parameters of the log-normal prior.
+        Defaults to None (don't use log-normal prior).
+        
+    n_time_intervals: int, optional
+        Number of time intervals to use for testing global optimization
+        (the global_time parameter of fit_indv).  Defaults to 6.
+        
+    time_interval_size: int, optional
+        Size of time intervals to test (in seconds).  Defaults to 10.
+        
+    algorithm: object or None, optional
+        The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
+        Is ignored and can be None if algorithm_list (to compare multiple algorithms)
+        is specified instead.
+        
+    algorithm_list: list or None, optional
+        Used in place of the algorithm argument to specify a list of algorithms to compare.
+        Can be None (the default) if algorithm is specified instad (to only test only algorithm).
+
+    Returns
+    -------
+    dict containing:
+    
+    df: dataframe
+        Parameter estimates and log-likelihood/log-posterior values per person per
+        global optimization run time.
+        
+    plot: plotnine plot object
+        Plot of log-likelihood/log-posterior by optimization time, which can be
+        used to graphically assess convergence.
+        
+    Notes
+    -----
+    No local optimization is run.
+    """
+    if algorithm_list is None:
+        alg_list = [algorithm]
+    else:
+        alg_list = algorithm_list
+    n = len(ds.ident) # number of people
+    df_list = []
+    
+    for alg in alg_list:
+        for i in range(n_time_intervals):
+            new_df = fit_indv(model, ds, x0, tau, (i + 1)*time_interval_size, 0, alg)
+            new_df['time'] = (i + 1)*time_interval_size
+            new_df['algorithm'] = nlopt.algorithm_name(alg)
+            new_df.index = new_df.index.rename('ident')
+            new_df.reset_index(inplace = True, drop = False)
+            df_list += [new_df]
+    df = pd.concat(df_list)
+    
+    if len(alg_list) == 1:
+        plot = ggplot(df, aes('time', 'prop_log_post', color = df.index)) + geom_point() + geom_line() + labs(color = 'ident')
+    else:
+        plot = ggplot(df, aes('time', 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + facet_grid('. ~ ident')
+    plot.draw()
+    
+    return {'df': df, 'plot': plot}        
 
 def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n = 10):
     # UPDATE THIS TO USE LOG-NORMAL PRIORS.
