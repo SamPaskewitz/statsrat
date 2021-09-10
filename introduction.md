@@ -89,8 +89,10 @@ WRITE THIS
 ### Examples
 In order to get people started using *statsrat*, I have included several examples of how to use it for different types of modeling work.  Each example consists of a Jupyter notebook with example code and extensive comments.  They can be found in the *examples* directory of the *statsrat* installation.  Here are brief descriptions of each of them.
 
-1. Define several models and Pavlovian conditioning experiments, then perform simulations.  Examine model behavior using plotting functions.
+1. Define several models and Pavlovian conditioning experiments, then perform simulations.  Examine model behavior using plotting functions.  Perform a between subjects ordinal adequacy test (OAT) to search each model's parameter space to determine if it can produce the same ordinal pattern as humans.
 
-2. Test the ability of several models to reproduce the inverse base rate effect ** REF ** , an important phenomenon in human classification learning.  This includes defining the experiment and performing ordinal adequacy tests (OATs, ** REF ** ) to search each model's parameter space to determine if it can produce the same ordinal pattern as humans.
+2. Test the ability of several models to reproduce the inverse base rate effect ** REF ** , an important phenomenon in human classification learning.  This includes defining the experiment and performing within subjects ordinal adequacy tests (OATs, ** REF ** ) to search each model's parameter space to determine if it can produce the same ordinal pattern as humans.  Use plotting functions to analyze why each model behaves the way it does.
 
 3. Import trial by trial data (to avoid ethical complications, the data is simulated rather than taken from real humans) and use it to fit several models on an individual level.  This includes analysis of how long to run each optimization as well as model comparison based on goodness of fit and ability to predict future data.
+
+Of course ordinal adequacy tests (OATs) can also be performed for Pavlovian experiments.

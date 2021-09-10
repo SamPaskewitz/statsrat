@@ -717,7 +717,7 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     lower = model.pars['min']   
     # set up data frame
     col_index = par_names + ['prop_log_post']
-    df = pd.DataFrame(0.0, index = idents, columns = col_index)
+    df = pd.DataFrame(0.0, index = pd.Series(idents, dtype = str), columns = col_index)
     # list of participants to drop because their data could not be fit (if any)
     idents_to_drop = []
     
@@ -782,6 +782,11 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     # drop participants (rows) if data could not be fit (if any)
     if len(idents_to_drop) > 0:
         df = df.drop(idents_to_drop)
+        
+    # record information about the optimization algorithm and length of optimization time per person
+    df['global_time'] = global_time
+    df['local_time'] = local_time
+    df['algorithm'] = nlopt.algorithm_name(algorithm)
     
     return df
 
@@ -895,12 +900,10 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     # output
     return result
 
-def fit_time_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, time_interval_size = 10, algorithm = nlopt.GD_STOGO, algorithm_list = None):
+def fit_algorithm_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, time_interval_size = 10, algorithm = nlopt.GD_STOGO, algorithm_list = None):
     """
-    Used to figure out how long to run global optimization (in fit_indv),
-    and perhaps also compare optimization algorithms.
-    The function generates plots of log-likelihood/log-posterior by optimization run time.
-    
+    Used to figure compare global optimization algorithms and/or test how long to
+    run global optimization (in fit_indv) by generating plots.
     This should be run on a subset of the data prior to the main model fit.
     
     Parameters
@@ -919,7 +922,7 @@ def fit_time_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, time_
 
     tau: array-like of floats or None, optional
         Natural parameters of the log-normal prior.
-        Defaults to None (don't use log-normal prior).
+        Defaults to None (to not use log-normal prior).
         
     n_time_intervals: int, optional
         Number of time intervals to use for testing global optimization
@@ -963,17 +966,18 @@ def fit_time_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, time_
     for alg in alg_list:
         for i in range(n_time_intervals):
             new_df = fit_indv(model, ds, x0, tau, (i + 1)*time_interval_size, 0, alg)
-            new_df['time'] = (i + 1)*time_interval_size
-            new_df['algorithm'] = nlopt.algorithm_name(alg)
             new_df.index = new_df.index.rename('ident')
             new_df.reset_index(inplace = True, drop = False)
             df_list += [new_df]
     df = pd.concat(df_list)
     
-    if len(alg_list) == 1:
-        plot = ggplot(df, aes('time', 'prop_log_post', color = df.index)) + geom_point() + geom_line() + labs(color = 'ident')
+    if n_time_intervals > 1:
+        if len(alg_list) == 1:
+            plot = ggplot(df, aes('global_time', 'prop_log_post', color = df.index.astype(str))) + geom_point() + geom_line() + labs(color = 'ident')
+        else:
+            plot = ggplot(df, aes('global_time', 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + facet_grid('. ~ ident')
     else:
-        plot = ggplot(df, aes('time', 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + facet_grid('. ~ ident')
+        plot = ggplot(df, aes(df.index, 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + labs(x = 'ident')
     plot.draw()
     
     return {'df': df, 'plot': plot}        
