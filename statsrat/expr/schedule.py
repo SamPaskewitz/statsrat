@@ -34,7 +34,7 @@ class schedule:
         are cue names (i.e. 'x_names').
     dim_names: list of str or None
         Names of stimulus dimensions.
-    u_names: list of str
+    y_names: list of str
         Names of outcomes.
     ex_names: list of str
         Names of exemplars (unique cue combinations).
@@ -44,7 +44,7 @@ class schedule:
         The number of cues.
     n_dim: int or None
         The number of stimulus dimensions.
-    n_u: int
+    n_y: int
         The number of outcomes.
     n_t: int
         The number of time steps in the entire schedule.
@@ -85,11 +85,11 @@ class schedule:
     u: float
         Outcomes, e.g. unconditioned stimuli or category labels.  A value
         of 0.0 indicates that an outcome does not occur.
-    u_psb: float
+    y_psb: float
         Indicates whether an outcome is possible (1.0) or not possible
         (0.0) as far as the learner knows.  The learner will not try to
         predict outcomes that it knows are not possible.
-    u_lrn: float
+    y_lrn: float
         Indicates whether learning about each outcome should occur (1.0) or
         not (0.0).  Should be 0.0 only for test stages without feedback in
         human experiments.
@@ -120,7 +120,7 @@ class schedule:
     stage_name: str
         Alternative coordinate for time steps (dimension t).
         Indicates experimental stage by name.
-    u_name: str
+    y_name: str
         Outcome/CS/response dimension.
     x_name: str
         Cue name dimension.        
@@ -150,7 +150,7 @@ class schedule:
         stage_names = []
         stage_number = []
         x_names = []
-        u_names = []
+        y_names = []
         n_t = 0 # total number of time steps in the whole experiment
         n_t_trial_def = 0 # total number of time steps with one trial of each type
         # loop through stages
@@ -161,15 +161,15 @@ class schedule:
             stage_names += [stages[st].n_trial_type*st]
             stage_number += [stages[st].n_trial_type*i]
             x_names += stages[st].x_names
-            u_names += stages[st].u_psb
+            y_names += stages[st].y_psb
             for j in range(stages[st].n_trial_type):
-                u_new = stages[st].u[j]
-                u_names += u_new
+                y_new = stages[st].y[j]
+                y_names += y_new
             i += 1
         x_names = list(np.unique(x_names))
-        u_names = list(np.unique(u_names))
+        y_names = list(np.unique(y_names))
         n_x = len(x_names)
-        n_u = len(u_names)
+        n_y = len(y_names)
         # this is the number of trial types, not the number of trials in the experiment
         n_trial = 0
         for st in stages:
@@ -186,9 +186,9 @@ class schedule:
             
         # loop through trial types to add information
         x = xr.DataArray(np.zeros((n_t_trial_def, n_x)), [range(n_t_trial_def), x_names], ['row', 'x_name'])
-        u = xr.DataArray(np.zeros((n_t_trial_def, n_u)), [range(n_t_trial_def), u_names], ['row', 'u_name'])
-        u_psb = xr.DataArray(np.zeros((n_t_trial_def, n_u)), [range(n_t_trial_def), u_names], ['row', 'u_name'])
-        u_lrn = xr.DataArray(np.zeros((n_t_trial_def, n_u)), [range(n_t_trial_def), u_names], ['row', 'u_name'])
+        y = xr.DataArray(np.zeros((n_t_trial_def, n_y)), [range(n_t_trial_def), y_names], ['row', 'y_name'])
+        y_psb = xr.DataArray(np.zeros((n_t_trial_def, n_y)), [range(n_t_trial_def), y_names], ['row', 'y_name'])
+        y_lrn = xr.DataArray(np.zeros((n_t_trial_def, n_y)), [range(n_t_trial_def), y_names], ['row', 'y_name'])
         stage = []
         stage_name = []
         trial = []
@@ -216,20 +216,20 @@ class schedule:
                 trial += (iti + 1)*[j]
                 # figure out trial name
                 has_x_pn = len(stages[st].x_pn[j]) > 0 # indicates whether there are punctate cues (x_pn)
-                has_u = len(stages[st].u[j]) > 0 # indicates whether there are outcomes (u)
-                possible_names = {(True, True): '.'.join(stages[st].x_pn[j]) + ' -> ' + '.'.join(stages[st].u[j]),
+                has_y = len(stages[st].y[j]) > 0 # indicates whether there are outcomes (u)
+                possible_names = {(True, True): '.'.join(stages[st].x_pn[j]) + ' -> ' + '.'.join(stages[st].y[j]),
                                   (True, False): '.'.join(stages[st].x_pn[j]) + ' -> ' + 'nothing',
-                                  (False, True): 'nothing' + ' -> ' + '.'.join(stages[st].u[j]),
+                                  (False, True): 'nothing' + ' -> ' + '.'.join(stages[st].y[j]),
                                   (False, False): 'background'}
-                new_trial_name = possible_names[(has_x_pn, has_u)]
+                new_trial_name = possible_names[(has_x_pn, has_y)]
                 trial_name += (iti + 1)*[new_trial_name]                
                 # other information
                 x.loc[{'row': range(k, k + iti + 1), 'x_name': stages[st].x_bg}] = stages[st].x_value.loc[stages[st].x_bg] # background cues (x_bg)
-                u_psb.loc[{'row': range(k, k + iti + 1), 'u_name': stages[st].u_psb}] = 1.0
+                y_psb.loc[{'row': range(k, k + iti + 1), 'y_name': stages[st].y_psb}] = 1.0
                 if stages[st].lrn == True:
-                    u_lrn.loc[{'row': range(k, k + iti + 1), 'u_name': stages[st].u_psb}] = 1.0
+                    y_lrn.loc[{'row': range(k, k + iti + 1), 'y_name': stages[st].y_psb}] = 1.0
                 # yet more information
-                has_main = has_x_pn or has_u # indicates whether there is a 'main' time step
+                has_main = has_x_pn or has_y # indicates whether there is a 'main' time step
                 if has_main:
                     # set up time steps before 'main' (if there are any)
                     if iti > 0:
@@ -243,8 +243,8 @@ class schedule:
                         ex_name += ['.'.join(x_names_ex[stages[st].x_bg + stages[st].x_pn[j]])]
                     else:
                         ex_name += ['.'.join(x_names_ex[stages[st].x_bg])]
-                    if has_u:
-                        u.loc[{'row': k + iti, 'u_name': stages[st].u[j]}] = stages[st].u_value.loc[stages[st].u[j]]
+                    if has_y:
+                        y.loc[{'row': k + iti, 'y_name': stages[st].y[j]}] = stages[st].y_value.loc[stages[st].y[j]]
                 else:
                     t_name += (iti + 1)*['bg']
                     ex_name += (iti + 1)*['.'.join(x_names_ex[stages[st].x_bg])]
@@ -254,9 +254,9 @@ class schedule:
 
         # create dataset for trial type definitions ('trial_def')
         trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x),
-                                            'u': (['t', 'u_name'], u),
-                                            'u_psb': (['t', 'u_name'], u_psb),
-                                            'u_lrn': (['t', 'u_name'], u_lrn)},
+                                            'y': (['t', 'y_name'], y),
+                                            'y_psb': (['t', 'y_name'], y_psb),
+                                            'y_lrn': (['t', 'y_name'], y_lrn)},
                                coords = {'t': range(len(stage)),
                                          't_name': ('t', t_name),
                                          'ex': ('t', ex_name),
@@ -265,7 +265,7 @@ class schedule:
                                          'stage': ('t', stage),
                                          'stage_name': ('t', stage_name),
                                          'x_name': x_names,
-                                         'u_name': u_names})
+                                         'y_name': y_names})
         
         # create a dataframe for exemplars, and attach to trial type dataset as an attribute
         ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
@@ -292,11 +292,11 @@ class schedule:
             self.delays = delays
         self.trial_def = trial_def
         self.x_names = x_names
-        self.u_names = u_names
+        self.y_names = y_names
         self.ex_names = ex_names
         self.n_stage = n_stage        
         self.n_x = n_x
-        self.n_u = n_u
+        self.n_y = n_y
         self.n_t = int(n_t)
         self.n_ex = len(self.ex_names)
         

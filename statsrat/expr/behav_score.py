@@ -112,7 +112,7 @@ class behav_score:
                 pos_n = 0
                 for i in range(n_ttype):
                     pos_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_pos[i]) & np.array(ds_name.t_name == self.t_name_pos)
-                    b = ds_name['b'].loc[{'t' : pos_index, 'u_name' : self.resp_pos[i]}]
+                    b = ds_name['b'].loc[{'t' : pos_index, 'y_name' : self.resp_pos[i]}]
                     if use_conf:
                         conf = ds_name['conf'].loc[{'t' : pos_index}]
                         pos_sum += np.sum(conf*b)
@@ -129,7 +129,7 @@ class behav_score:
                     neg_n = 0
                     for i in range(n_ttype):
                         neg_index = np.array(ds_name.stage_name == self.stage) & np.array(ds_name.trial_name == self.trial_neg[i]) & np.array(ds_name.t_name == self.t_name_neg)
-                        b = ds_name['b'].loc[{'t' : neg_index, 'u_name' : self.resp_neg[i]}]
+                        b = ds_name['b'].loc[{'t' : neg_index, 'y_name' : self.resp_neg[i]}]
                         if use_conf:
                             conf = ds_name['conf'].loc[{'t' : neg_index}]
                             neg_sum += np.sum(conf*b)

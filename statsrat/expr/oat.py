@@ -183,18 +183,18 @@ class oat:
             trial_name = np.unique(self.behav_score_pos.trial_pos + self.behav_score_pos.trial_neg)
         # relevant response (outcome) names
         if self.behav_score_pos.resp_neg is None:
-            u_name = np.unique(self.behav_score_pos.resp_pos)
+            y_name = np.unique(self.behav_score_pos.resp_pos)
         else:
-            u_name = np.unique(self.behav_score_pos.resp_pos + self.behav_score_pos.resp_neg)
+            y_name = np.unique(self.behav_score_pos.resp_pos + self.behav_score_pos.resp_neg)
         # set up data array
         n_s = len(self.schedule_pos) # number of schedules
         n_tn = len(trial_name) # number of trial names (i.e. trial types)
-        n_u = len(u_name) # number of outcomes
-        da_pos = xr.DataArray(data = np.zeros((n_s, n_tn, n_u)),
-                              dims = ['schedule', 'trial_name', 'u_name'],
+        n_y = len(y_name) # number of outcomes
+        da_pos = xr.DataArray(data = np.zeros((n_s, n_tn, n_y)),
+                              dims = ['schedule', 'trial_name', 'y_name'],
                               coords = {'schedule': self.schedule_pos,
                                         'trial_name': trial_name,
-                                        'u_name': u_name})
+                                        'y_name': y_name})
         
         # loop through schedules
         for s in self.schedule_pos:
@@ -204,11 +204,11 @@ class oat:
             for tn in trial_name:
                 index_tn = np.array(df_s.trial_name == tn)
                 index_sn = np.array(df_s.stage_name == self.behav_score_pos.stage)
-                for un in u_name:
-                    index_un = np.array(df_s.u_name == un)
-                    index = index_tn*index_sn*index_un*index_is_main
+                for yn in y_name:
+                    index_yn = np.array(df_s.y_name == yn)
+                    index = index_tn*index_sn*index_yn*index_is_main
                     mean_resp = df_s['b'].loc[index].mean()
-                    da_pos.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
+                    da_pos.loc[{'schedule': s, 'trial_name': tn, 'y_name': yn}] = mean_resp
             df_pos = da_pos.to_dataframe(name = 'mean_resp')
             df_pos.reset_index(inplace = True)
         
@@ -222,18 +222,18 @@ class oat:
                 trial_name = np.unique(self.behav_score_neg.trial_pos + self.behav_score_neg.trial_neg)
             # relevant response (outcome) names
             if self.behav_score_neg.resp_neg is None:
-                u_name = np.unique(self.behav_score_neg.resp_pos)
+                y_name = np.unique(self.behav_score_neg.resp_pos)
             else:
-                u_name = np.unique(self.behav_score_neg.resp_pos + self.behav_score_neg.resp_neg)
+                y_name = np.unique(self.behav_score_neg.resp_pos + self.behav_score_neg.resp_neg)
             # set up data array
             n_s = len(self.schedule_neg) # number of positive schedules
             n_tn = len(trial_name) # number of trial names (i.e. trial types)
-            n_u = len(u_name) # number of outcomes
-            da_neg = xr.DataArray(data = np.zeros((n_s, n_tn, n_u)),
-                                  dims = ['schedule', 'trial_name', 'u_name'],
+            n_y = len(y_name) # number of outcomes
+            da_neg = xr.DataArray(data = np.zeros((n_s, n_tn, n_y)),
+                                  dims = ['schedule', 'trial_name', 'y_name'],
                                   coords = {'schedule': self.schedule_neg,
                                             'trial_name': trial_name,
-                                            'u_name': u_name})
+                                            'y_name': y_name})
             # loop through schedules
             for s in self.schedule_neg:
                 df_s = data_dict[s].to_dataframe()
@@ -242,11 +242,11 @@ class oat:
                 for tn in trial_name:
                     index_tn = np.array(df_s.trial_name == tn)
                     index_sn = np.array(df_s.stage_name == self.behav_score_neg.stage)
-                    for un in u_name:
-                        index_un = np.array(df_s.u_name == un)
-                        index = index_tn*index_sn*index_un*index_is_main
+                    for yn in y_name:
+                        index_yn = np.array(df_s.y_name == yn)
+                        index = index_tn*index_sn*index_yn*index_is_main
                         mean_resp = df_s['b'].loc[index].mean()
-                        da_neg.loc[{'schedule': s, 'trial_name': tn, 'u_name': un}] = mean_resp
+                        da_neg.loc[{'schedule': s, 'trial_name': tn, 'y_name': yn}] = mean_resp
             df_neg = da_neg.to_dataframe(name = 'mean_resp')
             df_neg.reset_index(inplace = True)
             # package data for output

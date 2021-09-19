@@ -43,7 +43,7 @@ class model:
     approximating the prior on latent causes, and deciding when to add a 
     new latent cause.  Everything else is done via streaming variational Bayes.
     
-    Currently both outcomes (u) and predictor stimuli (x) are drawn from independent
+    Currently both outcomes (y) and predictor stimuli (x) are drawn from independent
     normal distributions with the following hyperpriors:
     mu | sigma^2 ~ N(tau1/n, sigma^2/n)
     1/sigma^2 ~ Gamma((n + 3)/2, (n tau2 - tau1^2)/(2 n))
@@ -202,16 +202,16 @@ class model:
             
         # set stuff up
         x = np.array(trials['x'], dtype = 'float64')
-        u = np.array(trials['u'], dtype = 'float64')
-        u_psb = np.array(trials['u_psb'], dtype = 'float64')
-        u_lrn = np.array(trials['u_lrn'], dtype = 'float64')
+        y = np.array(trials['y'], dtype = 'float64')
+        y_psb = np.array(trials['y_psb'], dtype = 'float64')
+        y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         x_names = list(trials.x_name.values)
-        u_names = list(trials.u_name.values)
+        y_names = list(trials.y_name.values)
         n_t = x.shape[0] # number of time points
         n_x = x.shape[1] # number of stimulus attributes
-        n_u = u.shape[1] # number of outcomes/response options
-        u_hat = np.zeros((n_t, n_u)) # outcome predictions
-        b_hat = np.zeros((n_t, n_u)) # expected behavior
+        n_y = y.shape[1] # number of outcomes/response options
+        y_hat = np.zeros((n_t, n_y)) # outcome predictions
+        b_hat = np.zeros((n_t, n_y)) # expected behavior
         time = trials['time'].values # real world time (in arbitrary units, starting at 0)
         x_sofar = np.zeros(n_x) # keep track of cues (x) observed so far
         
@@ -220,19 +220,19 @@ class model:
         tau2_x = sim_pars['prior_tau2_x']*np.ones((n_t + 1, n_z, n_x))
         nu_x = sim_pars['prior_nu_x']*np.ones((n_t + 1, n_z, n_x))
         # prior for y parameters
-        tau1_y = np.zeros((n_t + 1, n_z, n_u))
-        tau2_y = sim_pars['prior_tau2_y']*np.ones((n_t + 1, n_z, n_u))
-        nu_y = sim_pars['prior_nu_y']*np.ones((n_t + 1, n_z, n_u))
+        tau1_y = np.zeros((n_t + 1, n_z, n_y))
+        tau2_y = sim_pars['prior_tau2_y']*np.ones((n_t + 1, n_z, n_y))
+        nu_y = sim_pars['prior_nu_y']*np.ones((n_t + 1, n_z, n_y))
         
         E_log_prior = np.zeros((n_t, n_z))
         E_log_lik_x = np.zeros((n_t, n_z))
         E_log_lik_y = np.zeros((n_t, n_z))
-        est_mu_x = np.zeros((n_t, n_z, n_x))
+        est_my_x = np.zeros((n_t, n_z, n_x))
         prior_E_eta2_x = -(sim_pars['prior_nu_x']*(sim_pars['prior_nu_x'] + 3))/(2*sim_pars['prior_nu_x']*sim_pars['prior_tau2_x'])
         est_sigma_x = (1/np.sqrt(-2*prior_E_eta2_x))*np.ones((n_t, n_z, n_x))
-        est_mu_y = np.zeros((n_t, n_z, n_u))
+        est_my_y = np.zeros((n_t, n_z, n_y))
         E_eta2_y = -(sim_pars['prior_nu_y']*(sim_pars['prior_nu_y'] + 3))/(2*sim_pars['prior_nu_y']*sim_pars['prior_tau2_y'])
-        est_sigma_y = (1/np.sqrt(-2*E_eta2_y))*np.ones((n_t, n_z, n_u))
+        est_sigma_y = (1/np.sqrt(-2*E_eta2_y))*np.ones((n_t, n_z, n_y))
         z = np.zeros((n_t), dtype = int) # hard latent cause assignments
         z_onehot = np.zeros((n_t, n_z)) # one hot representation of z, i.e. winner is 1 and all others are 0
         n = np.zeros((n_t + 1, n_z)) # estimated number of observations assigned to each latent cause
@@ -249,13 +249,13 @@ class model:
         
         # run calculations for first time step
         x_sofar[x[0, :] > 0] = 1 # keep track of cues observed so far
-        b_hat[0, :] = sim_resp_fun(u_hat[0, :], u_psb[0, :], sim_pars['resp_scale']) # response
+        b_hat[0, :] = sim_resp_fun(y_hat[0, :], y_psb[0, :], sim_pars['resp_scale']) # response
         phi_x[0, 0] = 1
         phi[0, 0] = 1
         tau1_x[1, 0, :] = tau1_x[0, 0, :] + x_sofar*x[0, :]
         tau2_x[1, 0, :] = tau2_x[0, 0, :] + x_sofar*(x[0, :]**2)
-        tau1_y[1, 0, :] = tau1_y[0, 0, :] + u_psb[0, :]*u[0, :]
-        tau2_y[1, 0, :] = tau2_y[0, 0, :] + u_psb[0, :]*(u[0, :]**2)
+        tau1_y[1, 0, :] = tau1_y[0, 0, :] + y_psb[0, :]*y[0, :]
+        tau2_y[1, 0, :] = tau2_y[0, 0, :] + y_psb[0, :]*(y[0, :]**2)
         n[1, 0] = n[0, 0] + 1
         z[0] = 0
         z_onehot[0, 0] = 1
@@ -277,9 +277,9 @@ class model:
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
             E_eta1_x = (nu_x[t, ind_n1, :] + 3)*tau1_x[t, ind_n1, :]/(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2)
             E_eta2_x = -(nu_x[t, ind_n1, :]*(nu_x[t, ind_n1, :] + 3))/(2*(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2))
-            est_mu_x[t, ind_n1, :] = -E_eta1_x/(2*E_eta2_x)
+            est_my_x[t, ind_n1, :] = -E_eta1_x/(2*E_eta2_x)
             est_sigma_x[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_x)
-            Ell_cues = stats.norm.logpdf(x[t, :], est_mu_x[t, ind_n1], est_sigma_x[t, ind_n1])
+            Ell_cues = stats.norm.logpdf(x[t, :], est_my_x[t, ind_n1], est_sigma_x[t, ind_n1])
             E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
@@ -298,17 +298,17 @@ class model:
             new_phi_x = s/s.sum()
             phi_x[t, ind_n] = new_phi_x[ind_n]
                                            
-            # predict y (recall that 'y' = 'u')
+            # predict y
             E_eta1_y = (nu_y[t, ind_n1, :] + 3)*tau1_y[t, ind_n1, :]/(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2)
             E_eta2_y = -(nu_y[t, ind_n1, :]*(nu_y[t, ind_n1, :] + 3))/(2*(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2))
-            est_mu_y[t, ind_n1, :] = -E_eta1_y/(2*E_eta2_y)
-            u_hat[t, :] = u_psb[t, :]*np.sum(new_phi_x.reshape((N_zt, 1))*est_mu_y[t, ind_n1], axis = 0)
-            b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
+            est_my_y[t, ind_n1, :] = -E_eta1_y/(2*E_eta2_y)
+            y_hat[t, :] = y_psb[t, :]*np.sum(new_phi_x.reshape((N_zt, 1))*est_my_y[t, ind_n1], axis = 0)
+            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
 
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
             est_sigma_y[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_y)
-            Ell_outcomes = stats.norm.logpdf(u[t, :], est_mu_y[t, ind_n1], est_sigma_y[t, ind_n1])
-            E_log_lik_y[t, ind_n1] = np.sum(u_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
+            Ell_outcomes = stats.norm.logpdf(y[t, :], est_my_y[t, ind_n1], est_sigma_y[t, ind_n1])
+            E_log_lik_y[t, ind_n1] = np.sum(y_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
             # compute phi
             s_xy = np.exp(E_log_lik_x[t, ind_n1] + E_log_lik_y[t, ind_n1] + E_log_prior[t, ind_n1])
@@ -329,9 +329,9 @@ class model:
             tau1_x[t + 1, :, :] = tau1_x[t, :, :] + x_sofar*np.outer(phi_learn, x[t, :])
             tau2_x[t + 1, :, :] = tau2_x[t, :, :] + x_sofar*np.outer(phi_learn, x[t, :]**2)
             nu_x[t + 1, :, :] = nu_x[t, :, :] + np.outer(phi_learn, x_sofar)
-            tau1_y[t + 1, :, :] = tau1_y[t, :, :] + u_psb[t, :]*np.outer(phi_learn, u[t, :])
-            tau2_y[t + 1, :, :] = tau2_y[t, :, :] + u_psb[t, :]*np.outer(phi_learn, u[t, :]**2)
-            nu_y[t + 1, :, :] = nu_y[t, :, :] + np.outer(phi_learn, u_psb[t, :])
+            tau1_y[t + 1, :, :] = tau1_y[t, :, :] + y_psb[t, :]*np.outer(phi_learn, y[t, :])
+            tau2_y[t + 1, :, :] = tau2_y[t, :, :] + y_psb[t, :]*np.outer(phi_learn, y[t, :]**2)
+            nu_y[t + 1, :, :] = nu_y[t, :, :] + np.outer(phi_learn, y_psb[t, :])
             n[t + 1, :] = n[t, :] + phi_learn
             
         # generate simulated responses
@@ -340,27 +340,27 @@ class model:
         else:
             rng = np.random.default_rng()
             if resp_type == 'choice':
-                b = np.zeros((n_t, n_u))
+                b = np.zeros((n_t, n_y))
                 for t in range(n_t):
-                    choice = rng.choice(n_u, p = b_hat[t, :])
+                    choice = rng.choice(n_y, p = b_hat[t, :])
                     b[t, choice] = 1
             else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
+                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
         ds = ds.assign_coords({'z_name' : np.array(range(n_z), dtype = str), 'ident' : [ident]})
-        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
-                        'u_lrn' : (['t', 'u_name'], u_lrn),
-                        'u_hat' : (['t', 'u_name'], u_hat),
-                        'b_hat' : (['t', 'u_name'], b_hat),
-                        'b' : (['t', 'u_name'], b),
-                        'est_mu_x' : (['t', 'z_name', 'x_name'], est_mu_x),
+        ds = ds.assign({'y_psb' : (['t', 'y_name'], y_psb),
+                        'y_lrn' : (['t', 'y_name'], y_lrn),
+                        'y_hat' : (['t', 'y_name'], y_hat),
+                        'b_hat' : (['t', 'y_name'], b_hat),
+                        'b' : (['t', 'y_name'], b),
+                        'est_my_x' : (['t', 'z_name', 'x_name'], est_my_x),
                         'est_sigma_x' : (['t', 'z_name', 'x_name'], est_sigma_x),
                         'est_precision_x' : (['t', 'z_name', 'x_name'], 1/est_sigma_x**2),
-                        'est_mu_y' : (['t', 'z_name', 'u_name'], est_mu_y),
-                        'est_sigma_y' : (['t', 'z_name', 'u_name'], est_sigma_y),
-                        'est_precision_y' : (['t', 'z_name', 'u_name'], 1/est_sigma_y**2),
+                        'est_my_y' : (['t', 'z_name', 'y_name'], est_my_y),
+                        'est_sigma_y' : (['t', 'z_name', 'y_name'], est_sigma_y),
+                        'est_precision_y' : (['t', 'z_name', 'y_name'], 1/est_sigma_y**2),
                         'n' : (['t', 'z_name'], n[0:-1, :]),
                         'z' : (['t'], z),
                         'phi_x' : (['t', 'z_name'], phi_x),
@@ -433,16 +433,16 @@ class model:
             
         # set stuff up
         x = np.array(trials['x'], dtype = 'float64')
-        u = np.array(trials['u'], dtype = 'float64')
-        u_psb = np.array(trials['u_psb'], dtype = 'float64')
-        u_lrn = np.array(trials['u_lrn'], dtype = 'float64')
+        y = np.array(trials['y'], dtype = 'float64')
+        y_psb = np.array(trials['y_psb'], dtype = 'float64')
+        y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         x_names = list(trials.x_name.values)
-        u_names = list(trials.u_name.values)
+        y_names = list(trials.y_name.values)
         n_t = x.shape[0] # number of time points
         n_x = x.shape[1] # number of stimulus attributes
-        n_u = u.shape[1] # number of outcomes/response options
-        u_hat = np.zeros((n_t, n_u)) # outcome predictions
-        b_hat = np.zeros((n_t, n_u)) # expected behavior
+        n_y = y.shape[1] # number of outcomes/response options
+        y_hat = np.zeros((n_t, n_y)) # outcome predictions
+        b_hat = np.zeros((n_t, n_y)) # expected behavior
         time = trials['time'].values # real world time (in arbitrary units, starting at 0)
         x_sofar = np.zeros(n_x) # keep track of cues (x) observed so far
         
@@ -453,9 +453,9 @@ class model:
         tau2_x = sim_pars['prior_tau2_x']*np.ones((n_p, n_z, n_x))
         nu_x = sim_pars['prior_nu_x']*np.ones((n_p, n_z, n_x))
         # prior for y parameters
-        tau1_y = np.zeros((n_p, n_z, n_u))
-        tau2_y = sim_pars['prior_tau2_y']*np.ones((n_p, n_z, n_u))
-        nu_y = sim_pars['prior_nu_y']*np.ones((n_p, n_z, n_u))
+        tau1_y = np.zeros((n_p, n_z, n_y))
+        tau2_y = sim_pars['prior_tau2_y']*np.ones((n_p, n_z, n_y))
+        nu_y = sim_pars['prior_nu_y']*np.ones((n_p, n_z, n_y))
         # other data
         z = np.zeros(n_p, dtype=int) # latent cause assigments
         z_onehot = np.zeros((n_p, n_t, n_z)) # one hot representation of z, i.e. winner is 1 and all others are 0
@@ -478,13 +478,13 @@ class model:
         
         # run calculations for first time step
         x_sofar[x[0, :] > 0] = 1 # keep track of cues observed so far
-        b_hat[0, :] = sim_resp_fun(u_hat[0, :], u_psb[0, :], sim_pars['resp_scale']) # response (u_hat initially is always 0)
+        b_hat[0, :] = sim_resp_fun(y_hat[0, :], y_psb[0, :], sim_pars['resp_scale']) # response (y_hat initially is always 0)
         tau1_x[:, 0, :] += x_sofar*x[0, :]
         tau2_x[:, 0, :] += x_sofar*x[0, :]**2
         nu_x[:, 0, :] += x_sofar
-        tau1_y[:, 0, :] += u_psb[0, :]*u[0, :]
-        tau2_y[:, 0, :] += u_psb[0, :]*u[0, :]**2
-        nu_y[:, 0, :] += u_psb[0, :]
+        tau1_y[:, 0, :] += y_psb[0, :]*y[0, :]
+        tau2_y[:, 0, :] += y_psb[0, :]*y[0, :]**2
+        nu_y[:, 0, :] += y_psb[0, :]
         n[:, 0] += 1
         z_onehot[:, 0, 0] = 1
         z[:] = 0
@@ -495,7 +495,7 @@ class model:
             old_z = z # previous latent cause
             z = np.zeros(n_p, dtype=int) # current latent cause
             x_sofar[x[t, :] > 0] = 1 # keep track of cues observed so far
-            u_hat_p = np.zeros((n_p, n_u)) # y (i.e. u) predictions for each particle
+            y_hat_p = np.zeros((n_p, n_y)) # y predictions for each particle
             lik_x = np.zeros(n_p)
             lik_y = np.zeros(n_p)
             ineq = np.zeros(n_p) # rough measure of 'inequality' among latent causes
@@ -529,40 +529,36 @@ class model:
                 
                 # compute p(x_n | z_n = t, eta) (likelihood of x)
                 df_x = nu_x[p, z[p], :] + 3
-                mu_x = tau1_x[p, z[p], :]/nu_x[p, z[p], :]
-                #alpha_x = (nu_x[p, z[p], :] + 3)/2
+                my_x = tau1_x[p, z[p], :]/nu_x[p, z[p], :]
                 beta_x = (nu_x[p, z[p], :]*tau2_x[p, z[p], :] - tau1_x[p, z[p], :]**2)/(2*nu_x[p, z[p], :])
-                #sigma_x = np.sqrt((beta_x*(nu_x[p, z[p], :] + 1))/(nu_x[p, z[p], :]*alpha_x))
                 sigma_x = np.sqrt(2*beta_x/df_x)
-                ll_x = stats.t.logpdf(x[t, :], df_x, mu_x, sigma_x)
+                ll_x = stats.t.logpdf(x[t, :], df_x, my_x, sigma_x)
                 lik_x[p] = np.exp(np.sum(x_sofar*ll_x)) # assumed independent -> add log_lik across cues
 
-                # predict y (recall that 'y' = 'u')
-                mu_y = tau1_y[p, z[p], :]/nu_y[p, z[p], :]
-                u_hat_p[p, :] = u_psb[t, :]*mu_y
+                # predict y
+                my_y = tau1_y[p, z[p], :]/nu_y[p, z[p], :]
+                y_hat_p[p, :] = y_psb[t, :]*my_y
 
                 # compute p(y_n | z_n = t, eta) (likelihood of y)
                 df_y = nu_y[p, z[p], :] + 3
-                #alpha_y = (nu_y[p, z[p], :] + 3)/2
                 beta_y = (nu_y[p, z[p], :]*tau2_y[p, z[p], :] - tau1_y[p, z[p], :]**2)/(2*nu_y[p, z[p], :])
-                #sigma_y = np.sqrt((beta_y*(nu_y[p, z[p], :] + 1))/(nu_y[p, z[p], :]*alpha_y))
                 sigma_y = np.sqrt(2*beta_y/df_y)
-                ll_y = stats.t.logpdf(u[t, :], df_y, mu_y, sigma_y)
-                lik_y[p] = np.exp(np.sum(u_psb[t, :]*ll_y)) # assumed independent -> add log_lik across outcomes
+                ll_y = stats.t.logpdf(y[t, :], df_y, my_y, sigma_y)
+                lik_y[p] = np.exp(np.sum(y_psb[t, :]*ll_y)) # assumed independent -> add log_lik across outcomes
                 
                 # learning (update hyperparameters)
                 tau1_x[p, z[p], :] += x_sofar*x[t, :]
                 tau2_x[p, z[p], :] += x_sofar*x[t, :]**2
                 nu_x[p, z[p], :] += x_sofar
-                tau1_y[p, z[p], :] += u_psb[t, :]*u[t, :]
-                tau2_y[p, z[p], :] += u_psb[t, :]*u[t, :]**2
-                nu_y[p, z[p], :] += u_psb[t, :]
+                tau1_y[p, z[p], :] += y_psb[t, :]*y[t, :]
+                tau2_y[p, z[p], :] += y_psb[t, :]*y[t, :]**2
+                nu_y[p, z[p], :] += y_psb[t, :]
                 n[p, z[p]] += 1
                 
             # after looping through particles, average their predictions together and compute b_hat
             pred_weights = lik_x/lik_x.sum()
-            u_hat[t, :] = np.mean(u_hat_p*np.repeat(pred_weights, n_u).reshape((n_p, n_u)), axis = 0)
-            b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
+            y_hat[t, :] = np.mean(y_hat_p*np.repeat(pred_weights, n_y).reshape((n_p, n_y)), axis = 0)
+            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             
             # record summary statistics about latent causes across particles
             mean_N[t] = np.mean(N) # mean number of latent causes per particle
@@ -589,21 +585,21 @@ class model:
         else:
             rng = np.random.default_rng()
             if resp_type == 'choice':
-                b = np.zeros((n_t, n_u))
+                b = np.zeros((n_t, n_y))
                 for t in range(n_t):
-                    choice = rng.choice(n_u, p = b_hat[t, :])
+                    choice = rng.choice(n_y, p = b_hat[t, :])
                     b[t, choice] = 1
             else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
+                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
         ds = ds.assign_coords({'z_name' : np.array(range(n_t), dtype = str), 'ident' : [ident]})
-        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
-                        'u_lrn' : (['t', 'u_name'], u_lrn),
-                        'u_hat' : (['t', 'u_name'], u_hat),
-                        'b_hat' : (['t', 'u_name'], b_hat),
-                        'b' : (['t', 'u_name'], b),
+        ds = ds.assign({'y_psb' : (['t', 'y_name'], y_psb),
+                        'y_lrn' : (['t', 'y_name'], y_lrn),
+                        'y_hat' : (['t', 'y_name'], y_hat),
+                        'b_hat' : (['t', 'y_name'], b_hat),
+                        'b' : (['t', 'y_name'], b),
                         'mean_N': ('t', mean_N),
                         'sd_N': ('t', sd_N),
                         'mean_ineq': ('t', mean_ineq)})

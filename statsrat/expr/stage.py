@@ -40,13 +40,13 @@ class stage:
         Should have one list for each trial type of integers
         specifying the number of times each trial type is
         presented during each repetition (i.e. block).
-    u : list
+    y : list
         Should have one list for each trial type of strings
         specifying the outcomes for each trial type.
-    u_psb : list
+    y_psb : list
         Strings specifying outcomes the learner considers
         possible during the stage.
-    u_value : series (Pandas) or None, optional
+    y_value : series (Pandas) or None, optional
         Indicates the value or intensity of each outcome, e.g.
         varying amounts of money, shock or food.
     lrn : logical
@@ -63,7 +63,7 @@ class stage:
         that outcomes cannot occur during the ITI, as in most
         human category learning experiments.
     """
-    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, u = None, u_psb = None, u_value = None, lrn = True, order = None, order_fixed = False, iti = 0):
+    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, y = None, y_psb = None, y_value = None, lrn = True, order = None, order_fixed = False, iti = 0):
         """
         Parameters
         ----------
@@ -87,15 +87,15 @@ class stage:
             type is presented during each repetition (i.e. block).
             Defaults to None, which produces equal trial frequencies
             (if order is None) or else is determined by the order argument.
-        u : list or None, optional
+        y : list or None, optional
             List of lists: should have one list for each trial type of strings
             specifying the outcomes for each trial type.  Defaults to None,
             which means no US.
-        u_psb : list or None, optional
+        y_psb : list or None, optional
             Strings specifying outcomes the learner considers
             possible during the stage.  Defaults to None, which
             means that all outcomes are considered possible.
-        u_value : Series (Pandas) or None, optional
+        y_value : Series (Pandas) or None, optional
             Indicates the value or intensity of each outcome, e.g.
             varying amounts of money, shock or food.  Series values
             should be floats and the series index should be the names
@@ -174,28 +174,28 @@ class stage:
             self.order_fixed = True
         self.n_t = n_rep*np.sum(self.freq*(1 + iti)) # number of time steps
         self.n_trial = len(self.order)
-        # set u
-        if u is None:
-            self.u = self.n_trial_type*[[]]
+        # set y
+        if y is None:
+            self.y = self.n_trial_type*[[]]
         else:
-            self.u = u
-        # set u_psb
-        if (u_psb is None) and not (u is None):
-            # automatically make all outcomes possible if u_psb is not specified
-            u_names = []
-            for trial_type in u:
-                u_names += trial_type
-            self.u_psb = list(np.unique(u_names))
+            self.y = y
+        # set y_psb
+        if (y_psb is None) and not (y is None):
+            # automatically make all outcomes possible if y_psb is not specified
+            y_names = []
+            for trial_type in y:
+                y_names += trial_type
+            self.y_psb = list(np.unique(y_names))
         else:
-            # set u_psb as specified by the user
-            self.u_psb = list(u_psb)
-        # set u_value
-        n_u = len(self.u_psb)
-        if (u_value is None) and not (u is None):
-            # automatically make all outcomes have a value if 1.0 if u_value is not specified
-            self.u_value = pd.Series(n_u*[1.0], index = self.u_psb)
+            # set y_psb as specified by the user
+            self.y_psb = list(y_psb)
+        # set y_value
+        n_y = len(self.y_psb)
+        if (y_value is None) and not (y is None):
+            # automatically make all outcomes have a value if 1.0 if y_value is not specified
+            self.y_value = pd.Series(n_y*[1.0], index = self.y_psb)
         else:
-            # set u_value as specified by the user
-            self.u_value = u_value
+            # set y_value as specified by the user
+            self.y_value = y_value
         self.lrn = lrn
         self.iti = iti

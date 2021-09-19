@@ -151,30 +151,30 @@ class model:
 
         # set stuff up
         x = np.array(trials['x'], dtype = 'float64')
-        u = np.array(trials['u'], dtype = 'float64')
-        u_psb = np.array(trials['u_psb'], dtype = 'float64')
-        u_lrn = np.array(trials['u_lrn'], dtype = 'float64')
+        y = np.array(trials['y'], dtype = 'float64')
+        y_psb = np.array(trials['y_psb'], dtype = 'float64')
+        y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         x_names = list(trials.x_name.values)
-        u_names = list(trials.u_name.values)
+        y_names = list(trials.y_name.values)
         (fbase, f_names) = self.fbase(x, x_names).values() # features and feature names
         n_t = fbase.shape[0] # number of time points
         n_x = x.shape[1] # number of cues/stimulus elements
         n_f = fbase.shape[1] # number of features
-        n_u = u.shape[1] # number of outcomes/response options
+        n_y = y.shape[1] # number of outcomes/response options
         fweight = np.zeros((n_t, n_f))
         f_x = np.zeros((n_t, n_f))
-        u_hat = np.zeros((n_t, n_u)) # outcome predictions
-        b_hat = np.zeros((n_t, n_u)) # expected behavior
-        delta = np.zeros((n_t, n_u)) # prediction error
-        w = np.zeros((n_t + 1, n_f, n_u))
-        lrate = np.zeros((n_t, n_f, n_u))
-        drate = np.zeros((n_t, n_f, n_u))
+        y_hat = np.zeros((n_t, n_y)) # outcome predictions
+        b_hat = np.zeros((n_t, n_y)) # expected behavior
+        delta = np.zeros((n_t, n_y)) # prediction error
+        w = np.zeros((n_t + 1, n_f, n_y))
+        lrate = np.zeros((n_t, n_f, n_y))
+        drate = np.zeros((n_t, n_f, n_y))
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
         else:
             x_dims = None
-        aux = self.aux(sim_pars, n_t, n_x, n_f, n_u, f_names, x_dims)
+        aux = self.aux(sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims)
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -186,13 +186,13 @@ class model:
         for t in range(n_t):
             fweight[t, :] = self.fweight(aux, t, fbase, fweight, n_f, sim_pars)
             f_x[t, :] = fbase[t, :]*fweight[t, :] # weight base features
-            u_hat[t, :] = self.pred(u_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
-            b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
-            delta[t, :] = u[t, :] - u_hat[t, :] # prediction error
-            aux.update(sim_pars, n_u, n_f, t, fbase, fweight, f_x[t, :], u_psb, u_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
-            lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_u, sim_pars) # learning rates for this time step
-            drate[t, :, :] = self.drate(aux, t, w, n_f, n_u, sim_pars) # decay rates for this time step
-            w[t+1, :, :] = w[t, :, :] + u_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_u)) - drate[t, :, :]*w[t, :, :] # association learning
+            y_hat[t, :] = self.pred(y_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
+            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
+            delta[t, :] = y[t, :] - y_hat[t, :] # prediction error
+            aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
+            lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
+            drate[t, :, :] = self.drate(aux, t, w, n_f, n_y, sim_pars) # decay rates for this time step
+            w[t+1, :, :] = w[t, :, :] + y_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_y)) - drate[t, :, :]*w[t, :, :] # association learning
 
         # generate simulated responses
         if random_resp is False:
@@ -200,28 +200,28 @@ class model:
         else:
             rng = np.random.default_rng()
             if resp_type == 'choice':
-                b = np.zeros((n_t, n_u))
+                b = np.zeros((n_t, n_y))
                 for t in range(n_t):
-                    choice = rng.choice(n_u, p = b_hat[t, :])
+                    choice = rng.choice(n_y, p = b_hat[t, :])
                     b[t, choice] = 1
             else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
+                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
         ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
-        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
-                        'u_lrn' : (['t', 'u_name'], u_lrn),
+        ds = ds.assign({'y_psb' : (['t', 'y_name'], y_psb),
+                        'y_lrn' : (['t', 'y_name'], y_lrn),
                         'fbase' : (['t', 'f_name'], fbase),
                         'fweight' : (['t', 'f_name'], fweight),
                         'f_x' : (['t', 'f_name'], f_x),
-                        'u_hat' : (['t', 'u_name'], u_hat),
-                        'b_hat' : (['t', 'u_name'], b_hat),
-                        'b' : (['t', 'u_name'], b),
-                        'w' : (['t', 'f_name', 'u_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
-                        'delta' : (['t', 'u_name'], delta),
-                        'lrate' : (['t', 'f_name', 'u_name'], lrate),
-                        'drate' : (['t', 'f_name', 'u_name'], drate)})
+                        'y_hat' : (['t', 'y_name'], y_hat),
+                        'b_hat' : (['t', 'y_name'], b_hat),
+                        'b' : (['t', 'y_name'], b),
+                        'w' : (['t', 'f_name', 'y_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
+                        'delta' : (['t', 'y_name'], delta),
+                        'lrate' : (['t', 'f_name', 'y_name'], lrate),
+                        'drate' : (['t', 'f_name', 'y_name'], drate)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class' : 'rw',
                               'sim_pars' : sim_pars})
@@ -235,6 +235,8 @@ par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['lrate_min']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.1}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
+par_names += ['lrate_atn0']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
+par_names += ['lrate_atn1']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
 par_names += ['drate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}] # decay rate for attention
 par_names += ['lrate_tau']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}] # for tdrva
 par_names += ['tau0']; par_list += [{'min': 0.01, 'max': 1.0, 'default': 0.5}] # for tdrva
@@ -244,7 +246,7 @@ par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
 par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis
 par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
-par_names += ['u_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
+par_names += ['y_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
 par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 pars = pd.DataFrame(par_list, index = par_names)

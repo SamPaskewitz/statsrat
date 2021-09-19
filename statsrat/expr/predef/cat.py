@@ -36,7 +36,7 @@ design = expr.schedule(resp_type = 'choice',
                             u_psb = ['cat3', 'cat4'],
                             lrn = False,
                             n_rep = 2)},
-                   x_dims = {'non-threat': ['alpha', 'beta', 'theta', 'phi', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry': ['t1', 't2', 't3', 't4', 't5', 't6']})
+                   x_dims = {'fruits': ['alpha', 'beta', 'theta', 'phi'], 'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})
 
 rel_irl = expr.oat(schedule_pos = ['design'],
                     behav_score_pos = expr.behav_score(stage = 'test',

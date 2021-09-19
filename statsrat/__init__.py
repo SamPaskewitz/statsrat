@@ -783,10 +783,16 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     if len(idents_to_drop) > 0:
         df = df.drop(idents_to_drop)
         
-    # record information about the optimization algorithm and length of optimization time per person
+    # record information about the model, optimization algorithm and length of optimization time per person
+    df['model'] = model.name
     df['global_time'] = global_time
     df['local_time'] = local_time
     df['algorithm'] = nlopt.algorithm_name(algorithm)
+    
+    # if performing maximum likelihood estimation, then add some columns
+    if tau is None:
+        df['log_lik'] = df['prop_log_post'] # log likelihood
+        df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)
     
     return df
 

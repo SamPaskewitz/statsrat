@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
-from . import sim, rtrv, atn_update, u_ex_update
+from . import sim, rtrv, atn_update, y_ex_update
 
 class model:
     '''
@@ -19,7 +19,7 @@ class model:
         Determines retrieval strength based on similarity.
     atn_update: function
         Determines how attention is updated.
-    u_ex_update: function
+    y_ex_update: function
         Determines how exemplar associations are updated.
     par_names: list
         Names of the model's free parameters (strings).
@@ -59,7 +59,7 @@ class model:
 
     '''
     
-    def __init__(self, name, sim, rtrv, atn_update, u_ex_update):
+    def __init__(self, name, sim, rtrv, atn_update, y_ex_update):
         """
         Parameters
         ----------
@@ -71,7 +71,7 @@ class model:
             Determines retrieval strength based on similarity.
         atn_update: function
             Determines how attention is updated.
-        u_ex_update: function
+        y_ex_update: function
             Determines how exemplar associations are updated.
         """
         # add attributes to object ('self')
@@ -79,9 +79,9 @@ class model:
         self.sim = sim
         self.rtrv = rtrv
         self.atn_update = atn_update
-        self.u_ex_update = u_ex_update
+        self.y_ex_update = y_ex_update
         # determine model's parameter space
-        self.par_names = list(np.unique(sim.par_names + rtrv.par_names + atn_update.par_names + u_ex_update.par_names))
+        self.par_names = list(np.unique(sim.par_names + rtrv.par_names + atn_update.par_names + y_ex_update.par_names))
         self.pars = pars.loc[self.par_names + ['resp_scale']]
         
     def simulate(self, trials, par_val = None, init_atn = 1.0, random_resp = False, ident = 'sim'):
@@ -152,25 +152,25 @@ class model:
 
         # set stuff up
         x = np.array(trials['x'], dtype = 'float64')
-        u = np.array(trials['u'], dtype = 'float64')
-        u_psb = np.array(trials['u_psb'], dtype = 'float64')
-        u_lrn = np.array(trials['u_lrn'], dtype = 'float64')
+        y = np.array(trials['y'], dtype = 'float64')
+        y_psb = np.array(trials['y_psb'], dtype = 'float64')
+        y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         ex = trials['ex'].values
         x_ex = trials.x_ex # exemplar locations
         x_names = list(trials.x_name.values) # cue names
-        u_names = list(trials.u_name.values) # outcome names
+        y_names = list(trials.y_name.values) # outcome names
         ex_names = list(trials.ex_names) # exemplar names
         n_t = x.shape[0] # number of time points
         n_x = x.shape[1] # number of features
-        n_u = u.shape[1] # number of outcomes/response options
+        n_y = y.shape[1] # number of outcomes/response options
         n_ex = len(ex_names) # number of exemplars
         sim = np.zeros((n_t, n_ex)) # similarity to exemplars
         rtrv = np.zeros((n_t, n_ex)) # exemplar retrieval strength
-        u_ex = np.zeros((n_t + 1, n_ex, n_u)) # outcomes (u) associated with each exemplar
+        y_ex = np.zeros((n_t + 1, n_ex, n_y)) # outcomes (u) associated with each exemplar
         atn = np.zeros((n_t + 1, n_ex, n_x)) # attention (can be different for each exemplar, but doesn't need to be)
         atn[0, :, :] = init_atn
-        u_hat = np.zeros((n_t, n_u)) # outcome predictions
-        b_hat = np.zeros((n_t, n_u)) # expected behavior
+        y_hat = np.zeros((n_t, n_y)) # outcome predictions
+        b_hat = np.zeros((n_t, n_y)) # expected behavior
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
@@ -191,10 +191,10 @@ class model:
             ex_counts[ex[t]] += 1            
             sim[t, :] = ex_seen_yet*self.sim(x[t, :], x_ex, atn[t, :, :], sim_pars) # similarity
             rtrv[t, :] = self.rtrv(sim[t, :], ex_counts, ex_seen_yet, sim_pars) # retrieval strength
-            u_hat[t, :] = rtrv[t, :]@(u_psb[t, :]*u_ex[t, :, :]) # prediction
-            b_hat[t, :] = sim_resp_fun(u_hat[t, :], u_psb[t, :], sim_pars['resp_scale']) # response
-            u_ex[t + 1, :, :] = u_ex[t, :, :] + self.u_ex_update(sim[t, :], rtrv[t, :], u[t, :], u_hat[t, :], u_lrn[t, :], u_ex[t, :], ex_counts, n_ex, n_u, sim_pars) # update u_ex
-            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], x[t, :], u[t, :], u_psb[t, :], rtrv[t, :], u_hat[t, :], u_lrn[t, :], x_ex.values, u_ex[t, :, :], n_x, n_u, ex_seen_yet, ex_counts, n_ex, sim_pars) # update attention
+            y_hat[t, :] = rtrv[t, :]@(y_psb[t, :]*y_ex[t, :, :]) # prediction
+            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
+            y_ex[t + 1, :, :] = y_ex[t, :, :] + self.y_ex_update(sim[t, :], rtrv[t, :], y[t, :], y_hat[t, :], y_lrn[t, :], y_ex[t, :], ex_counts, n_ex, n_y, sim_pars) # update y_ex
+            atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], x[t, :], y[t, :], y_psb[t, :], rtrv[t, :], y_hat[t, :], y_lrn[t, :], x_ex.values, y_ex[t, :, :], n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars) # update attention
             
         # generate simulated responses
         if random_resp is False:
@@ -202,22 +202,22 @@ class model:
         else:
             rng = np.random.default_rng()
             if resp_type == 'choice':
-                b = np.zeros((n_t, n_u))
+                b = np.zeros((n_t, n_y))
                 for t in range(n_t):
-                    choice = rng.choice(n_u, p = b_hat[t, :])
+                    choice = rng.choice(n_y, p = b_hat[t, :])
                     b[t, choice] = 1
             else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_u))
+                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
         ds = ds.assign_coords({'ex_name' : ex_names, 'ident' : [ident]})
-        ds = ds.assign({'u_psb' : (['t', 'u_name'], u_psb),
-                        'u_lrn' : (['t', 'u_name'], u_lrn),
-                        'u_hat' : (['t', 'u_name'], u_hat),
-                        'b_hat' : (['t', 'u_name'], b_hat),
-                        'b' : (['t', 'u_name'], b),
-                        'u_ex' : (['t', 'ex_name', 'u_name'], u_ex[range(n_t), :, :]), # remove unnecessary last row
+        ds = ds.assign({'y_psb' : (['t', 'y_name'], y_psb),
+                        'y_lrn' : (['t', 'y_name'], y_lrn),
+                        'y_hat' : (['t', 'y_name'], y_hat),
+                        'b_hat' : (['t', 'y_name'], b_hat),
+                        'b' : (['t', 'y_name'], b),
+                        'y_ex' : (['t', 'ex_name', 'y_name'], y_ex[range(n_t), :, :]), # remove unnecessary last row
                         'atn': (['t', 'ex_name', 'x_name'], atn[range(n_t), :, :]),
                         'sim': (['t', 'ex_name'], sim),
                         'rtrv': (['t', 'ex_name'], rtrv)})

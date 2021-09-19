@@ -16,40 +16,40 @@ class linear:
     '''
     Suitable for real valued outcomes.
     '''
-    def __init__(self, n_u, n_f):
+    def __init__(self, n_y, n_f):
         pass
         
-    def u_hat(self, z_hat, u_psb, f_x, hpar1_w):
+    def y_hat(self, z_hat, y_psb, f_x, hpar1_w):
         return z_hat
     
-    def mean_z(self, z_hat, u, u_psb):
-        return u
-linear.par_names = ['u_var']
+    def mean_z(self, z_hat, y, y_psb):
+        return y
+linear.par_names = ['y_var']
     
 class probit:
     '''
     Suitable for binary outcomes.
     '''
-    def __init__(self, n_u, n_f):
-        self.n_u = n_u
+    def __init__(self, n_y, n_f):
+        self.n_y = n_y
         self.id_matrix = np.diag(np.ones(n_f)) # identity matrix
         
-    def u_hat(self, z_hat, u_psb, f_x, hpar1_w):
-        u_hat = np.zeros(self.n_u)
-        for j in range(self.n_u):
+    def y_hat(self, z_hat, y_psb, f_x, hpar1_w):
+        y_hat = np.zeros(self.n_y)
+        for j in range(self.n_y):
             Sigma = solve(hpar1_w[:, :, j], self.id_matrix, assume_a = 'pos') # variance matrix (inverse of hpar1_w)
             pred_sd = np.sqrt(1 + np.inner(f_x@Sigma, f_x)) # predictive SD for u
-            u_hat[j] = u_psb[j]*stats.norm.cdf(z_hat[j]/pred_sd)
-        return u_hat
+            y_hat[j] = y_psb[j]*stats.norm.cdf(z_hat[j]/pred_sd)
+        return y_hat
     
-    def mean_z(self, z_hat, u, u_psb):
-        mean_z = np.zeros(self.n_u)
-        for j in range(self.n_u):
-            calculate = u_psb[j] == 1
+    def mean_z(self, z_hat, y, y_psb):
+        mean_z = np.zeros(self.n_y)
+        for j in range(self.n_y):
+            calculate = y_psb[j] == 1
             if calculate:
                 phi = stats.norm.pdf(-z_hat[j])
                 PHI = stats.norm.cdf(-z_hat[j])
-                if u[j] == 1:
+                if y[j] == 1:
                     mean_z[j] = z_hat[j] + phi/(1 - PHI)
                 else:
                     mean_z[j] = z_hat[j] - phi/PHI
@@ -60,26 +60,26 @@ class multinomial_probit:
     '''
     Suitable for categorical outcomes.
     '''
-    def __init__(self, n_u, n_f):
-        self.n_u = n_u
+    def __init__(self, n_y, n_f):
+        self.n_y = n_y
         
-    def u_hat(self, z_hat, u_psb, f_x, hpar1_w):
+    def y_hat(self, z_hat, y_psb, f_x, hpar1_w):
         # This isn't the real predictive distribution for now, but whatever.
-        u_hat = np.ones(self.n_u)
-        for j in range(self.n_u):
-            for k in range(self.n_u):
+        y_hat = np.ones(self.n_y)
+        for j in range(self.n_y):
+            for k in range(self.n_y):
                 if not k == j:
-                    u_hat[j] *= stats.norm.cdf((z_hat[j] - z_hat[k])/np.sqrt(2))
-        return u_hat
+                    y_hat[j] *= stats.norm.cdf((z_hat[j] - z_hat[k])/np.sqrt(2))
+        return y_hat
         
-    def mean_z(self, z_hat, u, u_psb):
+    def mean_z(self, z_hat, y, y_psb):
         # Run a little coordinate ascent iteration to get variational means.
-        mean_z = u_psb*z_hat # initialize to the means of the non-truncated distributions (as a first guess)
-        winner = np.argmax(u) # index of the outcome, i.e. of the z that must be the largest
+        mean_z = y_psb*z_hat # initialize to the means of the non-truncated distributions (as a first guess)
+        winner = np.argmax(y) # index of the outcome, i.e. of the z that must be the largest
         for i in range(3):
             # Update variational means of the other outcomes.
-            for j in range(self.n_u):
-                calculate = u_psb[j] == 1
+            for j in range(self.n_y):
+                calculate = y_psb[j] == 1
                 if (not j == winner) and calculate:
                     phi = stats.norm.pdf(mean_z[winner] - z_hat[j])
                     PHI = stats.norm.cdf(mean_z[winner] - z_hat[j])

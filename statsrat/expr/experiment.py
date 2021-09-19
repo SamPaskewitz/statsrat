@@ -201,7 +201,7 @@ class experiment:
         integers rather than floats.
         
         The 'correct' variable encodes whether participant behavior ('b') matched
-        the outcome ('u').  It is only really valid for category learning and similar
+        the outcome ('y').  It is only really valid for category learning and similar
         experiments, and does not mean anything for stages without feedback (i.e. test stages).
         
         Participant IDs (called 'ident') should be unique.  Any duplicates will be modified by
@@ -301,14 +301,14 @@ class experiment:
             if not file_set[i] in (did_not_work_read + did_not_work_ident + did_not_work_misc):   
                 try:
                     # **** determine b (response) from raw data ****
-                    b = xr.DataArray(0, coords = [range(scd.n_t), scd.u_names], dims = ['t', 'u_name']) # observed responses
+                    b = xr.DataArray(0, coords = [range(scd.n_t), scd.u_names], dims = ['t', 'y_name']) # observed responses
                     for m in range(scd.n_t):
                         for k in range(n_rc):
                             if pd.notna(raw.loc[m, resp_col[k]]):
                                 raw_u_name = raw.loc[m, resp_col[k]].lower()
                                 assert raw_u_name in resp_map.keys(), 'raw data response name "{}" is not found in "resp_map" (trial {})'.format(raw_u_name, m)
                                 mapped_u_name = resp_map[raw_u_name]
-                                b.loc[{'t' : m, 'u_name' : mapped_u_name}] = 1
+                                b.loc[{'t' : m, 'y_name' : mapped_u_name}] = 1
                 except Exception as e:
                     print(e)
                     did_not_work_b += [file_set[i]]
@@ -368,7 +368,7 @@ class experiment:
                         ds_other = xr.Dataset(data_vars = other_dict, coords = {'ident': [ident]})
                         ds_new = ds_new.merge(ds_other)
                     # **** code each trial as correct (u matches b) or incorrect ****
-                    u = ds_new['u'].squeeze()
+                    u = ds_new['y'].squeeze()
                     b = ds_new['b'].squeeze()
                     correct = np.all(u == b, axis = 1)
                     ds_new = ds_new.assign(correct = correct)
@@ -418,7 +418,7 @@ class experiment:
             print('There was a problem merging individual datasets together.')
             
         # **** create summary data frame (each row corresponds to a participant) ****
-        summary = ds.drop_dims(['t', 'x_name', 'u_name']).to_dataframe()
+        summary = ds.drop_dims(['t', 'x_name', 'y_name']).to_dataframe()
         # **** add pct_correct ****
         for st in scd.stages:
             not_test = scd.stages[st].lrn
