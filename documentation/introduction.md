@@ -77,7 +77,7 @@ These functions can be divided into three categories:
 ##### Plotting
 It is often very useful to plot simulation data.  Such plots can not only display simulated behavior over time (i.e. classic learning curves) but also model representations of attention, associations, memory retrieval and so on (depending on the particular model in question).  *statsrat* has two built in functions to make such plots quickly and conveniently (they are based on the *plotnine* package, which in turn is based on *ggplot2* for R).  The *learn_plot* function is for plotting data from a single individual dataset, while *multi_plot* is for comparing different datasets.  See the relevant documenation for each function for more details.
 
-##### Ordinal adequacy tests (OATs)
+##### Performing Ordinal adequacy tests (OATs)
 WRITE THIS
 
 ##### Importing behavioral data

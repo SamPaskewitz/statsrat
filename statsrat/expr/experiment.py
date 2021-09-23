@@ -301,14 +301,14 @@ class experiment:
             if not file_set[i] in (did_not_work_read + did_not_work_ident + did_not_work_misc):   
                 try:
                     # **** determine b (response) from raw data ****
-                    b = xr.DataArray(0, coords = [range(scd.n_t), scd.u_names], dims = ['t', 'y_name']) # observed responses
+                    b = xr.DataArray(0, coords = [range(scd.n_t), scd.y_names], dims = ['t', 'y_name']) # observed responses
                     for m in range(scd.n_t):
                         for k in range(n_rc):
                             if pd.notna(raw.loc[m, resp_col[k]]):
-                                raw_u_name = raw.loc[m, resp_col[k]].lower()
-                                assert raw_u_name in resp_map.keys(), 'raw data response name "{}" is not found in "resp_map" (trial {})'.format(raw_u_name, m)
-                                mapped_u_name = resp_map[raw_u_name]
-                                b.loc[{'t' : m, 'y_name' : mapped_u_name}] = 1
+                                raw_y_name = raw.loc[m, resp_col[k]].lower()
+                                assert raw_y_name in resp_map.keys(), 'raw data response name "{}" is not found in "resp_map" (trial {})'.format(raw_y_name, m)
+                                mapped_y_name = resp_map[raw_y_name]
+                                b.loc[{'t' : m, 'y_name' : mapped_y_name}] = 1
                 except Exception as e:
                     print(e)
                     did_not_work_b += [file_set[i]]

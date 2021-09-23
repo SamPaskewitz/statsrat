@@ -28,36 +28,36 @@ n_rep_test = 5
 
 training = expr.stage(x_pn = [['cs1'], ['cs2']],
                       x_bg = ['ctx_a'],
-                      u = 2*[['us']],
-                      u_psb = ['us'],
+                      y = 2*[['us']],
+                      y_psb = ['us'],
                       order_fixed = True,
                       iti = iti,
                       n_rep = n_rep_train)
 
 extinction_cs1 = expr.stage(x_pn = [['cs1']],
                             x_bg = ['ctx_b1'],
-                            u_psb = ['us'],
+                            y_psb = ['us'],
                             order_fixed = True,
                             iti = iti,
                             n_rep = n_rep_extn)
 
 extinction_cs2 = expr.stage(x_pn = [['cs2']],
                             x_bg = ['ctx_b2'],
-                            u_psb = ['us'],
+                            y_psb = ['us'],
                             order_fixed = True,
                             iti = iti,
                             n_rep = n_rep_extn)
 
 test_same = expr.stage(x_pn = [['cs1']],
                        x_bg = ['ctx_b1'],
-                       u_psb = ['us'],
+                       y_psb = ['us'],
                        order_fixed = True,
                        iti = iti,
                        n_rep = n_rep_test)
 
 test_different = expr.stage(x_pn = [['cs1']],
                             x_bg = ['ctx_b2'],
-                            u_psb = ['us'],
+                            y_psb = ['us'],
                             order_fixed = True,
                             iti = iti,
                             n_rep = n_rep_test)

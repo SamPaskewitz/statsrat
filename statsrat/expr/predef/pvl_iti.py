@@ -26,146 +26,146 @@ n_rep_no_stim = 10
 
 no_stim_stage = expr.stage(x_pn = [[]],
                            x_bg = ['ctx'],
-                           u_psb = ['us'],
+                           y_psb = ['us'],
                            order_fixed = True,
                            iti = 0,
                            n_rep = n_rep_no_stim)
 
 no_stim_ctx_a_stage = expr.stage(x_pn = [[]],
                                  x_bg = ['ctx_a'],
-                                 u_psb = ['us'],
+                                 y_psb = ['us'],
                                  order_fixed = True,
                                  iti = 0,
                                  n_rep = n_rep_no_stim)
 
 test_stage = expr.stage(x_pn = [['cs']],
                         x_bg = ['ctx'],
-                        u_psb = ['us'],
+                        y_psb = ['us'],
                         order_fixed = True,
                         iti = iti,
                         n_rep = n_rep_test)
 
 test_cs2_stage = expr.stage(x_pn = [['cs2']],
                             x_bg = ['ctx'],
-                            u_psb = ['us'],
+                            y_psb = ['us'],
                             order_fixed = False,
                             iti = iti,
                             n_rep = n_rep_test)
 
 test_ctx_a_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_a'],
-                              u_psb = ['us'],
+                              y_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_test)
 
 test_ctx_b_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_b'],
-                              u_psb = ['us'],
+                              y_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_test)
 
 test_ctx_c_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_c'],
-                              u_psb = ['us'],
+                              y_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_test)
 
 delay_stage = expr.stage(x_pn = [[]],
                          x_bg = ['home_cage'],
-                         u_psb = ['us'],
+                         y_psb = ['us'],
                          order_fixed = True,
                          iti = 0,
                          n_rep = 400)
 
 one_cue_stage = expr.stage(x_pn = [['cs1']],
                            x_bg = ['ctx'],
-                           u = [['us']],
-                           u_psb = ['us'],
+                           y = [['us']],
+                           y_psb = ['us'],
                            order_fixed = False, 
                            iti = iti,
                            n_rep = n_rep_train)
 
 two_cue_stage = expr.stage(x_pn = [['cs1', 'cs2']],
                            x_bg = ['ctx'],
-                           u = [['us']],
-                           u_psb = ['us'],
+                           y = [['us']],
+                           y_psb = ['us'],
                            order_fixed = False, 
                            iti = iti,
                            n_rep = n_rep_train)
 
 pre_exp_stage = expr.stage(x_pn = [['cs']],
                            x_bg = ['ctx'],
-                           u_psb = ['us'],
+                           y_psb = ['us'],
                            order_fixed = True,
                            iti = iti,
                            n_rep = n_rep_pre_exp)
 
 pre_exp_ctx_a_stage = expr.stage(x_pn = [['cs']],
                                  x_bg = ['ctx_a'],
-                                 u_psb = ['us'],
+                                 y_psb = ['us'],
                                  order_fixed = True,
                                  iti = iti,
                                  n_rep = n_rep_pre_exp)
 
 training_stage = expr.stage(x_pn = [['cs']],
                             x_bg = ['ctx'],
-                            u = [['us']],
-                            u_psb = ['us'],
+                            y = [['us']],
+                            y_psb = ['us'],
                             order_fixed = True,
                             iti = iti,
                             n_rep = n_rep_train)
 
 training_ctx_a_stage = expr.stage(x_pn = [['cs']],
                                   x_bg = ['ctx_a'],
-                                  u = [['us']],
-                                  u_psb = ['us'],
+                                  y = [['us']],
+                                  y_psb = ['us'],
                                   order_fixed = True,
                                   iti = iti,
                                   n_rep = n_rep_train)
 
 training_ctx_b_stage = expr.stage(x_pn = [['cs']],
                                   x_bg = ['ctx_b'],
-                                  u = [['us']],
-                                  u_psb = ['us'],
+                                  y = [['us']],
+                                  y_psb = ['us'],
                                   order_fixed = True,
                                   iti = iti,
                                   n_rep = n_rep_train)
 
 extn_stage = expr.stage(x_pn = [['cs']],
                         x_bg = ['ctx'],
-                        u_psb = ['us'],
+                        y_psb = ['us'],
                         order_fixed = True,
                         iti = iti,
                         n_rep = n_rep_extn)
 
 extn_ctx_a_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_a'],
-                              u_psb = ['us'],
+                              y_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_extn)
 
 extn_ctx_b_stage = expr.stage(x_pn = [['cs']],
                               x_bg = ['ctx_b'],
-                              u_psb = ['us'],
+                              y_psb = ['us'],
                               order_fixed = True,
                               iti = iti,
                               n_rep = n_rep_extn)
 
 extra_us_stage = expr.stage(x_pn = [[]],
                             x_bg = ['ctx'],
-                            u = [['us']],
-                            u_psb = ['us'],
+                            y = [['us']],
+                            y_psb = ['us'],
                             order_fixed = True,
                             iti = iti,
                             n_rep = n_rep_train)
 
 extra_us_ctl_stage = expr.stage(x_pn = [[]],
                                 x_bg = ['ctx'],
-                                u_psb = ['us'],
+                                y_psb = ['us'],
                                 order_fixed = True,
                                 iti = 0,
                                 n_rep = (iti + 1)*n_rep_train)

@@ -8,32 +8,32 @@ design = expr.schedule(resp_type = 'choice',
                   stages = {
                       'tutorial_0a': expr.stage(
                             x_pn = [['alpha'], ['beta']],
-                            u = [['cati'], ['catii']],
-                            u_psb = ['cati', 'catii'],
+                            y = [['cati'], ['catii']],
+                            y_psb = ['cati', 'catii'],
                             n_rep = 6),
                       'tutorial_0b': expr.stage(
                             x_pn = [['alpha'], ['beta']],
-                            u = [['cati'], ['catii']],
-                            u_psb = ['cati', 'catii'],
+                            y = [['cati'], ['catii']],
+                            y_psb = ['cati', 'catii'],
                             n_rep = 6),
                       'tutorial_0c': expr.stage(
                             x_pn = [['alpha', 'theta'], ['beta', 'theta'], ['alpha', 'phi'], ['beta', 'phi']],
-                            u = 2*[['cati'], ['catii']],
-                            u_psb = ['cati', 'catii'],
+                            y = 2*[['cati'], ['catii']],
+                            y_psb = ['cati', 'catii'],
                             n_rep = 6),
                       'relevance': expr.stage(
                             x_pn = [['b1', 't1'], ['b1', 't2'], ['b2', 't1'], ['b2', 't2'], ['t3', 'b3'], ['t3', 'b4'], ['t4', 'b3'], ['t4', 'b4']],
-                            u = 2*[['cat1'], ['cat1'], ['cat2'], ['cat2']],
-                            u_psb = ['cat1', 'cat2'],
+                            y = 2*[['cat1'], ['cat1'], ['cat2'], ['cat2']],
+                            y_psb = ['cat1', 'cat2'],
                             n_rep = 12),
                       'transfer': expr.stage(
                             x_pn = [['t5', 'b5'], ['t6', 'b6'], ['t1', 'b1'], ['t2', 'b2'], ['t3', 'b3'], ['t4', 'b4']],
-                            u = 3*[['cat3'], ['cat4']],
-                            u_psb = ['cat3', 'cat4'],
+                            y = 3*[['cat3'], ['cat4']],
+                            y_psb = ['cat3', 'cat4'],
                             n_rep = 8),
                       'test': expr.stage(
                             x_pn = [['t5', 'b6'], ['t6', 'b5'], ['t1', 'b2'], ['t2', 'b1'], ['t3', 'b4'], ['t4', 'b3']],
-                            u_psb = ['cat3', 'cat4'],
+                            y_psb = ['cat3', 'cat4'],
                             lrn = False,
                             n_rep = 2)},
                    x_dims = {'fruits': ['alpha', 'beta', 'theta', 'phi'], 'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})
@@ -94,12 +94,12 @@ design = expr.schedule(resp_type = 'choice',
                       'training': expr.stage(
                             freq = [3, 1, 3, 1],
                             x_pn = [['i1', 'pc1'], ['i1', 'pr1'], ['i2', 'pc2'], ['i2', 'pr2']],
-                            u = [['c1'], ['r1'], ['c2'], ['r2']],
-                            u_psb = ['c1', 'r1', 'c2', 'r2'],
+                            y = [['c1'], ['r1'], ['c2'], ['r2']],
+                            y_psb = ['c1', 'r1', 'c2', 'r2'],
                             n_rep = 15),
                       'test': expr.stage(
                             x_pn = [['pc1'], ['pr1'], ['pc2'], ['pr2'], ['pc1', 'pr1'], ['pc2', 'pr2']],
-                            u_psb = ['c1', 'r1', 'c2', 'r2'],
+                            y_psb = ['c1', 'r1', 'c2', 'r2'],
                             lrn = False,
                             n_rep = 2)
                   })
@@ -122,17 +122,17 @@ design = expr.schedule(resp_type = 'choice',
                   stages = {
                       'training': expr.stage(
                             x_pn = [['a', 'v'], ['b', 'v'], ['a', 'w'], ['b', 'w'], ['c', 'x'], ['d', 'x'], ['c', 'y'], ['d', 'y']],
-                            u = 4*[['cat1'], ['cat2']],
-                            u_psb = ['cat1', 'cat2'],
+                            y = 4*[['cat1'], ['cat2']],
+                            y_psb = ['cat1', 'cat2'],
                             n_rep = 14),
                       'transfer': expr.stage(
                             x_pn = [['a', 'x'], ['b', 'y'], ['c', 'v'], ['d', 'w'], ['e', 'f'], ['g', 'h'], ['i', 'j'], ['k', 'l']],
-                            u = 4*[['cat3'], ['cat4']],
-                            u_psb = ['cat3', 'cat4'],
+                            y = 4*[['cat3'], ['cat4']],
+                            y_psb = ['cat3', 'cat4'],
                             n_rep = 4),
                       'test': expr.stage(
                             x_pn = [['a', 'c'], ['b', 'd'], ['v', 'x'], ['w', 'y'], ['e', 'h'], ['f', 'g'], ['i', 'j'], ['k', 'l']],
-                            u_psb = ['cat3', 'cat4'],
+                            y_psb = ['cat3', 'cat4'],
                             lrn = False,
                             n_rep = 1)
                   })
@@ -156,38 +156,38 @@ design = expr.schedule(resp_type = 'choice',
                   stages = {
                       '0a': expr.stage(
                             x_pn = [['alpha'], ['beta']],
-                            u = [['cati'], ['catii']],
-                            u_psb = ['cati', 'catii'],
+                            y = [['cati'], ['catii']],
+                            y_psb = ['cati', 'catii'],
                             n_rep = 6),
                       '0b': expr.stage(
                             x_pn = [['alpha'], ['beta']],
-                            u = [['cati'], ['catii']],
-                            u_psb = ['cati', 'catii'],
+                            y = [['cati'], ['catii']],
+                            y_psb = ['cati', 'catii'],
                             n_rep = 4),
                       '0c': expr.stage(
                             x_pn = [['alpha', 'theta'], ['beta', 'theta'], ['alpha', 'phi'], ['beta', 'phi']],
-                            u = 2*[['cati'], ['catii']],
-                            u_psb = ['cati', 'catii'],
+                            y = 2*[['cati'], ['catii']],
+                            y_psb = ['cati', 'catii'],
                             n_rep = 4),
                       '0_test': expr.stage(
                             x_pn = [['alpha', 'theta'], ['beta', 'theta'], ['alpha', 'phi'], ['beta', 'phi']],
-                            u_psb = ['cati', 'catii'],
+                            y_psb = ['cati', 'catii'],
                             lrn = False,
                             n_rep = 1),
                       'training': expr.stage(
                             x_pn = [['a', 'v'], ['b', 'v'], ['a', 'w'], ['b', 'w']],
-                            u = 2*[['cat1'], ['cat2']],
-                            u_psb = ['cat1', 'cat2'],
+                            y = 2*[['cat1'], ['cat2']],
+                            y_psb = ['cat1', 'cat2'],
                             n_rep = 12),
                       'transfer': expr.stage(
                             x_pn = [['a', 'v'], ['b', 'w'], ['e', 'f'], ['g', 'h']],
-                            u = 2*[['cat3'], ['cat4']],
-                            u_psb = ['cat3', 'cat4'],
+                            y = 2*[['cat3'], ['cat4']],
+                            y_psb = ['cat3', 'cat4'],
                             n_rep = 8),
                       'test': expr.stage(
                             freq = 2*[2] + 10*[1],
                             x_pn = [['a', 'w'], ['b', 'v'], ['a', 'g'], ['h', 'v'], ['e', 'b'], ['f', 'w'], ['a', 'h'], ['g', 'v'], ['b', 'f'], ['e', 'w']],
-                            u_psb = 2*['cat3', 'cat4'],
+                            y_psb = 2*['cat3', 'cat4'],
                             lrn = False,
                             n_rep = 1)
                   })
@@ -204,22 +204,22 @@ design = expr.schedule(resp_type = 'choice',
                   stages = {
                       'overshadowing': expr.stage(
                             x_pn = [['t1', 'b1'], ['t2', 'b2'], ['t3', 'b3'], ['t4', 'b4']],
-                            u = [['cat_c'], ['cat_c'], ['cat_m'], ['cat_m']],
-                            u_psb = ['cat_c', 'cat_m'],
+                            y = [['cat_c'], ['cat_c'], ['cat_m'], ['cat_m']],
+                            y_psb = ['cat_c', 'cat_m'],
                             n_rep = 8),
                       'os_test': expr.stage(
                             x_pn = [['t1', 'b3'], ['t1', 'b4'], ['t2', 'b3'], ['t2', 'b4'], ['t3', 'b1'], ['t3', 'b2'], ['t4', 'b1'], ['t4', 'b2']],
-                            u_psb = ['cat_c', 'cat_m'],
+                            y_psb = ['cat_c', 'cat_m'],
                             lrn = False,
                             n_rep = 1),
                       'attenuation': expr.stage(
                             x_pn = [['c1', 'b1'], ['c2', 'b2'], ['c3', 'b3'], ['c4', 'b4']],
-                            u = [['cat_s'], ['cat_r'], ['cat_s'], ['cat_r']],
-                            u_psb = ['cat_s', 'cat_r'],
+                            y = [['cat_s'], ['cat_r'], ['cat_s'], ['cat_r']],
+                            y_psb = ['cat_s', 'cat_r'],
                             n_rep = 8),
                       'at_test': expr.stage(
                             x_pn = [['c1', 'b2'], ['c1', 'b4'], ['c2', 'b1'], ['c2', 'b3'], ['c3', 'b2'], ['c3', 'b4'], ['c4', 'b1'], ['c4', 'b3']],
-                            u_psb = ['cat_s', 'cat_r'],
+                            y_psb = ['cat_s', 'cat_r'],
                             lrn = False,
                             n_rep = 1)
                   })

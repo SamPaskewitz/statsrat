@@ -12,12 +12,12 @@ design = expr.schedule(resp_type = 'choice',
                       'training': expr.stage(
                             freq = [3, 1, 3, 1],
                             x_pn = [['i1', 'pc1'], ['i1', 'pr1'], ['i2', 'pc2'], ['i2', 'pr2']],
-                            u = [['c1'], ['r1'], ['c2'], ['r2']],
-                            u_psb = ['c1', 'r1', 'c2', 'r2'],
+                            y = [['c1'], ['r1'], ['c2'], ['r2']],
+                            y_psb = ['c1', 'r1', 'c2', 'r2'],
                             n_rep = 15),
                       'test': expr.stage(
                             x_pn = [['pc1'], ['pr1'], ['pc2'], ['pr2'], ['pc1', 'pr1'], ['pc2', 'pr2']],
-                            u_psb = ['c1', 'r1', 'c2', 'r2'],
+                            y_psb = ['c1', 'r1', 'c2', 'r2'],
                             lrn = False,
                             n_rep = 2)
                   })
@@ -47,12 +47,12 @@ standard = expr.schedule(resp_type = 'choice',
                               'training': expr.stage(
                                     freq = 4*[3, 1],
                                     x_pn = [['i1', 'pc1'], ['i1', 'pr1'], ['i2', 'pc2'], ['i2', 'pr2'], ['i3', 'pc3'], ['i3', 'pr3'], ['i4', 'pc4'], ['i4', 'pr4']],
-                                    u = 4*[['o1'], ['o2']],
-                                    u_psb = ['o1', 'o2'],
+                                    y = 4*[['o1'], ['o2']],
+                                    y_psb = ['o1', 'o2'],
                                     n_rep = 6),
                               'test': expr.stage(
                                     x_pn = [['pc1', 'pr1'], ['pc2', 'pr2'], ['pc3', 'pr3'], ['pc4', 'pr4']],
-                                    u_psb = ['o1', 'o2'],
+                                    y_psb = ['o1', 'o2'],
                                     lrn = False,
                                     n_rep = 1)
                           })
@@ -62,12 +62,12 @@ balanced = expr.schedule(resp_type = 'choice',
                               'training': expr.stage(
                                     freq = 4*[3, 1],
                                     x_pn = [['i1', 'pc1'], ['i1', 'pr1'], ['i2', 'pc2'], ['i2', 'pr2'], ['i3', 'pc3'], ['i3', 'pr3'], ['i4', 'pc4'], ['i4', 'pr4']],
-                                    u = 2*[['o1'], ['o2'], ['o2'], ['o1']],
-                                    u_psb = ['o1', 'o2'],
+                                    y = 2*[['o1'], ['o2'], ['o2'], ['o1']],
+                                    y_psb = ['o1', 'o2'],
                                     n_rep = 6),
                               'test': expr.stage(
                                     x_pn = [['pc1', 'pr1'], ['pc2', 'pr2'], ['pc3', 'pr3'], ['pc4', 'pr4']],
-                                    u_psb = ['o1', 'o2'],
+                                    y_psb = ['o1', 'o2'],
                                     lrn = False,
                                     n_rep = 1)
                           })
