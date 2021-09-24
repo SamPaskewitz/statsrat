@@ -1,18 +1,8 @@
 import numpy as np
 from scipy.special import softmax
+from scipy import stats
 
-'''
-Response functions that transform outcome predictions (u_hat)
-into observed behavior.
-
-choice: Response probabilities for discrete choices using a softmax function.
-
-exct: Excitatory responses for Pavlovian conditioning (logistic function).
-
-supr: Suppression of ongoing behavior as a Pavlovian response, i.e. inhibitory conditioning (logistic function).
-'''
-
-def choice(u_hat, u_psb, resp_scale):
+def choice(y_hat, y_psb, resp_scale):
     '''
     Response probabilities for discrete choices using a softmax function.
     
@@ -23,11 +13,11 @@ def choice(u_hat, u_psb, resp_scale):
 
     :math:`\phi` represents the 'resp_scale' parameter.
     '''
-    foo = softmax(resp_scale*u_hat)
-    bar = u_psb*foo
+    foo = softmax(resp_scale*y_hat)
+    bar = y_psb*foo
     return bar/bar.sum()
       
-def exct(u_hat, u_psb, resp_scale):
+def exct(y_hat, y_psb, resp_scale):
     '''
     Excitatory responses for Pavlovian conditioning (logistic function).
     
@@ -38,9 +28,9 @@ def exct(u_hat, u_psb, resp_scale):
 
     :math:`\phi` represents the 'resp_scale' parameter.
     '''
-    return softmax(np.append(resp_scale*u_hat, 0))[0]
+    return softmax(np.append(resp_scale*y_hat, 0))[0]
     
-def supr(u_hat, u_psb, resp_scale):
+def supr(y_hat, y_psb, resp_scale):
     '''
     Suppression of ongoing behavior as a Pavlovian response, i.e. inhibitory conditioning (logistic function).
     
@@ -51,4 +41,26 @@ def supr(u_hat, u_psb, resp_scale):
 
     :math:`\phi` represents the 'resp_scale' parameter.
     '''
-    return softmax(np.append(-resp_scale*u_hat, 0))[0]
+    return softmax(np.append(-resp_scale*y_hat, 0))[0]
+
+def generate_responses(b_hat, random_resp, resp_type):
+    '''
+    Generate simulated responses.
+    '''
+    n_t = b_hat.shape[0]
+    n_y = b_hat.shape[1]
+    if random_resp is False:
+        b = b_hat
+        b_index = None
+    else: 
+        if resp_type == 'choice':
+            rng = np.random.default_rng()
+            b = np.zeros((n_t, n_y))
+            b_index = np.zeros(n_t, dtype = 'int')
+            for t in range(n_t):
+                b_index[t] = rng.choice(n_y, p = b_hat[t, :])
+                b[t, b_index[t]] = 1
+        else:
+            b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
+            b_index = None
+    return (b, b_index)

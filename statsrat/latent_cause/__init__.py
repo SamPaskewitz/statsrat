@@ -134,7 +134,7 @@ class model:
         -------
         ds: dataset
             Simulation data.
-            
+        
         Notes
         -----
         The .simulate() method is just a wrapper for the .local_vb() and
@@ -186,6 +186,30 @@ class model:
         -------
         ds: dataset
             Simulation data.
+            
+        Explanation of variables in ds
+        ------------------------------
+        y_psb: indicator vector for outcomes (y) that are possible on the trial (from the learner's perspective)
+        y_lrn: indicator vector for outcomes (y) for which there is feedback and hence learning will occur
+        y_hat: outcome predictions
+        b_hat: expected value of behavioral response
+        b: vector representing actual behavioral response (identical to b_hat unless the random_resp argument is set to True)
+        est_mu_x: estimated mean of x
+        est_sigma_x: estimated standard deviation of x
+        est_precision_x: estimated precision of x
+        est_mu_y: estimated mean of y
+        est_sigma_y: estimated standard deviation of y
+        est_precision_y: estimated precision of y
+        n: estimated number of observations assigned to each latent cause
+        z: hard latent cause assignments
+        phi_x: posterior of latent causes after observing x, but before observing y
+        phi: posterior of latent causes after observing both x and y
+        N: estimated number of latent causes
+        E_log_prior: expected log-prior for latent causes
+        E_log_lik_x: expected log-likelihood of x for latent causes
+        E_log_lik_y: expected log-likelihood of y for latent causes
+        b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
+        b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
         '''
         
         # use default parameters unless others are given
@@ -227,10 +251,10 @@ class model:
         E_log_prior = np.zeros((n_t, n_z))
         E_log_lik_x = np.zeros((n_t, n_z))
         E_log_lik_y = np.zeros((n_t, n_z))
-        est_my_x = np.zeros((n_t, n_z, n_x))
+        est_mu_x = np.zeros((n_t, n_z, n_x))
         prior_E_eta2_x = -(sim_pars['prior_nu_x']*(sim_pars['prior_nu_x'] + 3))/(2*sim_pars['prior_nu_x']*sim_pars['prior_tau2_x'])
         est_sigma_x = (1/np.sqrt(-2*prior_E_eta2_x))*np.ones((n_t, n_z, n_x))
-        est_my_y = np.zeros((n_t, n_z, n_y))
+        est_mu_y = np.zeros((n_t, n_z, n_y))
         E_eta2_y = -(sim_pars['prior_nu_y']*(sim_pars['prior_nu_y'] + 3))/(2*sim_pars['prior_nu_y']*sim_pars['prior_tau2_y'])
         est_sigma_y = (1/np.sqrt(-2*E_eta2_y))*np.ones((n_t, n_z, n_y))
         z = np.zeros((n_t), dtype = int) # hard latent cause assignments
@@ -238,8 +262,8 @@ class model:
         n = np.zeros((n_t + 1, n_z)) # estimated number of observations assigned to each latent cause
         N = np.zeros(n_t + 1, dtype=int) # estimated number of latent causes
         N[[0, 1]] = 1
-        phi_x = np.zeros((n_t, n_z)) # posterior of latent causes after observing x, but before observing u
-        phi = np.zeros((n_t, n_z)) # posterior of latent causes after observing both x and y (i.e. u)
+        phi_x = np.zeros((n_t, n_z)) # posterior of latent causes after observing x, but before observing y
+        phi = np.zeros((n_t, n_z)) # posterior of latent causes after observing both x and y
                          
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -277,9 +301,9 @@ class model:
             # compute Eq[log p(x_n | z_n = t, eta)] (expected log-likelihood of x)
             E_eta1_x = (nu_x[t, ind_n1, :] + 3)*tau1_x[t, ind_n1, :]/(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2)
             E_eta2_x = -(nu_x[t, ind_n1, :]*(nu_x[t, ind_n1, :] + 3))/(2*(nu_x[t, ind_n1, :]*tau2_x[t, ind_n1, :] - tau1_x[t, ind_n1, :]**2))
-            est_my_x[t, ind_n1, :] = -E_eta1_x/(2*E_eta2_x)
+            est_mu_x[t, ind_n1, :] = -E_eta1_x/(2*E_eta2_x)
             est_sigma_x[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_x)
-            Ell_cues = stats.norm.logpdf(x[t, :], est_my_x[t, ind_n1], est_sigma_x[t, ind_n1])
+            Ell_cues = stats.norm.logpdf(x[t, :], est_mu_x[t, ind_n1], est_sigma_x[t, ind_n1])
             E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
             # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
@@ -301,13 +325,13 @@ class model:
             # predict y
             E_eta1_y = (nu_y[t, ind_n1, :] + 3)*tau1_y[t, ind_n1, :]/(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2)
             E_eta2_y = -(nu_y[t, ind_n1, :]*(nu_y[t, ind_n1, :] + 3))/(2*(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2))
-            est_my_y[t, ind_n1, :] = -E_eta1_y/(2*E_eta2_y)
-            y_hat[t, :] = y_psb[t, :]*np.sum(new_phi_x.reshape((N_zt, 1))*est_my_y[t, ind_n1], axis = 0)
+            est_mu_y[t, ind_n1, :] = -E_eta1_y/(2*E_eta2_y)
+            y_hat[t, :] = y_psb[t, :]*np.sum(new_phi_x.reshape((N_zt, 1))*est_mu_y[t, ind_n1], axis = 0)
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
 
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
             est_sigma_y[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_y)
-            Ell_outcomes = stats.norm.logpdf(y[t, :], est_my_y[t, ind_n1], est_sigma_y[t, ind_n1])
+            Ell_outcomes = stats.norm.logpdf(y[t, :], est_mu_y[t, ind_n1], est_sigma_y[t, ind_n1])
             E_log_lik_y[t, ind_n1] = np.sum(y_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
             # compute phi
@@ -335,17 +359,7 @@ class model:
             n[t + 1, :] = n[t, :] + phi_learn
             
         # generate simulated responses
-        if random_resp is False:
-            b = b_hat
-        else:
-            rng = np.random.default_rng()
-            if trials.resp_type == 'choice':
-                b = np.zeros((n_t, n_y))
-                for t in range(n_t):
-                    choice = rng.choice(n_y, p = b_hat[t, :])
-                    b[t, choice] = 1
-            else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
+        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
@@ -355,10 +369,10 @@ class model:
                         'y_hat' : (['t', 'y_name'], y_hat),
                         'b_hat' : (['t', 'y_name'], b_hat),
                         'b' : (['t', 'y_name'], b),
-                        'est_my_x' : (['t', 'z_name', 'x_name'], est_my_x),
+                        'est_mu_x' : (['t', 'z_name', 'x_name'], est_mu_x),
                         'est_sigma_x' : (['t', 'z_name', 'x_name'], est_sigma_x),
                         'est_precision_x' : (['t', 'z_name', 'x_name'], 1/est_sigma_x**2),
-                        'est_my_y' : (['t', 'z_name', 'y_name'], est_my_y),
+                        'est_mu_y' : (['t', 'z_name', 'y_name'], est_mu_y),
                         'est_sigma_y' : (['t', 'z_name', 'y_name'], est_sigma_y),
                         'est_precision_y' : (['t', 'z_name', 'y_name'], 1/est_sigma_y**2),
                         'n' : (['t', 'z_name'], n[0:-1, :]),
@@ -410,6 +424,19 @@ class model:
         ds: dataset
             Simulation data.
             
+        Explanation of variables in ds
+        ------------------------------
+        y_psb: indicator vector for outcomes (y) that are possible on the trial (from the learner's perspective)
+        y_lrn: indicator vector for outcomes (y) for which there is feedback and hence learning will occur
+        y_hat: outcome predictions
+        b_hat: expected value of behavioral response
+        b: vector representing actual behavioral response (identical to b_hat unless the random_resp argument is set to True)
+        mean_N: mean number of latent causes per particle
+        sd_N: standard deviation of number of latent causes per particle
+        mean_ineq: mean of a rough measure of 'inequality' among latent causes (see code for details)
+        b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
+        b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
+        
         Notes
         -----
         The particle filter algorithm is based on Gershman, Blei and Niv (2010); see the appendix of that paper.
@@ -580,17 +607,7 @@ class model:
             nu_y = nu_y[new_p, :, :]
             
         # generate simulated responses
-        if random_resp is False:
-            b = b_hat
-        else:
-            rng = np.random.default_rng()
-            if trials.resp_type == 'choice':
-                b = np.zeros((n_t, n_y))
-                for t in range(n_t):
-                    choice = rng.choice(n_y, p = b_hat[t, :])
-                    b[t, choice] = 1
-            else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
+        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)

@@ -122,6 +122,25 @@ class model:
         Returns
         -------
         ds : dataset
+        
+        Explanation of variables in ds
+        ------------------------------
+        f_name: feature names
+        y_psb: indicator vector for outcomes (y) that are possible on the trial (from the learner's perspective)
+        y_lrn: indicator vector for outcomes (y) for which there is feedback and hence learning will occur
+        f_x: feature vectors
+        z_hat: predicted latent variable (z) before observing outcome (y)
+        y_hat: outcome predictions
+        b_hat: expected value of behavioral response
+        b: vector representing actual behavioral response (identical to b_hat unless the random_resp argument is set to True)
+        shrink_cond: condition number of the shrinkage matrix
+        mean_tausq_inv: prior/posterior mean of the precision matrix
+        mean_tausq: prior/posterior mean of the variance matrix
+        mean_w: prior/posterior mean of weights (w)
+        var_w: prior/posterior variance of weights (w)
+        mean_wsq: prior/posteriorm mean of squared weights (w**2)
+        b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
+        b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
 
         Notes
         -----
@@ -184,7 +203,7 @@ class model:
         initial_tausq = tausq_inv_dist.mean_tausq()
         for j in range(n_y):
             mean_wsq[0, :, j] = initial_tausq[:, j]
-        z_hat = np.zeros((n_t, n_y)) # predicted latent variable (z) before observing outcome (u)
+        z_hat = np.zeros((n_t, n_y)) # predicted latent variable (z) before observing outcome (y)
         mean_z = np.zeros((n_t, n_y)) # variational mean of the latent variable z (after observing u)
         # determine value of z_var (variance of the latent variable z)
         if 'y_var' in self.pars.index:
@@ -224,7 +243,7 @@ class model:
                     mean_wsq[t:n_t, :, j] = var_w[t, :, j] + mean_w[t, :, j]**2
             # predict u (outcome) and compute b (behavior)
             z_hat[t, :] = y_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # predicted value of latent variable (z)
-            y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (u)
+            y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (y)
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             mean_z[t, :] = link.mean_z(z_hat[t, :], y[t, :], y_psb[t, :]) # mean of z after observing u
             # update sufficient statistics of x and u for estimating w
@@ -236,17 +255,7 @@ class model:
                     sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var
 
         # generate simulated responses
-        if random_resp is False:
-            b = b_hat
-        else:
-            rng = np.random.default_rng()
-            if trials.resp_type == 'choice':
-                b = np.zeros((n_t, n_y))
-                for t in range(n_t):
-                    choice = rng.choice(n_y, p = b_hat[t, :])
-                    b[t, choice] = 1
-            else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
+        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)

@@ -118,6 +118,24 @@ class model:
         -------
         ds: dataset
             Simulation data.
+            
+        Explanation of variables in ds
+        ------------------------------
+        f_name: feature names
+        y_psb: indicator vector for outcomes (y) that are possible on the trial (from the learner's perspective)
+        y_lrn: indicator vector for outcomes (y) for which there is feedback and hence learning will occur
+        fbase: base feature vectors (before weighting)
+        fweight: feature weights
+        f_x: feature vectors
+        y_hat: outcome predictions
+        b_hat: expected value of behavioral response
+        b: vector representing actual behavioral response (identical to b_hat unless the random_resp argument is set to True)
+        w: association weights
+        delta: prediction error
+        lrate: learning rates
+        drate: decay rates
+        b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
+        b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
 
         Notes
         -----
@@ -195,17 +213,7 @@ class model:
             w[t+1, :, :] = w[t, :, :] + y_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_y)) - drate[t, :, :]*w[t, :, :] # association learning
 
         # generate simulated responses
-        if random_resp is False:
-            b = b_hat
-        else:
-            rng = np.random.default_rng()
-            if trials.resp_type == 'choice':
-                b = np.zeros((n_t, n_y))
-                for t in range(n_t):
-                    choice = rng.choice(n_y, p = b_hat[t, :])
-                    b[t, choice] = 1
-            else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
+        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
@@ -226,6 +234,9 @@ class model:
                               'model_class' : 'rw',
                               'sim_pars' : sim_pars})
         ds = aux.add_data(ds) # add extra data from aux
+        if random_resp and trials.resp_type == 'choice':
+            ds = ds.assign({'b_index': (['t'], b_index),
+                            'b_name': (['t'], np.array(y_names)[b_index])})
         
         return ds
 

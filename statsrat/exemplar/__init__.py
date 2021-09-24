@@ -120,6 +120,20 @@ class model:
         ds: dataset
             Simulation data.
 
+        Explanation of variables in ds
+        ------------------------------
+        y_psb: indicator vector for outcomes (y) that are possible on the trial (from the learner's perspective)
+        y_lrn: indicator vector for outcomes (y) for which there is feedback and hence learning will occur
+        y_hat: outcome predictions
+        b_hat: expected value of behavioral response
+        b: vector representing actual behavioral response (identical to b_hat unless the random_resp argument is set to True)
+        y_ex: outcome values (y) associated with each exemplar
+        atn: attention weights for each exemplar
+        sim: similarity between exemplars and the current stimulus (x)
+        rtrv: retrieval strength for exemplars
+        b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
+        b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
+
         Notes
         -----
         The response type is determined by the 'resp_type' attribute of the 'trials' object.
@@ -197,17 +211,7 @@ class model:
             atn[t + 1, :, :] = atn[t, :] + self.atn_update(sim[t, :], x[t, :], y[t, :], y_psb[t, :], rtrv[t, :], y_hat[t, :], y_lrn[t, :], x_ex.values, y_ex[t, :, :], n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars) # update attention
             
         # generate simulated responses
-        if random_resp is False:
-            b = b_hat
-        else:
-            rng = np.random.default_rng()
-            if trials.resp_type == 'choice':
-                b = np.zeros((n_t, n_y))
-                for t in range(n_t):
-                    choice = rng.choice(n_y, p = b_hat[t, :])
-                    b[t, choice] = 1
-            else:
-                b = b_hat + stats.norm.rvs(loc = 0, scale = 0.01, size = (n_t, n_y))
+        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
