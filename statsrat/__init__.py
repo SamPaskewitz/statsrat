@@ -1056,8 +1056,8 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     ds_list = []
     for i in range(n):
         ds_list += [model.simulate(trials_list[i],
-                                   resp_type = 'choice',
                                    par_val = par.loc[i, 'true_par'],
+                                   random_resp = True,
                                    ident = 'sim' + str(i))]
     ds = xr.combine_nested(ds_list, concat_dim = 'ident')
     

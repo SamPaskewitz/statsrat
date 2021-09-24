@@ -199,7 +199,7 @@ class model:
             b = b_hat
         else:
             rng = np.random.default_rng()
-            if resp_type == 'choice':
+            if trials.resp_type == 'choice':
                 b = np.zeros((n_t, n_y))
                 for t in range(n_t):
                     choice = rng.choice(n_y, p = b_hat[t, :])
