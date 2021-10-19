@@ -865,7 +865,7 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     
     # initialize (using MLE, i.e. uniform priors)
     print('\n initial estimation with uniform priors')
-    result = fit_indv(model, ds, None, None, max_time)
+    result = fit_indv(model, ds, None, None, global_time, local_time)
     est_psych_par = np.array(result.loc[:, par_names])
     
     # See the following:

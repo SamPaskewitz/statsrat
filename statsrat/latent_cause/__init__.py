@@ -144,6 +144,8 @@ class model:
         as a wrapper.  The .simulate() method is only present in latent cause
         models in order to interface with the rest of the Statrat package
         (e.g. functions for performing model fitting and OATs).
+        
+        Note on terminology: "cluster" = "latent cause"
         '''
         method_dict = {'local_vb': lambda par_val: self.local_vb(trials, par_val, n_z, random_resp, ident),
                        'particle': lambda par_val: self.particle_filter(trials, par_val, n_z, n_p, random_resp, ident)}
@@ -306,7 +308,7 @@ class model:
             Ell_cues = stats.norm.logpdf(x[t, :], est_mu_x[t, ind_n1], est_sigma_x[t, ind_n1])
             E_log_lik_x[t, ind_n1] = np.sum(x_sofar*Ell_cues, axis = 1) # assumed independent -> add log_lik across cues
             
-            # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior)
+            # approximate Eq[log p(z_n = t | z_1, ..., z_{n-1})] (expected log-prior on cluster membership)
             K = self.kernel(t, N[t], time, sim_pars) # temporal kernel (i.e. decay function for latent causes)
             r = np.sum(K*z_onehot[0:t, ind_n], axis = 0) # recency
             num_old = r[ind_n] # numerator of prior for old clusters
@@ -334,7 +336,7 @@ class model:
             Ell_outcomes = stats.norm.logpdf(y[t, :], est_mu_y[t, ind_n1], est_sigma_y[t, ind_n1])
             E_log_lik_y[t, ind_n1] = np.sum(y_psb[t, :]*Ell_outcomes, axis = 1) # assumed independent -> add log_lik across outcomes
 
-            # compute phi
+            # compute phi (approximate posterior on cluster membership)
             s_xy = np.exp(E_log_lik_x[t, ind_n1] + E_log_lik_y[t, ind_n1] + E_log_prior[t, ind_n1])
             phi[t, ind_n1] = s_xy/s_xy.sum()
                 
@@ -638,7 +640,8 @@ par_names += ['prior_nu_x']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5
 par_names += ['prior_tau2_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['prior_nu_y']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
 par_names += ['stick']; par_list += [{'min': -5.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
-par_names += ['window']; par_list += [{'min': 0.0, 'max': 1000.0, 'default': 100.0, 'description': 'window determining refractory period'}]
+par_names += ['window']; par_list += [{'min': 0.0, 'max': 1000.0, 'default': 100.0, 'description': 'window determining refractory period for kernel'}]
+par_names += ['kernel_asymptote']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.5, 'description': 'asymptote for kernel'}]
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
 
 pars = pd.DataFrame(par_list, index = par_names)

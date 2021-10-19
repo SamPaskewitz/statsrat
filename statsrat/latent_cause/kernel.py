@@ -28,6 +28,14 @@ def power(t, N, time, sim_pars):
     return K
 power.par_names = ['power']
 
+def power_asymptote(t, N, time, sim_pars):
+    '''Power law decay with an asymptote greater than zero.'''
+    K = np.zeros((t, N))
+    for i in range(N):
+        K[:, i] = (time[t] - time[0:t])**(-sim_pars['power']) + sim_pars['kernel_asymptote']
+    return K
+power_asymptote.par_names = ['power', 'kernel_asymptote']
+
 def power_clusters(t, N, time, sim_pars):
     '''
     Power law decay with a different decay rate for each cluster (latent cause).

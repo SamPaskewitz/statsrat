@@ -206,7 +206,7 @@ class model:
             f_x[t, :] = fbase[t, :]*fweight[t, :] # weight base features
             y_hat[t, :] = self.pred(y_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
-            delta[t, :] = y[t, :] - y_hat[t, :] # prediction error
+            delta[t, :] = y_lrn[t, :]*(y[t, :] - y_hat[t, :]) # prediction error
             aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
             lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
             drate[t, :, :] = self.drate(aux, t, w, n_f, n_y, sim_pars) # decay rates for this time step

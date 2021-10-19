@@ -11,7 +11,7 @@ design = expr.schedule(resp_type = 'choice',
                                                         n_rep = 10),
                                 'transfer': expr.stage(x_pn = [['a', 'x'], ['b', 'y']],
                                                        y = [['cat3'], ['cat4']],
-                                                       n_rep = 5),
+                                                       n_rep = 10),
                                 'test': expr.stage(x_pn = [['a', 'y'], ['b', 'x']],
                                                    y_psb = ['cat3', 'cat4'],
                                                    lrn = False,
@@ -31,15 +31,15 @@ del design; del rel_irl_oat
 
 # inattention after blocking
 design = expr.schedule(resp_type = 'choice',
-                  stages = {'single_cue': expr.stage(x_pn = [['a'], ['b']], y = [['cat1'], ['cat2']], n_rep = 10),
-                            'double_cue': expr.stage(x_pn = [['a', 'x'], ['b', 'y']], y = 2*[['cat1'], ['cat2']], n_rep = 10),
-                            'transfer': expr.stage(x_pn = [['a', 'x'], ['b', 'y']], y = [['cat3'], ['cat4']], n_rep = 5),
-                            'inattention_test': expr.stage(x_pn = [['a', 'y'], ['b', 'x']], y_psb = ['cat3', 'cat4'], lrn = False, n_rep = 1)})
+                  stages = {'single_cue': expr.stage(x_pn = [['a'], ['b']], y = [['cat1'], ['cat2']], n_rep = 5),
+                            'double_cue': expr.stage(x_pn = [['a', 'x'], ['b', 'y'], ['e', 'f'], ['g', 'h']], y = 2*[['cat1'], ['cat2']], n_rep = 5),
+                            'transfer': expr.stage(x_pn = [['e', 'y'], ['g', 'x']], y = [['cat3'], ['cat4']], n_rep = 10),
+                            'inattention_test': expr.stage(x_pn = [['e', 'x'], ['g', 'y']], y_psb = ['cat3', 'cat4'], lrn = False, n_rep = 1)})
         
 inattention_oat = expr.oat(schedule_pos = ['design'],
                           behav_score_pos = expr.behav_score(stage = 'inattention_test',
-                                                            trial_pos = ['a.y -> nothing', 'b.x -> nothing'],
-                                                            trial_neg = ['a.y -> nothing', 'b.x -> nothing'],
+                                                            trial_pos = ['e.x -> nothing', 'g.y -> nothing'],
+                                                            trial_neg = ['e.x -> nothing', 'g.y -> nothing'],
                                                             resp_pos = ['cat3', 'cat4'],
                                                             resp_neg = ['cat4', 'cat3']))
 blocking_inattention = expr.experiment(schedules = {'design': design},
@@ -49,15 +49,15 @@ del design; del inattention_oat
 
 # inattention after backward blocking
 design = expr.schedule(resp_type = 'choice',
-                  stages = {'double_cue': expr.stage(x_pn = [['a', 'x'], ['b', 'y']], y = 2*[['cat1'], ['cat2']], n_rep = 10),
-                            'single_cue': expr.stage(x_pn = [['a'], ['b']], y = [['cat1'], ['cat2']], n_rep = 10),
-                            'transfer': expr.stage(x_pn = [['a', 'x'], ['b', 'y']], y = [['cat3'], ['cat4']], n_rep = 5),
-                            'inattention_test': expr.stage(x_pn = [['a', 'y'], ['b', 'x']], y_psb = ['cat3', 'cat4'], lrn = False, n_rep = 1)})
+                  stages = {'double_cue': expr.stage(x_pn = [['a', 'x'], ['b', 'y'], ['e', 'f'], ['g', 'h']], y = 2*[['cat1'], ['cat2']], n_rep = 5),
+                            'single_cue': expr.stage(x_pn = [['a'], ['b']], y = [['cat1'], ['cat2']], n_rep = 5),
+                            'transfer': expr.stage(x_pn = [['e', 'y'], ['g', 'x']], y = [['cat3'], ['cat4']], n_rep = 10),
+                            'inattention_test': expr.stage(x_pn = [['e', 'x'], ['g', 'y']], y_psb = ['cat3', 'cat4'], lrn = False, n_rep = 1)})
         
 inattention_oat = expr.oat(schedule_pos = ['design'],
                           behav_score_pos = expr.behav_score(stage = 'inattention_test',
-                                                            trial_pos = ['a.y -> nothing', 'b.x -> nothing'],
-                                                            trial_neg = ['a.y -> nothing', 'b.x -> nothing'],
+                                                            trial_pos = ['e.x -> nothing', 'g.y -> nothing'],
+                                                            trial_neg = ['e.x -> nothing', 'g.y -> nothing'],
                                                             resp_pos = ['cat3', 'cat4'],
                                                             resp_neg = ['cat4', 'cat3']))
 backward_blocking_inattention = expr.experiment(schedules = {'design': design},
@@ -73,7 +73,7 @@ design = expr.schedule(resp_type = 'choice',
                                                     n_rep = 10),
                                  'transfer': expr.stage(x_pn = [['a', 'd'], ['b', 'c']],
                                                         y = [['cat3'], ['cat4']],
-                                                        n_rep = 5),
+                                                        n_rep = 10),
                                  'test': expr.stage(x_pn = [['a', 'c'], ['b', 'd']],
                                                     y_psb = ['cat3', 'cat4'],
                                                     lrn = False,
@@ -81,8 +81,8 @@ design = expr.schedule(resp_type = 'choice',
 
 value_oat = expr.oat(schedule_pos = ['design'],
                   behav_score_pos = expr.behav_score(stage = 'test',
-                                                    trial_pos = ['a.y -> nothing', 'b.x -> nothing'],
-                                                    trial_neg = ['a.y -> nothing', 'b.x -> nothing'],
+                                                    trial_pos = ['a.c -> nothing', 'b.d -> nothing'],
+                                                    trial_neg = ['a.c -> nothing', 'b.d -> nothing'],
                                                     resp_pos = ['cat3', 'cat4'],
                                                     resp_neg = ['cat4', 'cat3']))
 value = expr.experiment(schedules = {'design': design},
@@ -95,11 +95,11 @@ design = expr.schedule(resp_type = 'choice',
                       stages = {'single_cue': expr.stage(
                                         x_pn = [['a'], ['b']],
                                         y = [['cat1'], ['cat2']],
-                                        n_rep = 10),
+                                        n_rep = 5),
                                 'double_cue': expr.stage(
                                         x_pn = [['a', 'x'], ['b', 'y'], ['e', 'f'], ['g', 'h']],
                                         y = 2*[['cat1'], ['cat2']],
-                                        n_rep = 10),
+                                        n_rep = 5),
                                   'test': expr.stage(
                                         x_pn = [['e', 'y'], ['g', 'x']],
                                         y_psb = ['cat1', 'cat2'],
@@ -121,10 +121,10 @@ del design; del blocking_oat
 design = expr.schedule(resp_type = 'choice',
                       stages = {'double_cue': expr.stage(x_pn = [['a', 'x'], ['b', 'y'], ['e', 'f'], ['g', 'h']],
                                                         y = 2*[['cat1'], ['cat2']],
-                                                        n_rep = 10),
+                                                        n_rep = 5),
                                   'single_cue': expr.stage(x_pn = [['a'], ['b']],
                                                            y = [['cat1'], ['cat2']],
-                                                           n_rep = 10),
+                                                           n_rep = 5),
                                   'test': expr.stage(x_pn = [['e', 'y'], ['g', 'x']],
                                                     y_psb = ['cat1', 'cat2'],
                                                     lrn = False,

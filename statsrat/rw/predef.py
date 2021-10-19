@@ -1,42 +1,5 @@
 from statsrat import rw
 
-'''
-Pre-defined Rescorla-Wagner family models.
-
-basic: Basic Rescorla-Wagner model with elemental features.
-
-decay: Basic Rescorla-Wagner model with elemental features and constant weight decay.
-
-decay_intercept: Basic Rescorla-Wagner model with intercept and constant weight decay.
-
-intercept: Rescorla-Wagner model with elemental features plus intercept.
-
-cfg2: Rescorla-Wagner model with binary configural features.
-
-cfg2_intercept: Rescorla-Wagner model with binary configural features and intercept.
-
-power: Rescorla-Wagner model with decaying learning rate.
-
-power_intercept: Rescorla-Wagner model with decaying learning rate and intercept.
-
-power_cfg2: Rescorla-Wagner model with decaying learning rate and binary configural features.
-
-drva: The derived attention model from Le Pelley, Mitchell, Beesley, George and Wills (2016).
-
-smpr: Simple predictiveness model (with only elemental features); Model 2 from Paskewitz and Jones (2020).
-
-CompAct: CompAct (with only elemental features); Model 4 from Paskewitz and Jones (2020).
-
-CompAct_intercept: CompAct (with intercept term).
-
-CompAct_cfg2_intercept:: CompAct (with intercept term and configural features).
-
-Kalman: Kalman filter Rescorla-Wagner (with only elemental features); Dayan and Kakade (2001), Gershman and Diedrichsen (2015).
-
-Kalman_intercept: Kalman filter Rescorla-Wagner (with intercept term).
-'''
-
-
 # Basic Rescorla-Wagner model with elemental features.
 basic = rw.model(name = 'basic',
                  pred = rw.pred.identity,
