@@ -1,22 +1,6 @@
 import numpy as np
 from itertools import combinations
 
-'''
-Functions for defining base stimulus features.
-
-elem: Elemental features.
-
-elem_intercept: Elemental features with intercept term.
-
-cfg2: Binary configural features.
-
-cfg2_intercept: Binary configural features with intercept term.
-
-cfg2_half: Binary configural features; all configural features get a value of 0.5 instead of 1.0.
-
-cfg2_distinct: Adds binary configural features only when they are distinct from the corresponding elemental features.
-'''
-
 def elem(x, x_names):
     '''
     Elemental features.
@@ -219,7 +203,7 @@ def cfg2_distinct(x, x_names):
                     break
             new_feature[0:t_first_distinct] = 0 # the new configural feature has value 0 before it is discovered to be distinct from the elemental features
             shows_up_after_distinct = abs(sum(new_feature)) > 0 # only include if the relevant combination shows up after it is discovered to be distinct
-            if (not t_first_distinct is None) and shows_up_after_distinct: # only include new configural feature if it's distinct from the elemental features and does not consist wholy of zeros
+            if (not t_first_distinct is None) and shows_up_after_distinct: # only include new configural feature if it's distinct from the elemental features and does not consist wholly of zeros
                 f_x = np.concatenate((f_x, new_feature.reshape(n_t, 1)), axis = 1)
                 f_names += [new_name]
 

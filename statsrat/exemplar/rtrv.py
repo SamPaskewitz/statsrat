@@ -1,15 +1,5 @@
 import numpy as np
 
-'''
-Functions to define exemplar retrieval strength.
-
-equal_to_sim: Retrieval strength is equal to similarity.
-
-normalized_sim: Retrieval strength is normalized similarity.
-
-normalized_sim_ex_counts: Retrieval strength is similarity times exemplar counts, normalized.
-'''
-
 def equal_to_sim(sim, ex_counts, ex_seen_yet, sim_pars):
     '''Retrieval strength is equal to similarity.'''
     return ex_seen_yet*sim

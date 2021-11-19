@@ -36,14 +36,14 @@ class model:
         
     Notes
     -----
-    The observed variable (u) has a distribution that depends on
+    The observed variable (y) has a distribution that depends on
     a latent variable (z).  z is normally distributed with mean x^T w,
     just as in linear regression.
     .. math::
         z &\sim \matcha{N}(x^T w, \sigma^2) \\
         u &\sim \text{u\_dist}(z)
     
-    If u = z, then we have straightforward linear regression.
+    If y = z, then we have straightforward linear regression.
     However, we can also have probit and censored regression schemes
     for different choices of 'link'.
     
@@ -80,7 +80,7 @@ class model:
             Base mapping between cues (x) and features (f_x).
             These functions are borrow from the rw (Rescorla-Wagner) submodule.
         link: object
-            Specifies distribution of u (observed outcomes) as a function of
+            Specifies distribution of y (observed outcomes) as a function of
             z (normally distributed latent variable).
         tausq_inv_dist: function
             Determines distribution of tausq_inv (prior precision for regression weights).
@@ -148,15 +148,15 @@ class model:
         
         The response type 'choice' is used for discrete response options.  This
         produces response probabilities using a softmax function:
-        .. math:: \text{resp}_i = \frac{ e^{\phi \hat{u}_i} }{ \sum_j e^{\phi \hat{u}_j} }
+        .. math:: \text{resp}_i = \frac{ e^{\phi \hat{y}_i} }{ \sum_j e^{\phi \hat{y}_j} }
 
         The response type 'exct' is used for excitatory Pavlovian
         conditioning:
-        .. math:: \text{resp} = \frac{ e^{\phi \hat{u}_i} }{ e^{\phi \hat{u}_i} + 1 }
+        .. math:: \text{resp} = \frac{ e^{\phi \hat{y}_i} }{ e^{\phi \hat{y}_i} + 1 }
 
         The response type 'supr' (suppression) is used for inhibitory
         Pavlovian conditioning:
-        .. math:: \text{resp} = \frac{ e^{-\phi \hat{u}_i} }{ e^{-\phi \hat{u}_i} + 1 }
+        .. math:: \text{resp} = \frac{ e^{-\phi \hat{y}_i} }{ e^{-\phi \hat{y}_i} + 1 }
 
         Here :math:`\phi` represents the 'resp_scale' parameter.
         """
@@ -241,12 +241,12 @@ class model:
                     # compute var_w and mean_wsq
                     var_w[t:n_t, :, j] = 1/np.diag(hpar1_w[t, :, :, j])
                     mean_wsq[t:n_t, :, j] = var_w[t, :, j] + mean_w[t, :, j]**2
-            # predict u (outcome) and compute b (behavior)
+            # predict y (outcome) and compute b (behavior)
             z_hat[t, :] = y_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # predicted value of latent variable (z)
             y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (y)
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             mean_z[t, :] = link.mean_z(z_hat[t, :], y[t, :], y_psb[t, :]) # mean of z after observing u
-            # update sufficient statistics of x and u for estimating w
+            # update sufficient statistics of x and y for estimating w
             f = f_x[t, :].squeeze() # for convenience
             for j in range(n_y):
                 update = y_lrn[t, j] == 1

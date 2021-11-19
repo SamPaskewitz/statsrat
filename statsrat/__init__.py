@@ -5,7 +5,7 @@ from scipy import stats
 import nlopt
 from plotnine import *
 
-def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
+def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
@@ -46,6 +46,9 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     dodge_width : float, optional
         Amount to separate overlapping lines so that they appear visually
         distinct (using Plotnine's position_dodge).  Defaults to 1.0.
+    y_axis_label : str or None, optional
+        Specifies an alternative name for the y axis label (or is None).
+        Defaults to None.
         
     Returns
     -------
@@ -120,10 +123,12 @@ def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, face
     
     plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
     plot += theme(figure_size = figure_size)
+    if not y_axis_label is None:
+        plot += ylab(y_axis_label)
     
     return plot
 
-def multi_plot(ds_list, var, sel = None, rename_coords = None, rename_schedules = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 4.0), dodge_width = 1.0):
+def multi_plot(ds_list, var, sel = None, rename_coords = None, rename_schedules = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     
@@ -167,6 +172,9 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, rename_schedules 
     dodge_width : float, optional
         Amount to separate overlapping lines so that they appear visually
         distinct (using Plotnine's position_dodge).  Defaults to 1.0.
+    y_axis_label : str or None, optional
+        Specifies an alternative name for the y axis label (or is None).
+        Defaults to None.
         
     Returns
     -------
@@ -262,6 +270,8 @@ def multi_plot(ds_list, var, sel = None, rename_coords = None, rename_schedules 
     
     plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
     plot += theme(figure_size = figure_size)
+    if not y_axis_label is None:
+        plot += ylab(y_axis_label)
                         
     return plot
 

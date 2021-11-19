@@ -34,8 +34,56 @@ basic_ibre = expr.experiment(schedules = {'design': design},
 
 del design; del pc_pr
 
+##### NOVEL TEST CUES IN THE INVERSE BASE RATE EFFECT DESIGN #####
+
+# Juslin, Wennerholm and Winman (2001), Experiment 1
+# This is a basic inverse base rate effect design with added novel cue test trials.
+# Participants preferred the rare outcomes on the novel test trials, which 
+# Winman et al took this as evidence for their eliminative inference explanation of the IBRE.
+# I'm only including the 3:1 (common:rare) base rate ratio condition.
+# Results were similar in the 7:1 condition DOUBLE CHECK.
+# I'm only including the two most important the test trial types, viz. conflicting (PC + PC) and novel cue.
+
+# UPDATE CODE!
+
+design = expr.schedule(resp_type = 'choice',
+                  stages = {
+                      'training': expr.stage(
+                            freq = 3*[3, 1],
+                            x_pn = [['i1', 'pc1'], ['i1', 'pr1'], ['i2', 'pc2'], ['i2', 'pr2'], ['i3', 'pc3'], ['i3', 'pr3']],
+                            y = [['c1'], ['r1'], ['c2'], ['r2'], ['c3'], ['r3']],
+                            y_psb = ['c1', 'r1', 'c2', 'r2', 'c3', 'r3'],
+                            n_rep = 15),
+                      'test': expr.stage(
+                            x_pn = [['pc1', 'pr1'], ['pc2', 'pr2'], ['pc3', 'pr3'], ['novel1'], ['novel2'], ['novel3']],
+                            y_psb = ['c1', 'r1', 'c2', 'r2', 'c3', 'r3'],
+                            lrn = False,
+                            n_rep = 3)
+                  })
+
+ibre = expr.oat(schedule_pos = ['design'],
+                behav_score_pos = expr.behav_score(stage = 'test',
+                                              trial_pos = ['pc1.pr1 -> nothing', 'pc2.pr2 -> nothing', 'pc3.pr3 -> nothing'],
+                                              trial_neg = ['pc1.pr1 -> nothing', 'pc2.pr2 -> nothing', 'pc3.pr3 -> nothing'],
+                                              resp_pos = ['r1', 'r2', 'r3'],
+                                              resp_neg = ['c1', 'c2', 'c3']))
+
+# I NEED TO ADD FUNCTIONALITY TO ALLOW FOR MORE THAN ONE POSITIVE OR NEGATIVE RESPONSE FOR EACH TRIAL TYPE.
+novel = expr.oat(schedule_pos = ['design'],
+                 behav_score_pos = expr.behav_score(stage = 'test',
+                                              trial_pos = ['novel1 -> nothing', 'novel2 -> nothing', 'novel3 -> nothing'],
+                                              trial_neg = ['novel1 -> nothing', 'novel2 -> nothing', 'novel3 -> nothing'],
+                                              resp_pos = ['r1', 'r2', 'r3'], # NEED TO CHANGE
+                                              resp_neg = ['c1', 'c2', 'c3'])) # NEED TO CHANGE
+
+basic_ibre = expr.experiment(schedules = {'design': design},
+                             oats = {'ibre': ibre, 'novel': novel})
+
+del design; del pc_pr
+
 
 ##### ATTENTIONAL TRANSFER AFTER THE INVERSE BASE RATE EFFECT #####
+
 # Don and Livesey (2021), Experiment 2
 # Note that I am only including the most important type of test trial ('conflicting').
 # There are two factors: length and design (standard vs. balanced).
@@ -262,3 +310,4 @@ standard_vs_equal_trial = expr.experiment(schedules = {'standard': standard, 'eq
                                                    'ibre_equal_trial': ibre_equal_trial,
                                                    'ibre_between_groups': contrast})
 ## ADD NOTES ##
+
