@@ -241,7 +241,8 @@ class model:
         return ds
 
 ########## PARAMETERS ##########
-par_names = []; par_list = [] 
+par_names = []; par_list = []
+par_names += ['feature_count_window']; par_list += [{'min': 0.0, 'max': 100, 'default': 20}]
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['lrate_min']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.1}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]

@@ -17,6 +17,19 @@ class basic:
     def add_data(self, ds):
         return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
 basic.par_names = []
+
+class recent_feature_counts:
+    '''Counts recently observed features (only counts within a prescribed window).'''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
+        self.data = {'f_counts': np.zeros((n_t, n_f))}
+
+    def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
+        t_start = np.max([0, t + 1 - int(sim_pars['feature_count_window'])])
+        self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[t_start:(t+1), :] > 0)
+        
+    def add_data(self, ds):
+        return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
+recent_feature_counts.par_names = ['feature_count_window']
         
 class drva:
     '''Derived attention (Le Pelley et al, 2016).'''

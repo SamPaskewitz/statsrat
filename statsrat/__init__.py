@@ -2,278 +2,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import stats
-import nlopt
 from plotnine import *
-
-def learn_plot(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
-    """
-    Plots learning simulation data from a single schedule (condition, group) as a function of time.
-    
-    Parameters
-    ----------
-    ds : dataset (xarray)
-        Learning simulation data (output of a model's 'simulate' method).
-    var : string
-        Variable to plot.
-    sel : dict, optional
-        Used to select a subset of 'var'.  Defaults to 'None' (i.e. all
-        data in 'var' are plotted).
-    rename_coords : dict or None, optional
-        Either a dictionary for re-naming coordinates (keys are old names and
-        values are new names), or None (don't re-name).  This dict must include
-        ALL variable names.  Defaults to None.
-    color_var : string, optional
-        Variable to be represented by color.
-        Defaults to None (see notes).
-    facet_var : string, optional
-        Variable to control faceting.
-        Defaults to None (see notes).
-    draw_points : boolean, optional
-        Whether or not points should be drawn as well as lines.
-        Defaults to False.
-    drop_zeros : boolean, optional
-        Drop rows where 'var' is zero.  Defaults to False.
-    only_main : boolean, optional
-        Only keep rows where 't_name' is 'main', i.e. time steps with
-        punctate cues and/or non-zero outcomes.  Defaults to False.
-    stage_labels : boolean, optional
-        Whether the x-axis should be labeled with 'stage_name' (if True) or
-        't', i.e. time step (if False).  Defaults to True.
-    text_size : float, optional
-        Specifies text size.  Defaults to 15.0.
-    figure_size : tuple of floats, optional
-        Figure width and height in inches.  Defaults to (4.0, 4.0).
-    dodge_width : float, optional
-        Amount to separate overlapping lines so that they appear visually
-        distinct (using Plotnine's position_dodge).  Defaults to 1.0.
-    y_axis_label : str or None, optional
-        Specifies an alternative name for the y axis label (or is None).
-        Defaults to None.
-        
-    Returns
-    -------
-    plot : object
-        A plotnine plot object.
-    
-    Notes
-    -----
-    The variable plotted should not have more than two dimensions besides time step ('t').
-    
-    By default, the first non-time dimension will be used for color and the
-    second one for faceting.
-    
-    The 'sel' argument is used to index 'ds' via the latter's 'loc' method.
-    It should be a dictionary of the form {'dim0' : ['a', 'b'], 'dim1' : ['c']},
-    where 'dim0', 'dim1' etc. are one or more dimensions of 'var'.
-    
-    """
-    ### SET UP DATA FRAME ###
-    if sel is None:
-        ds_var = ds[var].squeeze()
-    else:
-        ds_var = ds[var].loc[sel].squeeze()
-    ds_var['t'] = range(ds_var['t'].values.shape[0])
-    dims = list(ds_var.dims)
-    dims.remove('t') # remove dimensions other than time step ('t')
-    n_dims = len(dims)
-    df = ds_var.to_dataframe()
-    df = df.reset_index()
-    if only_main:
-        df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
-    if drop_zeros:
-        df = df[-(df[var] == 0)] # remove rows where var is zero
-    
-    ### SET UP VARIABLE NAMES ###
-    if not rename_coords is None:
-        df = df.rename(columns = rename_coords)
-        var_names = rename_coords
-    else:
-        var_names = dict.fromkeys(dims)
-        for i in range(n_dims):
-            var_names[dims[i]] = dims[i]
-        
-    ### CREATE PLOT ###
-    dpos = position_dodge(width = dodge_width)
-    if n_dims == 0:
-        dpos = position_identity()
-        plot = (ggplot(df, aes(x='t', y=var)) + geom_line())
-    else:
-        if color_var is None:
-            color_var = var_names[dims[0]]
-        if n_dims == 1:
-            plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos))
-        else:
-            if facet_var is None:
-                facet_var = var_names[dims[1]]
-            plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
-    
-    if draw_points:
-        plot += geom_point(position = dpos)
-    
-    if stage_labels:
-        # add labels for stage names
-        stage = df.stage.values
-        stage_start = []
-        stage_labels = []
-        for s in np.unique(df.stage):
-            start_point = df.t.loc[df.stage == s].min()
-            stage_start += [start_point]
-            stage_labels += [ds_var.stage_name.loc[{'t': start_point}].values]
-        plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
-    
-    plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
-    plot += theme(figure_size = figure_size)
-    if not y_axis_label is None:
-        plot += ylab(y_axis_label)
-    
-    return plot
-
-def multi_plot(ds_list, var, sel = None, rename_coords = None, rename_schedules = None, schedule_facet = False, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
-    """
-    Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
-    
-    Parameters
-    ----------
-    ds_list : list of datasets (xarray)
-        Each element of the list consists of learning simulation data
-        (output of a model's 'simulate' method) from a different schedule.
-    var : string
-        Variable to plot.
-    sel : list of dicts or None, optional
-        If a list, then elements correspond to elements of ds_list.
-        Each list element is either None (to include everything in the 
-        corresponding data set) or a dict used to select a subset of 'var'.
-        Defaults to None (i.e. all data in 'var' are plotted for all data
-        sets).
-    rename_coords : dict or None, optional
-        Either a dictionary for re-naming coordinates (keys are old names and
-        values are new names), or None (don't re-name).  Defaults to None.
-    rename_schedules : dict or None, optional
-        Either a dictionary for re-naming schedules (keys are old names and
-        values are new names), or None (don't re-name).  Defaults to None.
-    schedule_facet : boolean, optional
-        Whether or not schedules should be on different facets instead
-        of on a single graph distinguished by color.  Defaults to False.
-    draw_points : boolean, optional
-        Whether or not points should be drawn as well as lines.
-        Defaults to False.
-    drop_zeros : boolean, optional
-        Drop rows where 'var' is zero.  Defaults to False.
-    only_main : boolean, optional
-        Only keep rows where 't_name' is 'main', i.e. time steps with
-        punctate cues and/or non-zero outcomes.  Defaults to False.
-    stage_labels : boolean, optional
-        Whether the x-axis should be labeled with 'stage_name' (if True) or
-        't', i.e. time step (if False).  Defaults to True.
-    text_size : float, optional
-        Specifies text size.  Defaults to 15.0.
-    figure_size : tuple of floats, optional
-        Figure width and height in inches.  Defaults to (4.0, 4.0).
-    dodge_width : float, optional
-        Amount to separate overlapping lines so that they appear visually
-        distinct (using Plotnine's position_dodge).  Defaults to 1.0.
-    y_axis_label : str or None, optional
-        Specifies an alternative name for the y axis label (or is None).
-        Defaults to None.
-        
-    Returns
-    -------
-    plot : object
-        A plotnine plot object.
-    
-    Notes
-    -----
-    It is assumed that either the schedules all have the same stage names, or else
-    that the 'sel' argument is used to select time steps that all have the same stage names.
-    
-    The variable plotted should not have more than one dimension besides time step ('t').
-    
-    If there is an extra dimension besides 't', it will be used for facetting (if
-    schedule_facet = False) or for color (if schedule_facet = True).
-    
-    The 'sel' argument is used to index 'ds' via the latter's 'loc' method.
-    It should be a dictionary of the form {'dim0' : ['a', 'b'], 'dim1' : ['c']},
-    where 'dim0', 'dim1' etc. are one or more dimensions of 'var'.
-    """
-    ### CREATE INDIVIDUAL DATA FRAMES ###
-    df_list = []
-    i = 0
-    for ds in ds_list:
-        if sel is None:
-            new_ds_var = ds[var].squeeze()
-        else:
-            if sel[i] is None:
-                new_ds_var = ds[var].squeeze()
-            else:
-                new_ds_var = ds[var].loc[sel[i]].squeeze()
-        new_ds_var['t'] = range(new_ds_var['t'].values.shape[0])
-        new_dims = list(new_ds_var.dims)
-        new_dims.remove('t') # remove dimensions other than time step ('t')
-        new_df = new_ds_var.to_dataframe()
-        new_df = new_df.reset_index()
-        if rename_schedules is None:
-            new_df['schedule'] = ds.attrs['schedule']
-        else:
-            new_df['schedule'] = rename_schedules[ds.attrs['schedule']]
-        df_list += [new_df]
-        i += 1
-
-    ### CONCATENATE DATA FRAMES ###
-    df = pd.concat(df_list)
-    if only_main:
-        df = df[df['t_name'] == 'main'] # only keep 'main' time steps (punctate cue and/or non-zero outcome)
-    if drop_zeros:
-        df = df[-(df[var] == 0)] # remove rows where var is zero
-    
-    ### SET UP VARIABLE NAMES ###
-    if not rename_coords is None:
-        df = df.rename(columns = rename_coords)
-        var_names = rename_coords
-        if not 'schedule' in rename_coords.keys():
-            var_names['schedule'] = 'schedule'
-    else:
-        n_dims = len(new_dims)
-        var_names = dict.fromkeys(new_dims)
-        for i in range(n_dims):
-            var_names[new_dims[i]] = new_dims[i]
-        var_names['schedule'] = 'schedule'
-
-    ### CREATE PLOT ###
-    dims = new_dims
-    n_dims = len(dims)
-    dpos = position_dodge(width = dodge_width)
-    if n_dims == 0:
-        if schedule_facet:
-            dpos = position_identity()
-            plot = (ggplot(df, aes(x='t', y=var)) + geom_line() + facet_wrap('~' + var_names['schedule']))
-        else:
-            plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'])) + geom_line(position = dpos))
-    else:
-        if schedule_facet:
-            plot = (ggplot(df, aes(x='t', y=var, color=var_names[dims[0]])) + geom_line(position = dpos) + facet_wrap('~' + var_names['schedule']))
-        else:
-            plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'])) + geom_line(position = dpos) + facet_wrap('~' + var_names[dims[0]]))
-    
-    if draw_points:
-        plot += geom_point(position = dpos)
-    
-    if stage_labels:
-        # add labels for stage names
-        stage = df.stage.values
-        stage_start = []
-        stage_labels = []
-        for s in np.unique(df.stage):
-            start_point = df.t.loc[df.stage == s].min()
-            stage_start += [start_point]
-            stage_labels += [df.stage_name.loc[df.t.values == start_point].values[0]]
-        plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
-    
-    plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
-    plot += theme(figure_size = figure_size)
-    if not y_axis_label is None:
-        plot += ylab(y_axis_label)
-                        
-    return plot
+import nlopt
 
 def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None):
     """
@@ -703,6 +433,35 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     Returns
     -------
     df: dataframe
+        This dataframe has the following columns:
+        
+        ident: Participant ID (dataframe index).
+        
+        prop_log_post: Quantity proportional to the maximum log-posterior (equal
+                       to log-likelihood given a uniform prior).
+                       
+        One column for each free parameter estimated.
+        
+        model: Learning model name.
+        
+        global_time: Maximum time (in seconds) per individual for global optimization.
+        
+        local_time: Maximum time (in seconds) per individual for local optimization.
+        
+        algorithm: Name of the global optimization algorithm.
+        
+        Columns added if performing MLE (uniform prior):
+        
+        log_lik: Maximum log-likelihood (equal in this case to prop_log_post).
+        
+        aic:  Akaike information criterion (AIC) = 2*(number of free parameters - log_lik)
+        
+        log_lik_guess: Log-likelihood of the guessing model (each response has equal probability),
+                       which has no parameters.  This is for detecting participants who did not
+                       really try to perform the task.
+        
+        aic_guess: AIC for the guessing model = 2*(0 - log_lik_guess)
+        
 
     Notes
     -----
@@ -803,6 +562,10 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     if tau is None:
         df['log_lik'] = df['prop_log_post'] # log likelihood
         df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)
+        # compute log-likelihood and AIC of the guessing model (all choices have equal probability) for comparison
+        choices_per_time_step = ds_i['y_psb'].values.sum(1) 
+        df['log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
+        df['aic_guess'] = 2*(0 - df['log_lik_guess'])
     
     return df
 
