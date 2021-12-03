@@ -793,7 +793,10 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
 
     Returns
     -------
-    dict
+    Dictionary with the following items:
+        par: Parameter values for each simulated individual.
+        
+        ds: Simulated data.
 
     Notes
     -----
@@ -832,8 +835,8 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
                                    par_val = par.loc[i, 'true_par'],
                                    random_resp = True,
                                    ident = 'sim' + str(i))]
-    ds = xr.combine_nested(ds_list, concat_dim = 'ident')
-    
+    ds = xr.combine_nested(ds_list, concat_dim = 'ident', combine_attrs = 'override') # copy attributes from the first individual
+    ds.attrs.pop('sim_pars') # sim_pars differ between individuals, so that attribute should be dropped; all other attributes are the same
     # output
     output = {'par': par, 'ds': ds}
     return output
@@ -897,8 +900,8 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     sim_data = make_sim_data(model, experiment, schedule, a_true, b_true, n)
 
     # estimate parameters
-    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = ds),
-                'em': lambda ds : fit_em(model = model, ds = ds)}
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds']),
+                'em': lambda ds : fit_em(model = model, ds = sim_data['ds'])}
     fit_df = fit_dict[method](sim_data['ds'])
 
     # concatenate data frames
@@ -913,7 +916,7 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
         comp.loc[i, 'rsq'] = est.corr(true)**2
 
     # assemble data for output
-    output = {'df': df, 'comp': comp}
+    output = {'df': df, 'comp': comp, 'sim_data': sim_data}
     return output
 
 # UPDATE        
