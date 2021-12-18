@@ -115,6 +115,12 @@ class experiment:
         for st in scd.stages:
             iti = scd.stages[st].iti
             order = scd.stages[st].order
+            if scd.stages[st].intro_length > 0:
+                trial_def_bool = np.array( (scd.trial_def.stage_name == st) & (scd.trial_def.trial_name == 'intro') )
+                trial_def_index = list( scd.trial_def.t[trial_def_bool].values )
+                t_order += trial_def_index
+                trial_index += scd.stages[st].intro_length*[m]
+                m += 1
             for j in range(scd.stages[st].n_rep):
                 if scd.stages[st].order_fixed == False:
                     np.random.shuffle(order)
@@ -124,7 +130,13 @@ class experiment:
                     t_order += trial_def_index
                     trial_index += (iti + 1)*[m]
                     m += 1
-                    
+            if scd.stages[st].outro_length > 0:
+                trial_def_bool = np.array( (scd.trial_def.stage_name == st) & (scd.trial_def.trial_name == 'outro') )
+                trial_def_index = list( scd.trial_def.t[trial_def_bool].values )
+                t_order += trial_def_index
+                trial_index += scd.stages[st].outro_length*[m]
+                m += 1
+                       
         # make list for 'time' coordinate
         st_names = list(scd.stages.keys())
         time = list(np.arange(scd.stages[st_names[0]].n_t))
@@ -217,6 +229,8 @@ class experiment:
         I also assume that each stage has at most one trial type for any set of punctate cues.
         
         I also assume that the Python schedule object has exactly the right number of trials.
+        
+        It is assumed that there are no intros or outros to any stages.
         
         Currently, the 'time' (real world time) coordinate is only a copy of 't' (the time step
         number).  This represents the assumption that there are no delays between stages of the

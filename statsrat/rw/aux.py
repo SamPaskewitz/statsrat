@@ -18,6 +18,21 @@ class basic:
         return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
 basic.par_names = []
 
+class feature_sums:
+    '''
+    Keeps track of familiarity (f_counts), but adds up feature values rather than
+    simply counting the number of times a feature has been observed.
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
+        self.data = {'f_counts': np.zeros((n_t, n_f))}
+
+    def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
+        self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fweight[0:(t+1), :]*fbase[0:(t+1), :])
+        
+    def add_data(self, ds):
+        return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
+feature_sums.par_names = []
+
 class recent_feature_counts:
     '''Counts recently observed features (only counts within a prescribed window).'''
     def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
@@ -92,6 +107,37 @@ class grad:
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))  
 grad.par_names = ['lrate_atn']
 
+class grad_elem_bias:
+    '''
+    Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).
+    There is an initial bias toward (or possibly away from) elemental features.  Starting attention
+    for configural features is specified with the parameter atn0, while elemental features start with
+    an attention of 0.5.
+    
+    Notes
+    -----
+    This uses similar somewhat hacky code to gradcomp_elem_bias for identifying configural features.
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f))}
+        self.data['atn'][0, :] = sim_pars['atn0']
+        self.data['atn'][0, range(n_x)] = 0.5 # the first n_x features are assumed to be the elemental ones and get higher initial attention
+
+    def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
+        '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_direct').'''
+        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        ngrad = delta[t, :] @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
+        new_atn = self.data['atn'][t, :] + sim_pars['lrate_atn'] * ngrad
+        abv_min = new_atn >= 0.01
+        blw_max = new_atn < 1
+        new_atn = new_atn*abv_min*blw_max + 0.01*(1 - abv_min) + 1*(1 - blw_max)
+        self.data['atn'][t + 1, :] = new_atn
+        
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))  
+grad_elem_bias.par_names = ['atn0', 'lrate_atn']
+
 class gradcomp:
     '''Competitive attention learning from gradient descent (i.e. CompAct's learning rule).'''
     def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
@@ -118,8 +164,8 @@ class gradcomp_elem_bias:
     '''
     Competitive attention learning from gradient descent (i.e. CompAct's learning rule).
     Elemental features get an initial attention value of 1, while other features (e.g.
-    configural ones) get an initial attention value of 0.5.  Thus attention is biased
-    towards elemental features.
+    configural ones) get an initial attention value of eta0 (a free parameter).  Thus
+    attention is biased towards elemental features.
     
     This object also keeps track of feature counts.
     
@@ -135,7 +181,7 @@ class gradcomp_elem_bias:
     def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
         self.n_t = n_t
         self.data = {'atn': np.zeros((n_t + 1, n_f)), 'f_counts': np.zeros((n_t, n_f))}
-        self.data['atn'][0, :] = 0.5
+        self.data['atn'][0, :] = sim_pars['eta0']
         self.data['atn'][0, range(n_x)] = 1 # the first n_x features are assumed to be the elemental ones and get higher initial attention
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
@@ -154,7 +200,7 @@ class gradcomp_elem_bias:
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
                          f_counts = (['t', 'f_name'], self.data['f_counts']))   
-gradcomp_elem_bias.par_names = ['lrate_atn', 'metric']
+gradcomp_elem_bias.par_names = ['lrate_atn', 'metric', 'eta0']
 
 class gradcomp_feature_counts:
     '''
@@ -183,6 +229,76 @@ class gradcomp_feature_counts:
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
                          f_counts = (['t', 'f_name'], self.data['f_counts']))   
 gradcomp_feature_counts.par_names = ['lrate_atn', 'metric']
+
+class gradcomp_feature_sums:
+    '''
+    Competitive attention learning from gradient descent (i.e. CompAct's learning rule),
+    but also keeps track of feature sums (f_count).
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f)), 'f_counts': np.zeros((n_t, n_f))}
+        self.data['atn'][0, :] = 1
+
+    def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
+        # Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').
+        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
+        comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
+        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        atn_gain = self.data['atn'][t, :]*fbase[t, :]
+        norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
+        # Update feature counts.
+        self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fweight[0:(t+1), :]*fbase[0:(t+1), :])
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
+gradcomp_feature_sums.par_names = ['lrate_atn', 'metric']
+
+class gradcomp_elem_bias_feature_sums:
+    '''
+    Competitive attention learning from gradient descent (i.e. CompAct's learning rule).
+    Elemental features get an initial attention value of 1, while other features (e.g.
+    configural ones) get an initial attention value of eta0 (a free parameter).  Thus
+    attention is biased towards elemental features.
+    
+    This object also keeps track of feature sums (f_count).
+    
+    Notes
+    -----
+    This uses a simple hack to decide which features are elemental, viz. the first
+    n_x features are assumed to be the elemental ones.  This works with all of the
+    built in fbase functions because these start with elemental features and then add
+    configural features, intercept terms etc.  One should be careful when developing
+    any new fbase function to copy this behavior, or else this aux object may not work
+    as intended.
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f)), 'f_counts': np.zeros((n_t, n_f))}
+        self.data['atn'][0, :] = sim_pars['eta0']
+        self.data['atn'][0, range(n_x)] = 1 # the first n_x features are assumed to be the elemental ones and get higher initial attention
+
+    def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
+        # Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').
+        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
+        comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
+        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        atn_gain = self.data['atn'][t, :]*fbase[t, :]
+        norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
+        # Update feature sums.
+        self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fweight[0:(t+1), :]*fbase[0:(t+1), :])
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
+gradcomp_elem_bias_feature_sums.par_names = ['lrate_atn', 'metric', 'eta0']
 
 class gradcomp_atn_decay:
     '''
@@ -218,6 +334,59 @@ class gradcomp_atn_decay:
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
 gradcomp_atn_decay.par_names = ['lrate_atn', 'metric', 'drate_atn']
+
+class gradcomp_Kruschke_idea:
+    '''
+    Competitive attention learning from gradient descent (i.e. CompAct's learning rule).
+    Each feature is assumed to start with an association to a virtual 'outcome' that
+    never occurs.  This should lead to latent inhibition.
+    
+    Notes
+    -----
+    This is based on an idea suggested by Kruschke (for his EXIT model, which is
+    similar to CompAct) in the following paper:
+    
+    Kruschke, J. K. (2001).
+    Toward a Unified Model of Attention in Associative Learning.
+    Journal of Mathematical Psychology, 45(6), 812–863.
+
+    '''
+    def __init__(self, sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims):
+        self.n_t = n_t
+        self.data = {'atn': np.zeros((n_t + 1, n_f)),
+                     'w_virtual': np.zeros((n_t + 1, n_f))}
+        self.data['atn'][0, :] = 1
+        self.data['w_virtual'][0, :] = sim_pars['w_virtual0']
+
+    def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
+        '''
+        Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm')
+        with decay of 'atn' for features that are present.  Also keep track of associations involving
+        the virtual 'outcome' that is initially predicted but never occurs.
+        '''
+        # calculations based on the real outcomes
+        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
+        comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
+        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        atn_gain = self.data['atn'][t, :]*fbase[t, :]
+        norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
+        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient from real outcomes
+        # calculations based on the virtual 'outcome'
+        y_hat_virtual = np.sum(self.data['w_virtual'][t, :]*f_x)
+        delta_virtual = 0 - y_hat_virtual
+        y_hat_alone_virtual = self.data['w_virtual'][t, :]*fbase[t, :]
+        y_hat_dif_virtual = y_hat_alone_virtual - y_hat_virtual*comp_factor
+        ngrad_virtual = delta_virtual*y_hat_dif_virtual*fbase[t, :]/norm # negative gradient from the virtual 'outcome'
+        # update attention
+        self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*(ngrad + ngrad_virtual), n_f*[0.01])
+        # update virtual 'outcome' associations
+        self.data['w_virtual'][t + 1, :] = self.data['w_virtual'][t, :] + sim_pars['lrate']*f_x*delta_virtual
+
+    def add_data(self, ds):
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
+                         w_virtual = (['t', 'f_name'], self.data['w_virtual'][range(self.n_t), :]))   
+gradcomp_Kruschke_idea.par_names = ['lrate_atn', 'metric', 'w_virtual0']
 
 class Kalman:
     '''Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).'''

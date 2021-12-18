@@ -41,7 +41,7 @@ class model:
     just as in linear regression.
     .. math::
         z &\sim \matcha{N}(x^T w, \sigma^2) \\
-        u &\sim \text{u\_dist}(z)
+        y &\sim \text{y\_dist}(z)
     
     If y = z, then we have straightforward linear regression.
     However, we can also have probit and censored regression schemes
@@ -78,7 +78,7 @@ class model:
             Model name.
         fbase : function
             Base mapping between cues (x) and features (f_x).
-            These functions are borrow from the rw (Rescorla-Wagner) submodule.
+            These functions are borrowed from the rw (Rescorla-Wagner) submodule.
         link: object
             Specifies distribution of y (observed outcomes) as a function of
             z (normally distributed latent variable).
@@ -204,10 +204,10 @@ class model:
         for j in range(n_y):
             mean_wsq[0, :, j] = initial_tausq[:, j]
         z_hat = np.zeros((n_t, n_y)) # predicted latent variable (z) before observing outcome (y)
-        mean_z = np.zeros((n_t, n_y)) # variational mean of the latent variable z (after observing u)
+        mean_z = np.zeros((n_t, n_y)) # variational mean of the latent variable z (after observing y)
         # determine value of z_var (variance of the latent variable z)
         if 'y_var' in self.pars.index:
-            # In this case, u = z so y_var = z_var.
+            # In this case, y = z so y_var = z_var.
             z_var = sim_pars['y_var']
         else:
             # Used for probit regression.
@@ -245,7 +245,7 @@ class model:
             z_hat[t, :] = y_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # predicted value of latent variable (z)
             y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (y)
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
-            mean_z[t, :] = link.mean_z(z_hat[t, :], y[t, :], y_psb[t, :]) # mean of z after observing u
+            mean_z[t, :] = link.mean_z(z_hat[t, :], y[t, :], y_psb[t, :]) # mean of z after observing y
             # update sufficient statistics of x and y for estimating w
             f = f_x[t, :].squeeze() # for convenience
             for j in range(n_y):

@@ -174,7 +174,7 @@ class model:
         y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         x_names = list(trials.x_name.values)
         y_names = list(trials.y_name.values)
-        (fbase, f_names) = self.fbase(x, x_names).values() # features and feature names
+        (fbase, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names
         n_t = fbase.shape[0] # number of time points
         n_x = x.shape[1] # number of cues/stimulus elements
         n_f = fbase.shape[1] # number of features
@@ -210,7 +210,7 @@ class model:
             aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
             lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
             drate[t, :, :] = self.drate(aux, t, w, n_f, n_y, sim_pars) # decay rates for this time step
-            w[t+1, :, :] = w[t, :, :] + y_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_y)) - drate[t, :, :]*w[t, :, :] # association learning
+            w[t + 1, :, :] = w[t, :, :] + y_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_y)) - drate[t, :, :]*w[t, :, :] # association learning
 
         # generate simulated responses
         (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
@@ -257,9 +257,11 @@ par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # m
 par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
 par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis
+par_names += ['w_virtual0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
 par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
 par_names += ['y_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
 par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter
+par_names += ['cfg_emergence_par']; par_list += [{'min': 0.0, 'max': 20.0, 'default': 5.0}] # controls how rapidly configural features emerge
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
 pars = pd.DataFrame(par_list, index = par_names)
 del par_names; del par_list

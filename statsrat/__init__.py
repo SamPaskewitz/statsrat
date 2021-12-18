@@ -811,17 +811,16 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     scale = model.pars['max'] - model.pars['min']
 
     # sample simulated 'subjects', i.e. parameter vectors
-    lvl0_names = n_p*['true_par']
-    lvl1_names = par_names
-    arrays = [lvl0_names, lvl1_names]
-    tuples = list(zip(*arrays))
-    col_index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-    par = pd.DataFrame(0.0, index = range(n), columns = col_index)
-    par.loc[:, 'true_par'] = stats.beta.rvs(a = a_true,
-                                            b = b_true,
-                                            loc = loc,
-                                            scale = scale,
-                                            size = (n, n_p))
+    idents = []
+    for i in range(n):
+        idents += ['sub' + str(i)]
+    par = pd.DataFrame(stats.beta.rvs(a = a_true,
+                                      b = b_true,
+                                      loc = loc,
+                                      scale = scale,
+                                      size = (n, n_p)),
+                       index = idents,
+                       columns = par_names)
 
     # create a list of trial sequences to use in simulations
     trials_list = []
@@ -832,11 +831,12 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     ds_list = []
     for i in range(n):
         ds_list += [model.simulate(trials_list[i],
-                                   par_val = par.loc[i, 'true_par'],
+                                   par_val = par.loc[idents[i]],
                                    random_resp = True,
-                                   ident = 'sim' + str(i))]
+                                   ident = idents[i])]
     ds = xr.combine_nested(ds_list, concat_dim = 'ident', combine_attrs = 'override') # copy attributes from the first individual
     ds.attrs.pop('sim_pars') # sim_pars differ between individuals, so that attribute should be dropped; all other attributes are the same
+    ds = ds[['x', 'y', 'y_psb', 'y_lrn', 'b']] # only keep behavioral responses and experimental variables, i.e. drop simulated psychological variables
     # output
     output = {'par': par, 'ds': ds}
     return output
@@ -902,21 +902,24 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     # estimate parameters
     fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds']),
                 'em': lambda ds : fit_em(model = model, ds = sim_data['ds'])}
-    fit_df = fit_dict[method](sim_data['ds'])
+    fit = fit_dict[method](sim_data['ds'])
 
-    # concatenate data frames
-    df = pd.concat((sim_data['par'], fit_df), axis = 1)
+    # combine true and estimated parameters into one dataframe
+    par = pd.concat((sim_data['par'], fit[par_names]), axis = 1)
+    par.columns = pd.MultiIndex.from_product([['true', 'est'], par_names])
 
     # compare parameter estimates to true values
     comp = pd.DataFrame(0, index = range(n_p), columns = ['par', 'rsq'])
     comp.loc[:, 'par'] = par_names
     for i in range(n_p):
-        true = df.loc[:, 'true_par'].iloc[:, i]
-        est = df.loc[:, 'est_par'].iloc[:, i]
+        true = par.loc[:, ('true', par_names[i])]
+        est = par.loc[:, ('est', par_names[i])]
+        #true = par.loc[:, 'true'].iloc[:, i]
+        #est = par.loc[:, 'est'].iloc[:, i]
         comp.loc[i, 'rsq'] = est.corr(true)**2
 
     # assemble data for output
-    output = {'df': df, 'comp': comp, 'sim_data': sim_data}
+    output = {'par': par, 'fit': fit, 'comp': comp, 'sim_data': sim_data}
     return output
 
 # UPDATE        

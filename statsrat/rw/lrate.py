@@ -17,6 +17,20 @@ def power(aux, t, fbase, fweight, n_f, n_y, sim_pars):
     return new_lrate
 power.par_names = ['power', 'lrate_min']
 
+def from_aux_norm2(aux, t, fbase, fweight, n_f, n_y, sim_pars):
+    '''
+    Produce weights that normalize features (e.g. CompAct) according to a Euclidean metric.
+    This is a version of 'from_aux_norm' with the metric fixed at 2.
+    So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.
+    '''
+    atn_gain = aux.data['atn'][t, :]*fbase[t, :]
+    atn_gain[atn_gain < 0.01] = 0.01 # Added this in to make this consistent with the R code.
+    norm = sum(atn_gain**2)**(1/2)
+    norm_atn = atn_gain/norm
+    new_lrate = sim_pars['lrate']*norm_atn.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
+    return new_lrate
+from_aux_norm2.par_names = ['lrate']
+
 def from_aux_norm(aux, t, fbase, fweight, n_f, n_y, sim_pars):
     '''
     Produce weights that normalize features (e.g. CompAct).

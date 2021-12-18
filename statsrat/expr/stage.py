@@ -15,7 +15,7 @@ class stage:
     n_trial : int
         Number of trials per repetition (trial block).
     n_trial_type : int
-        Number of trial types.
+        Number of trial types (not including intro or outro).
     n_t : int
         Total number of time steps in stage.
     order : list
@@ -62,8 +62,14 @@ class stage:
         between outcomes.  Should be 0 if the learner knows
         that outcomes cannot occur during the ITI, as in most
         human category learning experiments.
+    intro_length : int
+        The number of time steps with just background stimuli
+        before trials begin.  Defaults to 0.
+    outro_length : int
+        The number of time steps with just background stimuli
+        after trials are finished.  Defaults to 0.
     """
-    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, y = None, y_psb = None, y_value = None, lrn = True, order = None, order_fixed = False, iti = 0):
+    def __init__(self, n_rep, x_pn, x_bg = [], x_value = None, freq = None, y = None, y_psb = None, y_value = None, lrn = True, order = None, order_fixed = False, iti = 0, intro_length = 0, outro_length = 0):
         """
         Parameters
         ----------
@@ -117,6 +123,12 @@ class stage:
             between outcomes.  Should be 0 if the learner knows
             that outcomes cannot occur during the ITI, as in most
             human category learning experiments.  Defaults to 0.
+        intro_length : int, optional
+            The number of time steps with just background stimuli
+            before trials begin.  Defaults to 0.
+        outro_length : int, optional
+            The number of time steps with just background stimuli
+            after trials are finished.  Defaults to 0.
             
         Notes
         -----
@@ -172,7 +184,7 @@ class stage:
                 freq_tally[order[i]] += 1
             self.freq = list(freq_tally)
             self.order_fixed = True
-        self.n_t = n_rep*np.sum(self.freq*(1 + iti)) # number of time steps
+        self.n_t = intro_length + n_rep*np.sum(self.freq*(1 + iti)) + outro_length # number of time steps
         self.n_trial = len(self.order)
         # set y
         if y is None:
@@ -199,3 +211,5 @@ class stage:
             self.y_value = y_value
         self.lrn = lrn
         self.iti = iti
+        self.intro_length = intro_length
+        self.outro_length = outro_length

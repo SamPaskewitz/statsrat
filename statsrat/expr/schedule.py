@@ -156,8 +156,8 @@ class schedule:
         # loop through stages
         i = 0 # index for stages
         for st in stages:
-            n_t_trial_def += (stages[st].iti + 1)*stages[st].n_trial_type
-            n_t += (stages[st].iti + 1)*np.sum(stages[st].freq)*stages[st].n_rep
+            n_t_trial_def += stages[st].intro_length + (stages[st].iti + 1)*stages[st].n_trial_type + stages[st].outro_length
+            n_t += stages[st].n_t
             stage_names += [stages[st].n_trial_type*st]
             stage_number += [stages[st].n_trial_type*i]
             x_names += stages[st].x_names
@@ -202,8 +202,9 @@ class schedule:
         # loop through stages
         for st in stages:
             iti = stages[st].iti
-            stage += (iti + 1)*stages[st].n_trial_type*[i]
-            stage_name += (iti + 1)*stages[st].n_trial_type*[st]
+            n_t_trial_def_stage = stages[st].intro_length + (stages[st].iti + 1)*stages[st].n_trial_type + stages[st].outro_length
+            stage += n_t_trial_def_stage*[i]
+            stage_name += n_t_trial_def_stage*[st]
             # figure out cue names for use in exemplar naming (may include x_value if that is not only 0.0 or 1.0)
             x_names_ex = pd.Series('', index = stages[st].x_names)
             for xn in stages[st].x_names:
@@ -211,6 +212,18 @@ class schedule:
                     x_names_ex[xn] = xn + str(stages[st].x_value[xn])
                 else:
                     x_names_ex[xn] = xn
+            # add an 'intro' trial if needed
+            if stages[st].intro_length > 0:
+                trial += stages[st].intro_length*[-1]
+                trial_name += stages[st].intro_length*['intro']
+                x.loc[{'row': range(k, k + stages[st].intro_length), 'x_name': stages[st].x_bg}] = stages[st].x_value.loc[stages[st].x_bg] # background cues (x_bg)
+                y_psb.loc[{'row': range(k, k + stages[st].intro_length), 'y_name': stages[st].y_psb}] = 1.0
+                if stages[st].lrn == True:
+                    y_lrn.loc[{'row': range(k, k + stages[st].intro_length), 'y_name': stages[st].y_psb}] = 1.0
+                t_name += (stages[st].intro_length)*['bg']
+                ex_name += (stages[st].intro_length)*['.'.join(x_names_ex[stages[st].x_bg])]
+                k += stages[st].intro_length
+                i += 1
             # loop through trial types
             for j in range(stages[st].n_trial_type):
                 trial += (iti + 1)*[j]
@@ -251,13 +264,25 @@ class schedule:
                 # advance time step and stage indices
                 k += iti + 1
                 i += 1
+            # add an 'outro' trial if needed
+            if stages[st].outro_length > 0:
+                trial += stages[st].outro_length*[stages[st].n_trial_type + 1]
+                trial_name += stages[st].outro_length*['outro']
+                x.loc[{'row': range(k, k + stages[st].outro_length), 'x_name': stages[st].x_bg}] = stages[st].x_value.loc[stages[st].x_bg] # background cues (x_bg)
+                y_psb.loc[{'row': range(k, k + stages[st].outro_length), 'y_name': stages[st].y_psb}] = 1.0
+                if stages[st].lrn == True:
+                    y_lrn.loc[{'row': range(k, k + stages[st].outro_length), 'y_name': stages[st].y_psb}] = 1.0
+                t_name += (stages[st].outro_length)*['bg']
+                ex_name += (stages[st].outro_length)*['.'.join(x_names_ex[stages[st].x_bg])]
+                k += stages[st].outro_length
+                i += 1
 
         # create dataset for trial type definitions ('trial_def')
         trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x),
                                             'y': (['t', 'y_name'], y),
                                             'y_psb': (['t', 'y_name'], y_psb),
                                             'y_lrn': (['t', 'y_name'], y_lrn)},
-                               coords = {'t': range(len(stage)),
+                               coords = {'t': range(n_t_trial_def),
                                          't_name': ('t', t_name),
                                          'ex': ('t', ex_name),
                                          'trial': ('t', trial),
