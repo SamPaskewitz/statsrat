@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from plotnine import *
 
-def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
+def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, color = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
@@ -23,6 +23,11 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
         Variable to be represented by color.  Defaults to None (see notes).
     facet_var : string, optional
         Variable to control faceting.  Defaults to None (see notes).
+    color : string or dict or None, optional
+        If there is only one level of the variable plotted, then it should be a
+        string specifying line color.  If there are several levels then it should
+        be a dictionary with level names as keys as strings indicating colors as
+        values.  Defaults to None, which leads to the default colors.
     draw_points : boolean, optional
         Whether or not points should be drawn as well as lines.
         Defaults to False.
@@ -91,7 +96,10 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
     dpos = position_dodge(width = dodge_width)
     if n_dims == 0:
         dpos = position_identity()
-        plot = (ggplot(df, aes(x='t', y=var)) + geom_line())
+        if color is None:
+            plot = (ggplot(df, aes(x='t', y=var)) + geom_line())
+        else:
+            plot = (ggplot(df, aes(x='t', y=var)) + geom_line(color = color))
     else:
         if color_var is None:
             color_var = var_names[dims[0]]
@@ -101,6 +109,8 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
             if facet_var is None:
                 facet_var = var_names[dims[1]]
             plot = (ggplot(df, aes(x='t', y=var, color=color_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
+        if not color is None:
+            plot += scale_color_manual(values = color)
     
     if draw_points:
         plot += geom_point(position = dpos)
@@ -124,7 +134,7 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
     
     return plot
 
-def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
+def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     Schedules (groups) are represented by color.
@@ -150,6 +160,9 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     rename_schedules : dict or None, optional
         Either a dictionary for re-naming schedules (keys are old names and
         values are new names), or None (don't re-name).  Defaults to None.
+    color : dict or None, optional
+        If a dict, specifies the color for each schedule (group).  If None
+        (default) then the default colors are used.
     draw_points : boolean, optional
         Whether or not points should be drawn as well as lines.
         Defaults to False.
@@ -250,6 +263,8 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     else: # n_dims == 2 (doesn't work properly if n_dims is 3 or more)
         plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'], linetype=linetype_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
     
+    if not color is None:
+        plot += scale_color_manual(values = color)
     if draw_points:
         plot += geom_point(position = dpos)
     
