@@ -19,6 +19,8 @@ class experiment:
     schedules : dict
         A dictionary of the experiment's schedules (sequences of stimuli and feedback etc
         that typically correspond to groups in the experimental design).
+    schedule_names : list
+        Names of the experiment's schedules.
     oats : dict
         A dictionary of the experiment's ordinal adequacy tests (OATs).
     notes : str or None
@@ -74,6 +76,7 @@ class experiment:
         self.schedules = deepcopy(schedules)
         for s in self.schedules:
             self.schedules[s].name = s # assign schedule name attributes based on dictionary keys
+        self.schedule_names = list(self.schedules.keys())
         self.oats = oats
         self.notes = notes
 
