@@ -139,7 +139,7 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
     
     return plot
 
-def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
+def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
     Schedules (groups) are represented by color.
@@ -176,6 +176,9 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     only_main : boolean, optional
         Only keep rows where 't_name' is 'main', i.e. time steps with
         punctate cues and/or non-zero outcomes.  Defaults to False.
+    stage_name_list : list or None, optional
+        Either a list of stage names (strings) to keep, or else None
+        (keep all stages, the default).
     stage_labels : boolean, optional
         Whether the x-axis should be labeled with 'stage_name' (if True) or
         't', i.e. time step (if False).  Defaults to True.
@@ -211,6 +214,8 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     df_list = []
     i = 0
     for ds in ds_list:
+        if not stage_name_list is None:
+            ds = ds.loc[{'t': ds['stage_name'].isin(stage_name_list)}]
         if sel is None:
             new_ds_var = ds[var].squeeze()
         else:
