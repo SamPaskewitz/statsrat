@@ -132,8 +132,7 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
     plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
-    plot += theme(figure_size = figure_size)
-    plot += theme(axis_text_x = element_text(ha = 'left'))
+    plot += theme(figure_size = figure_size, axis_text_x = element_text(ha = 'left'), legend_key_height = 3) # Change figure size, align x axis text to the left, and squish legend lines closer together, 
     if not y_axis_label is None:
         plot += ylab(y_axis_label)
     
@@ -290,8 +289,7 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
     plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
-    plot += theme(figure_size = figure_size)
-    plot += theme(axis_text_x = element_text(ha = 'left'))
+    plot += theme(figure_size = figure_size, axis_text_x = element_text(ha = 'left'), legend_key_height = 3) # Change figure size, align x axis text to the left, and squish legend lines closer together, 
     if not y_axis_label is None:
         plot += ylab(y_axis_label)
                         

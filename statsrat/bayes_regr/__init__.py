@@ -179,7 +179,7 @@ class model:
         y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         x_names = list(trials.x_name.values)
         y_names = list(trials.y_name.values)
-        (f_x, f_names) = self.fbase(x, x_names).values() # features and feature names
+        (f_x, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names
         n_t = f_x.shape[0] # number of time points
         n_f = f_x.shape[1] # number of features
         n_y = y.shape[1] # number of outcomes/response options
