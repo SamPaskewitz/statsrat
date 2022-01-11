@@ -252,7 +252,7 @@ class model:
                 update = y_lrn[t, j] == 1
                 if update:
                     sufstat0_w[(t+1):n_t, :, j] = sufstat0_w[t, :, j] + (f*mean_z[t, j])/z_var
-                    sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var
+                    sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var            
 
         # generate simulated responses
         (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)

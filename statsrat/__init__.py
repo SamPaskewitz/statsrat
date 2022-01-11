@@ -872,11 +872,26 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
 
     Returns
     -------
-    dict
+    A dictionary with the following items:
+    
+    par: Dataframe of true and estimated parameters.
+    
+    fit: Model fit results (output of fitting function).
+    
+    comp: Dataframe summarizing recovery statistics for each parameter.
+    Columns include:
+        par: Name of the parameter.
+        mse: Mean squared error, i.e. mean of (estimate - true)^2.
+        r: Correlation between true and estimated parameter values.
+        rsq: R^2 (squared correlation between true and estimated parameter values).
+        bias: Mean of (estimate - true); measures estimation bias.
+        bias_effect_size: Standardized version of the bias measure (divided by SD of differences).
+        
+    sim_data: Simulated trial by trial data used for the recovery test.
 
     Notes
     -----
-    A parameter recovery test consists of three steps:
+    A parameter recovery test consists of the following steps:
     1) generate random parameter vectors (simulated individuals)
     2) simulate data for each parameter vector
     3) fit the model to the simulated data to estimate individual parameters
@@ -909,14 +924,16 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     par.columns = pd.MultiIndex.from_product([['true', 'est'], par_names])
 
     # compare parameter estimates to true values
-    comp = pd.DataFrame(0, index = range(n_p), columns = ['par', 'rsq'])
+    comp = pd.DataFrame(0, index = range(n_p), columns = ['par', 'mse', 'r', 'rsq', 'bias', 'bias_effect_size'])
     comp.loc[:, 'par'] = par_names
     for i in range(n_p):
         true = par.loc[:, ('true', par_names[i])]
         est = par.loc[:, ('est', par_names[i])]
-        #true = par.loc[:, 'true'].iloc[:, i]
-        #est = par.loc[:, 'est'].iloc[:, i]
-        comp.loc[i, 'rsq'] = est.corr(true)**2
+        comp.loc[i, 'mse'] = np.mean((est - true)**2)
+        comp.loc[i, 'r'] = est.corr(true)
+        comp.loc[i, 'rsq'] = comp.loc[i, 'r']**2
+        comp.loc[i, 'bias'] = np.mean(est - true)
+        comp.loc[i, 'bias_effect_size'] = comp.loc[i, 'bias']/np.std(est - true)
 
     # assemble data for output
     output = {'par': par, 'fit': fit, 'comp': comp, 'sim_data': sim_data}

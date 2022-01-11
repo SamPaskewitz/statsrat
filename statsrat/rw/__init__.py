@@ -208,7 +208,7 @@ class model:
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = y_lrn[t, :]*(y[t, :] - y_hat[t, :]) # prediction error
             aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
-            lrate[t, :, :] = self.lrate(aux, t, fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
+            lrate[t, :, :] = self.lrate(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
             drate[t, :, :] = self.drate(aux, t, w, n_f, n_y, sim_pars) # decay rates for this time step
             w[t + 1, :, :] = w[t, :, :] + y_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_y)) - drate[t, :, :]*w[t, :, :] # association learning
 
@@ -244,6 +244,8 @@ class model:
 par_names = []; par_list = []
 par_names += ['feature_count_window']; par_list += [{'min': 0.0, 'max': 100, 'default': 20}]
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
+par_names += ['lrate_pos']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
+par_names += ['lrate_neg']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['lrate_min']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.1}]
 par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
 par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
