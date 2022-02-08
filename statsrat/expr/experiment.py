@@ -155,7 +155,7 @@ class experiment:
 
         return trials
 
-    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', n_final = 8):
+    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', skiprows = 0, n_final = 8):
         """
         Import empirical data from .csv files.
 
@@ -190,9 +190,11 @@ class experiment:
             values give the corresponding row index (e.g. a question such as 
             'What is your age?') and column name as a tuple.  Defaults to None
             (do not import any additional data).
-        header: int or list of int, default ‘infer’
+        header: int or list of int, default = ‘infer’
             Passed to pandas.read_csv.  Row number(s) to use as the column names,
             and the start of the data.
+        skiprows: int, optional, default = 0
+            Passed to pandas.read_csv.  Initial rows to skip.
         n_final: int, optional
             Number of trials at end of each stage to use for calculating percent correct
             choices.  For example, set n_final = 10 to compute percent correct choices
@@ -261,6 +263,7 @@ class experiment:
         # **** loop through files ****
         n_f = len(file_set)
         ds_dict = {}
+        good_files = []
         did_not_work_read = []
         did_not_work_ident = []
         did_not_work_b = []
@@ -275,10 +278,10 @@ class experiment:
         for i in range(n_f):
             # **** import raw data ****
             try:
-                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, usecols = usecols)
+                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, usecols = usecols)
                 raw.dropna(subset = x_col, thresh = 1, inplace = True) # drop rows without recorded cues ('x')
                 raw.dropna(subset = resp_col, thresh = 1, inplace = True) # drop rows without recorded responses
-                raw_full = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, na_filter = True) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
+                raw_full = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, na_filter = True) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
                 index = np.zeros(raw.shape[0])
                 # drop rows in which none of the response columns has one of the expected responses
                 for col in resp_col:
@@ -383,11 +386,11 @@ class experiment:
                             var = raw_full.loc[row, column].values[0]
                             other_dict[var_name] = (['ident'], np.array([var]))
                         ds_other = xr.Dataset(data_vars = other_dict, coords = {'ident': [ident]})
-                        ds_new = ds_new.merge(ds_other)
-                    # **** code each trial as correct (u matches b) or incorrect ****
-                    u = ds_new['y'].squeeze()
+                        ds_new = ds_new.merge(ds_other)                    
+                    # **** code each trial as correct (y matches b) or incorrect ****
+                    y = ds_new['y'].squeeze()
                     b = ds_new['b'].squeeze()
-                    correct = np.all(u == b, axis = 1)
+                    correct = np.all(y == b, axis = 1)
                     ds_new = ds_new.assign(correct = correct)
                     # **** calculate percent correct per stage (excluding test stages) ****
                     for st in scd.stages:
@@ -399,6 +402,7 @@ class experiment:
                             pct_correct[var_name] += [100*ds_new['correct'].loc[{'t': index}][-n_final:].mean().values]    
                     # **** add individual's dataset to ds_dict ****
                     ds_dict[ident] = ds_new
+                    good_files += [file_set[i]]
                 except Exception as e:
                     print(e)
                     did_not_work_misc += [file_set[i]]
@@ -442,7 +446,7 @@ class experiment:
             if not_test:
                 stage_name = scd.stages[st].name
                 var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
-                summary[var_name] = pct_correct[var_name]            
+                summary[var_name] = pct_correct[var_name]         
         # **** calculate behavioral scores ****
         n_oats = len(self.oats)
         if conf_col is None:
@@ -457,6 +461,7 @@ class experiment:
             else:
                 if scd.name in oat.schedule_neg:
                     summary[oat_name] = oat.behav_score_neg.compute_scores(ds, has_conf)
+        summary['file'] = good_files
         summary = summary.set_index(ds.ident.to_series(), drop = True)
         
         return (ds, summary)

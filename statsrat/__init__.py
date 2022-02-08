@@ -396,7 +396,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
+def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -418,6 +418,14 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     tau: array-like of floats or None, optional
         Natural parameters of the log-normal prior.
         Defaults to None (don't use log-normal prior).
+    
+    global_tolerance: float or None, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the global optimization.  Defaults to None.
+    
+    local_tolerance: float or None, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the local optimization.  Defaults to None.
         
     global_time: int, optional
         Maximum time (in seconds) per individual for global optimization.
@@ -425,7 +433,7 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
         
     local_time: int, optional
         Maximum time (in seconds) per individual for local optimization.
-        Defaults to 15.
+        Defaults to 15.  If 0, then local optimization is not run.
         
     algorithm: object, optional
         The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
@@ -529,7 +537,10 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
             gopt.set_max_objective(f)
             gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
             gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
-            gopt.set_maxtime(global_time)
+            if not global_time is None:
+                gopt.set_maxtime(global_time)
+            if not global_tolerance is None:
+                gopt.set_xtol_rel(global_tolerance)
             gxopt = gopt.optimize(x0_i)
             if local_time > 0:
                 # local optimization (to refine answer)
@@ -538,6 +549,8 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
                 lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
                 lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
                 lopt.set_maxtime(local_time)
+                if not local_tolerance is None:
+                    lopt.set_xtol_rel(local_tolerance)
                 lxopt = lopt.optimize(gxopt)
                 df.loc[idents[i], par_names] = lxopt
                 df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
@@ -556,6 +569,8 @@ def fit_indv(model, ds, x0 = None, tau = None, global_time = 15, local_time = 15
     df['model'] = model.name
     df['global_time'] = global_time
     df['local_time'] = local_time
+    df['global_tolerance'] = global_tolerance
+    df['local_tolerance'] = local_tolerance
     df['algorithm'] = nlopt.algorithm_name(algorithm)
     
     # if performing maximum likelihood estimation, then add some columns
