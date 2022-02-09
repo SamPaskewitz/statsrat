@@ -396,7 +396,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
+def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -409,6 +409,10 @@ def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_to
     ds: dataset (xarray)
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
 
     x0: data frame/array-like of floats or None, optional
         Start points for each individual in the dataset.
@@ -445,6 +449,10 @@ def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_to
         
         ident: Participant ID (dataframe index).
         
+        fixed_par_names: Names of fixed parameters (if any).
+        
+        fixed_par_values: Values of fixed parameters (if any).
+        
         prop_log_post: Quantity proportional to the maximum log-posterior (equal
                        to log-likelihood given a uniform prior).
                        
@@ -455,6 +463,10 @@ def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_to
         global_time: Maximum time (in seconds) per individual for global optimization.
         
         local_time: Maximum time (in seconds) per individual for local optimization.
+        
+        global_tolerance: Global relative tolerance.
+        
+        local_tolerance: Local relative tolerance.
         
         algorithm: Name of the global optimization algorithm.
         
@@ -489,14 +501,54 @@ def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_to
     # count things etc.
     idents = ds['ident'].values
     n = len(idents)
-    par_names = list(model.pars.index)
-    n_p = len(par_names)
-    lower = model.pars['min']   
+    all_par_names = list(model.pars.index)
+    free_par_names = all_par_names.copy()
+    if not fixed_pars is None:
+        fixed_par_names = list(fixed_pars.keys())
+        fixed_par_values = list(fixed_pars.values())
+        for fxpn in fixed_par_names:
+            free_par_names.remove(fxpn)
+    par_max = model.pars.loc[free_par_names, 'max'].values
+    par_min = model.pars.loc[free_par_names, 'min'].values
+    n_p = len(free_par_names)  
     # set up data frame
-    col_index = par_names + ['prop_log_post']
+    col_index = free_par_names + ['prop_log_post']
     df = pd.DataFrame(0.0, index = pd.Series(idents, dtype = str), columns = col_index)
+    if fixed_pars is None:
+        df['fixed_par_names'] = None
+        df['fixed_par_values'] = None
+    else:
+        df['fixed_par_names'] = ', '.join(fixed_par_names)
+        df['fixed_par_values'] = str(fixed_par_values)
     # list of participants to drop because their data could not be fit (if any)
     idents_to_drop = []
+       
+    # function to return parameter values
+    if fixed_pars is None:
+        def par_val(x):
+            return x
+    else:
+        # incorporate fixed parameters (this could probably be much more efficient)
+        def par_val(x):
+            pvs = pd.Series(0.0, index = all_par_names)
+            pvs[free_par_names] = x
+            pvs[fixed_par_names] = fixed_par_values
+            return list(pvs)
+
+    # function proportional to log prior
+    if tau is None:
+        # uniform prior (i.e. maximum likelihood)
+        def prop_log_prior(par_val):
+            return 0
+    else:
+        # log-normal prior
+        def prop_log_prior(par_val):
+            # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
+            value = 0
+            for j in range(n_p):
+                y = np.log(np.sign(par_val[j] - par_min[j]))
+                value += tau[0]*y + tau[1]*y**2
+            return value
     
     # maximize log-likelihood/posterior
     for i in range(n):
@@ -504,39 +556,23 @@ def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_to
             pct = np.round(100*(i + 1)/n, 1)
             print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
             ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
-
-            # define objective function
-            if tau is None:
-                # uniform prior
-                def f(x, grad = None):
-                    if grad.size > 0:
-                        grad = None
-                    par_val = x
-                    return log_lik(model, ds_i, par_val)
-            else:
-                # log-normal prior
-                def f(x, grad = None):
-                    if grad.size > 0:
-                        grad = None
-                    par_val = x
-                    ll = log_lik(model, ds_i, par_val)
-                    # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
-                    prop_log_prior = 0
-                    for j in range(n_p):
-                        y = np.log(np.sign(par_val[j] - lower[j]))
-                        prop_log_prior += tau[0]*y + tau[1]*y**2
-                    prop_log_post = ll + prop_log_prior
-                    return prop_log_post
+  
+            # objective function (proportional to log posterior)
+            def f(x, grad = None):
+                if grad.size > 0:
+                    grad = None
+                pv = par_val(x)
+                return log_lik(model, ds_i, pv) + prop_log_prior(pv)
 
             # global optimization (to find approximate optimum)
             if x0 is None:
-                x0_i = (model.pars['max'] + model.pars['min'])/2 # midpoint of each parameter's allowed interval
+                x0_i = (par_max + par_min)/2 # midpoint of each parameter's allowed interval
             else:
                 x0_i = np.array(x0.iloc[i])
             gopt = nlopt.opt(algorithm, n_p)
             gopt.set_max_objective(f)
-            gopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
-            gopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+            gopt.set_lower_bounds(np.array(par_min + 0.001))
+            gopt.set_upper_bounds(np.array(par_max - 0.001))
             if not global_time is None:
                 gopt.set_maxtime(global_time)
             if not global_tolerance is None:
@@ -546,16 +582,16 @@ def fit_indv(model, ds, x0 = None, tau = None, global_tolerance = None, local_to
                 # local optimization (to refine answer)
                 lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
                 lopt.set_max_objective(f)
-                lopt.set_lower_bounds(np.array(model.pars['min'] + 0.001))
-                lopt.set_upper_bounds(np.array(model.pars['max'] - 0.001))
+                lopt.set_lower_bounds(np.array(par_min + 0.001))
+                lopt.set_upper_bounds(np.array(par_max - 0.001))
                 lopt.set_maxtime(local_time)
                 if not local_tolerance is None:
                     lopt.set_xtol_rel(local_tolerance)
                 lxopt = lopt.optimize(gxopt)
-                df.loc[idents[i], par_names] = lxopt
+                df.loc[idents[i], free_par_names] = lxopt
                 df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
             else:
-                df.loc[idents[i], par_names] = gxopt
+                df.loc[idents[i], free_par_names] = gxopt
                 df.loc[idents[i], 'prop_log_post'] = gopt.last_optimum_value()
         except:
             print('There was a problem fitting the model to data from participant ' + idents[i] + ' (' + str(i + 1) + ' of ' + str(n) + ')')
