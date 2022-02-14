@@ -4,6 +4,7 @@ import xarray as xr
 from scipy import stats
 from plotnine import *
 import nlopt
+from numpy.random import default_rng
 
 def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None):
     """
@@ -414,12 +415,12 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
 
-    x0: data frame/array-like of floats or None, optional
+    x0: array-like of floats or None, optional
         Start points for each individual in the dataset.
         If None, then parameter search starts at the midpoint
         of each parameter's allowed interval.  Defaults to None
 
-    tau: array-like of floats or None, optional
+    tau: list of arrays or None, optional
         Natural parameters of the log-normal prior.
         Defaults to None (don't use log-normal prior).
     
@@ -512,7 +513,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
     par_min = model.pars.loc[free_par_names, 'min'].values
     n_p = len(free_par_names)  
     # set up data frame
-    col_index = free_par_names + ['prop_log_post']
+    col_index = all_par_names + ['prop_log_post']
     df = pd.DataFrame(0.0, index = pd.Series(idents, dtype = str), columns = col_index)
     if fixed_pars is None:
         df['fixed_par_names'] = None
@@ -546,15 +547,16 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
             # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
             value = 0
             for j in range(n_p):
-                y = np.log(np.sign(par_val[j] - par_min[j]))
-                value += tau[0]*y + tau[1]*y**2
+                y = np.log(par_val[j] - par_min[j])
+                value += tau[0][j]*y + tau[1][j]*(y**2)
             return value
     
     # maximize log-likelihood/posterior
     for i in range(n):
         try:
-            pct = np.round(100*(i + 1)/n, 1)
-            print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
+            if (i + 1) <= 5 or (i + 1) % 10 == 0:
+                pct = np.round(100*(i + 1)/n, 1)
+                print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
             ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
   
             # objective function (proportional to log posterior)
@@ -568,7 +570,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
             if x0 is None:
                 x0_i = (par_max + par_min)/2 # midpoint of each parameter's allowed interval
             else:
-                x0_i = np.array(x0.iloc[i])
+                x0_i = x0[i, :]
             gopt = nlopt.opt(algorithm, n_p)
             gopt.set_max_objective(f)
             gopt.set_lower_bounds(np.array(par_min + 0.001))
@@ -609,6 +611,11 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
     df['local_tolerance'] = local_tolerance
     df['algorithm'] = nlopt.algorithm_name(algorithm)
     
+    # if some parameters are fixed, add the fixed values to the dataframe
+    if not fixed_pars is None:
+        for fxpn in fixed_par_names:
+            df[fxpn] = fixed_pars[fxpn]
+    
     # if performing maximum likelihood estimation, then add some columns
     if tau is None:
         df['log_lik'] = df['prop_log_post'] # log likelihood
@@ -620,7 +627,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
     
     return df
 
-def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
+def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -632,6 +639,16 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     ds: dataset (xarray)
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
+        
+    x0: array-like of floats or None, optional
+        Start points for each individual in the dataset (for the initial
+        optimization).
+        If None, then parameter search starts at the midpoint
+        of each parameter's allowed interval.  Defaults to None
 
     max_em_iter: int, optional
         Maximum number of EM algorithm iterations.
@@ -658,7 +675,7 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     
     Let theta be defined as any model parameter, and y be that the natural logarithm of that 
     parameter after being shifted to the interval (0, Inf):
-    y = log(sign(theta - min theta)*(theta - min theta))
+    y = log(theta - min theta)
     
     Then we assume y ~ N(mu, 1/rho) where rho is a precision parameters.
     The corresponding natural parameters are tau0 = mu*rho and tau1 = -0.5*rho.
@@ -675,22 +692,27 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     """
     
     # count things, set up parameter space boundaries etc.
-    n = len(ds.ident)
-    par_names = list(model.pars.index)
-    n_p = len(par_names) # number of psychological parameters
-    lower = list(model.pars['min'])
-    size = list(model.pars['max'] - model.pars['min'])
-    bounds = []
-    for i in range(len(model.pars)):
-        bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
+    # count things etc.
+    idents = ds['ident'].values
+    n = len(idents)
+    all_par_names = list(model.pars.index)
+    free_par_names = all_par_names.copy()
+    if not fixed_pars is None:
+        fixed_par_names = list(fixed_pars.keys())
+        fixed_par_values = list(fixed_pars.values())
+        for fxpn in fixed_par_names:
+            free_par_names.remove(fxpn)
+    par_max = model.pars.loc[free_par_names, 'max'].values
+    par_min = model.pars.loc[free_par_names, 'min'].values
+    n_p = len(free_par_names)
 
     # keep track of relative change in est_psych_par
     rel_change = np.zeros(max_em_iter)
     
     # initialize (using MLE, i.e. uniform priors)
     print('\n initial estimation with uniform priors')
-    result = fit_indv(model, ds, None, None, global_time, local_time)
-    est_psych_par = np.array(result.loc[:, par_names])
+    result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, tau = None, x0 = x0, global_time = global_time, local_time = local_time, algorithm = algorithm)
+    est_psych_par = result.loc[:, free_par_names].values
     
     # See the following:
     # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
@@ -703,21 +725,22 @@ def fit_em(model, ds, max_em_iter = 5, global_time = 15, local_time = 15, algori
     for i in range(max_em_iter):
         print('\n EM iteration ' + str(i + 1))
         # E step (posterior means of hyperparameters given current estimates of psych_par)
+        E_tau0 = np.zeros(n_p)
+        E_tau1 = np.zeros(n_p)
         for j in range(n_p):
-            y = np.log(np.sign(est_psych_par[:, j] - lower[j]))
+            y = np.log(est_psych_par[:, j] - par_min[j])
             y_bar = y.mean()
             # posterior hyperparameters for tau0 and tau1
             mu0_prime = (nu*mu0 + n*y_bar)/(nu + n)
             nu_prime = nu + n
             alpha_prime = alpha + n/2
-            beta_prime = beta + 0.5*(y - y_bar).sum() + 0.5*(n*nu/(n + nu))*(y_bar - mu0)**2
+            beta_prime = beta + 0.5*np.sum((y - y_bar)**2) + 0.5*(n*nu/(n + nu))*(y_bar - mu0)**2
             # expectations of natural hyperparameters (https://en.wikipedia.org/wiki/Normal-gamma_distribution)
-            E_tau0 = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
-            E_tau1 = -0.5*(alpha_prime/beta_prime)
+            E_tau0[j] = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
+            E_tau1[j] = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
-        x0 = result.drop(columns = 'prop_log_post')
-        result = fit_indv(model, ds, x0, [E_tau0, E_tau1], global_time, local_time, algorithm)
-        new_est_psych_par = np.array(result.loc[:, par_names])
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, x0 = est_psych_par, tau = [E_tau0, E_tau1], global_time = global_time, local_time = local_time, algorithm = algorithm)
+        new_est_psych_par = result.loc[:, free_par_names].values
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
         print('relative change: ' + '{:.8}'.format(rel_change[i]))
@@ -812,8 +835,7 @@ def fit_algorithm_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, 
     
     return {'df': df, 'plot': plot}        
 
-def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n = 10):
-    # UPDATE THIS TO USE LOG-NORMAL PRIORS.
+def make_sim_data(model, experiment, schedule = None, pars_to_sample = None, n = 10):
     """
     Generate simulated data given an experiment and schedule (with random parameter vectors).
     
@@ -823,21 +845,16 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
         Learning model.
         
     experiment : object
-        The experiment to be used for the recovery test.
+        The experiment to be used.
         
-    schedule_name : str, optional
+    schedule : str, optional
         Name of the experimental schedule to be used for the test.
         Defaults to the first schedule in the experiment definition.
         
-    a_true : int or list, optional
-        Hyperarameter of the beta distribution used to generate true
-        parameters.  Can be either a scalar or a list equal in length
-        to the the number of parameters.  Defaults to 1.
-        
-    b_true : int or list, optional
-        Hyperarameter of the beta distribution used to generate true
-        parameters.  Can be either a scalar or a list equal in length
-        to the the number of parameters.  Defaults to 1.
+    pars_to_sample : dataframe or None, optional
+        If None, then model parameters are drawn from uniform distributions.
+        Otherwise, parameters are sampled (with replacement) from the rows of
+        the dataframe; each parameter is sampled independently.
         
     n : int, optional
         Number of individuals to simulate.  Defaults to 10.
@@ -852,8 +869,6 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     Notes
     -----
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
-    
-    If a = b = 1 (default), parameters will be drawn from uniform distributions.
     """
     # count things, set up parameter space boundaries etc.
     par_names = list(model.pars.index)
@@ -865,13 +880,19 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     idents = []
     for i in range(n):
         idents += ['sub' + str(i)]
-    par = pd.DataFrame(stats.beta.rvs(a = a_true,
-                                      b = b_true,
-                                      loc = loc,
-                                      scale = scale,
-                                      size = (n, n_p)),
-                       index = idents,
-                       columns = par_names)
+    if pars_to_sample is None:
+        par = pd.DataFrame(stats.uniform.rvs(loc = loc,
+                                             scale = scale,
+                                             size = (n, n_p)),
+                           index = idents,
+                           columns = par_names)
+    else:
+        par = pd.DataFrame(np.zeros((n, n_p)),
+                           index = idents,
+                           columns = par_names)
+        rng = default_rng()
+        for par_name in par_names:
+            par.loc[:, par_name] = rng.choice(pars_to_sample[par_name].values, size = n, replace = True)
 
     # create a list of trial sequences to use in simulations
     trials_list = []
@@ -892,7 +913,7 @@ def make_sim_data(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     output = {'par': par, 'ds': ds}
     return output
 
-def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n = 10, method = "indv"):
+def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n = 10, fixed_pars = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, method = "indv"):
     """
     Perform a parameter recovery test.
     
@@ -908,18 +929,37 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
         Name of the experimental schedule to be used for the test.
         Defaults to the first schedule in the experiment definition.
         
-    a_true : int or list, optional
-        Hyperarameter of the beta distribution used to generate true
-        parameters.  Can be either a scalar or a list equal in length
-        to the the number of parameters.  Defaults to 1.
-        
-    b_true : int or list, optional
-        Hyperarameter of the beta distribution used to generate true
-        parameters.  Can be either a scalar or a list equal in length
-        to the the number of parameters.  Defaults to 1.
+    pars_to_sample : dataframe or None, optional
+        If None, then model parameters are drawn from uniform distributions.
+        Otherwise, parameters are sampled (with replacement) from the rows of
+        the dataframe; each parameter is sampled independently.
         
     n : int, optional
         Number of individuals to simulate.  Defaults to 10.
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
+        
+    global_tolerance: float or None, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the global optimization.  Defaults to None.
+    
+    local_tolerance: float or None, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the local optimization.  Defaults to None.
+        
+    global_time: int, optional
+        Maximum time (in seconds) per individual for global optimization.
+        Defaults to 15.
+        
+    local_time: int, optional
+        Maximum time (in seconds) per individual for local optimization.
+        Defaults to 15.  If 0, then local optimization is not run.
+        
+    method: str, optional
+        Either 'indv' (individual fits) or 'em' (EM algorithm).  Deafults
+        to 'indv'.
 
     Returns
     -------
@@ -953,24 +993,17 @@ def recovery_test(model, experiment, schedule = None, a_true = 1, b_true = 1, n 
     
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
     """
-    # count things, set up parameter space boundaries etc.
-    par_names = list(model.pars.index)
-    n_p = len(par_names)
-    loc = model.pars['min']
-    scale = model.pars['max'] - model.pars['min']
-    bounds = []
-    for i in range(len(model.pars)):
-        bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
-
     # generate simulated data
-    sim_data = make_sim_data(model, experiment, schedule, a_true, b_true, n)
+    sim_data = make_sim_data(model, experiment, schedule, pars_to_sample, n)
 
     # estimate parameters
-    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds']),
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds'], fixed_pars = fixed_pars, global_time = global_time, local_time = local_time, global_tolerance = global_tolerance, local_tolerance = local_tolerance),
                 'em': lambda ds : fit_em(model = model, ds = sim_data['ds'])}
     fit = fit_dict[method](sim_data['ds'])
 
     # combine true and estimated parameters into one dataframe
+    par_names = list(model.pars.index)
+    n_p = len(par_names)
     par = pd.concat((sim_data['par'], fit[par_names]), axis = 1)
     par.columns = pd.MultiIndex.from_product([['true', 'est'], par_names])
 
@@ -1050,66 +1083,85 @@ def one_step_pred(model, ds, n_pred = 10, method = "indv"):
             
     return {'pred_log_lik': pred_log_lik, 'mean': pred_log_lik.mean(), 'std': pred_log_lik.std()}
 
-# UPDATE        
-def split_pred(model, trials_list, eresp_list, t_fit, method = "indv"):
+# FINISH UPDATING
+def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO, method = 'indv'):
     """
-    Split prediction test (similar to cross-validation).
-
+    Split prediction test (similar to cross-validation): fit the model to
+    earlier learning data in order to predict later learning data.
+    
     Parameters
     ----------
-    trials_list : list
-        List of time step level experimental data (cues, outcomes
-        etc.) for each participant.
-    eresp_list : list
-        List of empirical response arrays for each participant.
+    model: object
+        Learning model.
+        
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
+        
     t_fit : int
         The first 't_fit' trials are used to predict the remaining
         ones.
-    method : string
-        The method used to fit the model, either "indv" or "em".
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
 
-    Returns
-    -------
-    dict
+    x0: data frame/array-like of floats or None, optional
+        Start points for each individual in the dataset.
+        If None, then parameter search starts at the midpoint
+        of each parameter's allowed interval.  Defaults to None
 
+    tau: array-like of floats or None, optional
+        Natural parameters of the log-normal prior.
+        Defaults to None (don't use log-normal prior).
+    
+    global_tolerance: float or None, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the global optimization.  Defaults to None.
+    
+    local_tolerance: float or None, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the local optimization.  Defaults to None.
+        
+    global_time: int, optional
+        Maximum time (in seconds) per individual for global optimization.
+        Defaults to 15.
+        
+    local_time: int, optional
+        Maximum time (in seconds) per individual for local optimization.
+        Defaults to 15.  If 0, then local optimization is not run.
+        
+    algorithm: object, optional
+        The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
+        
+    method: str, optional
+        Either 'indv' (individual fits) or 'em' (EM algorithm).  Deafults
+        to 'indv'.
+    
     Notes
     -----
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
     
     This is similar to the 'one_step_pred' method described above, but simply predict the last part of the data from the first.
     
-    It is thus much faster to run and (at least for now) more practical.
+    It is thus much faster to run and (at least for now) more practical. 
     """
+    # split data into earlier and later parts
+    ds_early = ds.loc[{'t': ds['t'] <= t_fit}]
+    ds_late = ds.loc[{'t': ds['t'] > t_fit}]
 
-    # count things, set up parameter space boundaries etc.
-    n = len(trials_list)
-    par_names = list(model.pars.index)
-    n_p = len(par_names)
-    n_t = trials_list[0].shape[0] # number of time steps
-    loc = model.pars['min']
-    scale = model.pars['max'] - model.pars['min']
-    bounds = []
-    for i in range(len(model.pars)):
-        bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
+    # estimate parameters using earlier data
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = ds_early, fixed_pars = fixed_pars, global_time = global_time, local_time = local_time, global_tolerance = global_tolerance, local_tolerance = local_tolerance),
+                'em': lambda ds : fit_em(model = model, ds = ds_early)}
+    fit = fit_dict[method](ds_early)
+
+    # compute log-likelihood of later responses
+    idents = ds['ident'].values
+    n = len(idents)
     pred_log_lik = np.zeros(n)
-        
-    # trial and response data from time steps before t
-    # THIS WILL BE MUCH MORE EFFICIENT I THINK ONCE I USE A BIG DATA FRAME FOR GROUP DATA INSTEAD OF LISTS
-    prev_trials_list = []
-    prev_eresp_list = []
-    ftr_eresp_list = []
     for i in range(n):
-        prev_trials_list += [trials_list[i].iloc[range(0, t_fit), :]]
-        prev_eresp_list += [eresp_list[i][range(0, t_fit), :]]
-        ftr_eresp_list += [eresp_list[i][range(t_fit, n_t), :]]
-    # fit model to data from time steps before t
-    fit_dict = {'indv': model.fit_indv,
-                'em': model.fit_em}
-    est_par = fit_dict[method](prev_trials_list, prev_eresp_list)['df'].loc[:, 'est_par']
-    # simulate model to predict responses on remaining time steps
-    for i in range(n):
-        sim = model.simulate(trials_list[i], resp_type = 'choice', par_val = est_par.iloc[i, :])
-        ftr_prob = np.array(sim.loc[range(t_fit, n_t), 'resp'], dtype = 'float64')
-        pred_log_lik[i] = np.sum(np.log(ftr_prob)*ftr_eresp_list[i])
+        ds_i = ds_late.loc[{'ident' : idents[i]}].squeeze()
+        par_val_i = fit.loc[idents[i], model.pars.index]
+        pred_log_lik[i] = log_lik(model, ds_i, par_val_i)
             
-    return {'pred_log_lik': pred_log_lik, 'mean': pred_log_lik.mean(), 'std': pred_log_lik.std()}
+    return {'pred_log_lik': pred_log_lik, 'fit': fit}
