@@ -155,7 +155,7 @@ class experiment:
 
         return trials
 
-    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', skiprows = 0, n_final = 8):
+    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', skiprows = 0, n_final = 8, files_to_skip = None):
         """
         Import empirical data from .csv files.
 
@@ -199,6 +199,8 @@ class experiment:
             Number of trials at end of each stage to use for calculating percent correct
             choices.  For example, set n_final = 10 to compute percent correct choices
             using the last 10 trials of each stage.
+        files_to_skip: list, optional
+            List of files in the specified path to skip.  Defaults to None.
         
         Returns
         -------
@@ -244,6 +246,9 @@ class experiment:
         # list .csv files in the directory
         file_set = [file for file in glob.glob(path + "**/*.csv", recursive=True)]
         assert len(file_set) > 0, 'Cannot find any files in specified path.'
+        if not files_to_skip is None: # skip specified files
+            for file in files_to_skip:
+                file_set.remove(file)
         
         # determine experimental schedule to use
         if schedule is None:
