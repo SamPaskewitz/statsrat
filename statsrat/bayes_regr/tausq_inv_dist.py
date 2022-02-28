@@ -25,7 +25,7 @@ class constant:
     def __init__(self, n_y, n_f, sim_pars):
         self.tausq_inv_array = np.array(n_y*n_f*[sim_pars['tausq_inv']]).reshape((n_f, n_y))
     
-    def update(self, mean_wsq, y_psb):
+    def update(self, mean_wsq, y_psb_so_far):
         pass # do nothing, because tausq_inv is assumed to be known and constant
     
     def mean_tausq_inv(self):
@@ -49,7 +49,7 @@ class ard:
         self.hpar0 = np.array(n_f*n_y*[sim_pars['prior_tausq_inv_hpar0']], dtype='float').reshape((n_f, n_y))
         self.hpar1 = sim_pars['prior_tausq_inv_hpar1']
         
-    def update(self, mean_wsq, y_psb):
+    def update(self, mean_wsq, y_psb_so_far):
         # update hyperparameters
         for j in range(self.n_y):
             self.hpar0[:, j] = self.prior_hpar0 - 0.5*mean_wsq[:, j]
@@ -77,16 +77,11 @@ class ard_drv_atn:
         self.prior_hpar1 = sim_pars['prior_tausq_inv_hpar1']
         self.hpar0 = np.array(n_f*[sim_pars['prior_tausq_inv_hpar0']], dtype='float')
         self.hpar1 = sim_pars['prior_tausq_inv_hpar1']
-        self.y_psb_so_far = np.zeros(n_y)
         
-    def update(self, mean_wsq, y_psb):
-        # keep track of which outcomes have been observed so far
-        for j in range(self.n_y):
-            if y_psb[j] == 1:
-                self.y_psb_so_far[j] = 1
+    def update(self, mean_wsq, y_psb_so_far):
         # update hyperparameters
         self.hpar0 = self.prior_hpar0 - 0.5*mean_wsq.sum(1)
-        self.hpar1 = self.prior_hpar1 + 0.5*self.y_psb_so_far.sum()
+        self.hpar1 = self.prior_hpar1 + 0.5*y_psb_so_far.sum()
     
     def mean_tausq_inv(self):
         mean_tausq_inv = np.zeros((self.n_f, self.n_y))

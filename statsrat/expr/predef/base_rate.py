@@ -76,10 +76,10 @@ novel = expr.oat(schedule_pos = ['design'],
                                               resp_pos = ['r1', 'r2', 'r3'], # NEED TO CHANGE
                                               resp_neg = ['c1', 'c2', 'c3'])) # NEED TO CHANGE
 
-basic_ibre = expr.experiment(schedules = {'design': design},
+novel = expr.experiment(schedules = {'design': design},
                              oats = {'ibre': ibre, 'novel': novel})
 
-del design; del pc_pr
+del design; del novel
 
 
 ##### ATTENTIONAL TRANSFER AFTER THE INVERSE BASE RATE EFFECT #####

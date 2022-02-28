@@ -138,7 +138,7 @@ class model:
         mean_tausq: prior/posterior mean of the variance matrix
         mean_w: prior/posterior mean of weights (w)
         var_w: prior/posterior variance of weights (w)
-        mean_wsq: prior/posteriorm mean of squared weights (w**2)
+        mean_wsq: prior/posterior mean of squared weights (w**2)
         b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
         b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
 
@@ -200,11 +200,9 @@ class model:
         mean_w = np.zeros((n_t, n_f, n_y)) # variational mean of w (a.k.a. mu)
         var_w = np.zeros((n_t, n_f, n_y)) # variational variance of w (i.e. the diagonal elements of the covariance matrix)
         mean_wsq = np.zeros((n_t, n_f, n_y)) # variational mean of w^2
-        initial_tausq = tausq_inv_dist.mean_tausq()
-        for j in range(n_y):
-            mean_wsq[0, :, j] = initial_tausq[:, j]
         z_hat = np.zeros((n_t, n_y)) # predicted latent variable (z) before observing outcome (y)
         mean_z = np.zeros((n_t, n_y)) # variational mean of the latent variable z (after observing y)
+        y_psb_so_far = np.zeros(n_y) # keeps track of which outcomes have been encountered as possible so far
         # determine value of z_var (variance of the latent variable z)
         if 'y_var' in self.pars.index:
             # In this case, y = z so y_var = z_var.
@@ -220,13 +218,16 @@ class model:
         sim_resp_fun = resp_dict[trials.resp_type]
         
         # loop through time steps
-        for t in range(n_t):         
-            # update tausq_inv_dist using mean_wsq and compute means of tausq and tausq_inv
-            tausq_inv_dist.update(mean_wsq[t, :, :], y_psb[t, :])
+        for t in range(n_t):
+            # compute means of tausq and tausq_inv
             mean_tausq_inv[t, :, :] = tausq_inv_dist.mean_tausq_inv()
             mean_tausq[t, :, :] = tausq_inv_dist.mean_tausq()
             # compute hpar_w and related quantities using mean_tausq_inv
             for j in range(n_y):
+                # keep track of which outcomes have been observed so far
+                if y_psb[t, j] == 1:
+                    y_psb_so_far[j] = 1
+
                 calculate = y_psb[t, j] == 1
                 if calculate:
                     # mean prior precision matrix
@@ -241,6 +242,8 @@ class model:
                     # compute var_w and mean_wsq
                     var_w[t:n_t, :, j] = 1/np.diag(hpar1_w[t, :, :, j])
                     mean_wsq[t:n_t, :, j] = var_w[t, :, j] + mean_w[t, :, j]**2
+            # update tausq_inv_dist using mean_wsq
+            tausq_inv_dist.update(mean_wsq[t, :, :], y_psb_so_far)
             # predict y (outcome) and compute b (behavior)
             z_hat[t, :] = y_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # predicted value of latent variable (z)
             y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (y)
@@ -252,7 +255,7 @@ class model:
                 update = y_lrn[t, j] == 1
                 if update:
                     sufstat0_w[(t+1):n_t, :, j] = sufstat0_w[t, :, j] + (f*mean_z[t, j])/z_var
-                    sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var            
+                    sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var
 
         # generate simulated responses
         (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
@@ -282,8 +285,8 @@ class model:
 
 ########## PARAMETERS ##########
 par_names = []; par_list = [] 
-par_names += ['prior_tausq_inv_hpar0']; par_list += [{'min' : -10.0, 'max' : 0.0, 'default' : -2.0}] # hyperparameter for tausq_inv
-par_names += ['prior_tausq_inv_hpar1']; par_list += [{'min' : 1.0, 'max' : 11.0, 'default' : 3.0}] # other hyperparameter for tausq_inv
+par_names += ['prior_tausq_inv_hpar0']; par_list += [{'min' : -10.0, 'max' : 0.0, 'default' : -2.0}] # gamma distribution hyperparameter for tausq_inv (= -beta)
+par_names += ['prior_tausq_inv_hpar1']; par_list += [{'min' : 1.0, 'max' : 11.0, 'default' : 3.0}] # other gamma distribution hyperparameter for tausq_inv (= alpha - 1)
 par_names += ['y_var']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 0.1}] # outcome variance
 par_names += ['tausq_inv']; par_list += [{'min' : 0.01, 'max' : 100.0, 'default' : 1}] # prior precision of regression weights, if treated as fixed and known
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
