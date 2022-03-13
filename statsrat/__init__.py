@@ -753,11 +753,10 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
     # output
     return result
 
-def fit_algorithm_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, time_interval_size = 10, algorithm = nlopt.GD_STOGO, algorithm_list = None):
+def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None, x0 = None, tau = None, global_time = 15):
     """
-    Used to figure compare global optimization algorithms and/or test how long to
-    run global optimization (in fit_indv) by generating plots.
-    This should be run on a subset of the data prior to the main model fit.
+    Compare global optimization algorithms (in fit_indv).
+    This can be run on a subset of the data prior to the main model fit.
     
     Parameters
     ----------
@@ -767,6 +766,78 @@ def fit_algorithm_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, 
     ds: dataset (xarray)
         Dataset of time step level experimental data (cues, outcomes etc.)
         for each participant.
+        
+    algorithm_list: list
+        List of global optimization algorithms to compare.
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
+
+    x0: data frame/array-like of floats or None, optional
+        Start points for each individual in the dataset.
+        If None, then parameter search starts at the midpoint
+        of each parameter's allowed interval.  Defaults to None
+
+    tau: array-like of floats or None, optional
+        Natural parameters of the log-normal prior.
+        Defaults to None (to not use log-normal prior).   
+        
+    global_time: int, optional
+        Maximum time (in seconds) per individual for global optimization.
+        Defaults to 15.
+
+    Notes
+    -----
+    No local optimization is run.
+    """
+    df_list = []
+    
+    for algorithm in algorithm_list:
+        new_df = fit_indv(model = model, 
+                          ds = ds,
+                          fixed_pars = fixed_pars,
+                          x0 = x0, 
+                          tau = tau, 
+                          global_time = global_time, 
+                          local_time = 0, 
+                          algorithm = algorithm)
+        new_df.index = new_df.index.rename('ident')
+        new_df.reset_index(inplace = True, drop = False)
+        df_list += [new_df]
+    df = pd.concat(df_list)
+    
+    plot = ggplot(df, aes(df.index, 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + labs(x = 'ident')
+    plot.draw()
+    
+    return {'df': df, 'table': df.groupby('algorithm')['prop_log_post'].mean()}
+    
+def compare_global_times(model, ds, n_time_intervals = 3, time_interval_size = 5, algorithm = nlopt.GD_STOGO, fixed_pars = None, x0 = None, tau = None):
+    """
+    Compare runtimes for global optimization.
+    This can be run on a subset of the data prior to the main model fit.
+    
+    Parameters
+    ----------
+    model: object
+        Learning model.
+        
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
+        
+    n_time_intervals: int, optional
+        Number of time intervals to use for testing global optimization.  Defaults to 3.
+        
+    time_interval_size: int, optional
+        Size of time intervals to test (in seconds).  Defaults to 5.
+        
+    algorithm: list or None, optional
+        Global optimization algorithm to use.  Defaults to nlopt.GD_STOGO.
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
 
     x0: data frame/array-like of floats or None, optional
         Start points for each individual in the dataset.
@@ -777,63 +848,95 @@ def fit_algorithm_plots(model, ds, x0 = None, tau = None, n_time_intervals = 6, 
         Natural parameters of the log-normal prior.
         Defaults to None (to not use log-normal prior).
         
-    n_time_intervals: int, optional
-        Number of time intervals to use for testing global optimization
-        (the global_time parameter of fit_indv).  Defaults to 6.
-        
-    time_interval_size: int, optional
-        Size of time intervals to test (in seconds).  Defaults to 10.
-        
-    algorithm: object or None, optional
-        The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
-        Is ignored and can be None if algorithm_list (to compare multiple algorithms)
-        is specified instead.
-        
-    algorithm_list: list or None, optional
-        Used in place of the algorithm argument to specify a list of algorithms to compare.
-        Can be None (the default) if algorithm is specified instad (to only test only algorithm).
-
-    Returns
-    -------
-    dict containing:
-    
-    df: dataframe
-        Parameter estimates and log-likelihood/log-posterior values per person per
-        global optimization run time.
-        
-    plot: plotnine plot object
-        Plot of log-likelihood/log-posterior by optimization time, which can be
-        used to graphically assess convergence.
-        
     Notes
     -----
     No local optimization is run.
     """
-    if algorithm_list is None:
-        alg_list = [algorithm]
-    else:
-        alg_list = algorithm_list
-    n = len(ds.ident) # number of people
     df_list = []
     
-    for alg in alg_list:
-        for i in range(n_time_intervals):
-            new_df = fit_indv(model, ds, x0, tau, (i + 1)*time_interval_size, 0, alg)
-            new_df.index = new_df.index.rename('ident')
-            new_df.reset_index(inplace = True, drop = False)
-            df_list += [new_df]
+    for i in range(n_time_intervals):
+        new_df = fit_indv(model = model, 
+                          ds = ds,
+                          fixed_pars = fixed_pars,
+                          x0 = x0, 
+                          tau = tau, 
+                          global_time = (i + 1)*time_interval_size, 
+                          local_time = 0, 
+                          algorithm = algorithm)
+        new_df.index = new_df.index.rename('ident')
+        new_df.reset_index(inplace = True, drop = False)
+        df_list += [new_df]
     df = pd.concat(df_list)
     
-    if n_time_intervals > 1:
-        if len(alg_list) == 1:
-            plot = ggplot(df, aes('global_time', 'prop_log_post', color = df.index.astype(str))) + geom_point() + geom_line() + labs(color = 'ident')
-        else:
-            plot = ggplot(df, aes('global_time', 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + facet_grid('. ~ ident')
-    else:
-        plot = ggplot(df, aes(df.index, 'prop_log_post', color = 'algorithm')) + geom_point() + geom_line() + labs(x = 'ident')
+    plot = ggplot(df, aes('global_time', 'prop_log_post', color = df.index.astype(str))) + geom_point() + geom_line() + labs(color = 'ident')
     plot.draw()
     
-    return {'df': df, 'plot': plot}        
+    return {'df': df, 'table': df.groupby('global_time')['prop_log_post'].mean()}
+    
+def compare_local_times(model, ds, n_time_intervals = 3, time_interval_size = 5, global_time = 15, algorithm = nlopt.GD_STOGO, fixed_pars = None, x0 = None, tau = None):
+    """
+    Compare runtimes for local optimization.
+    This can be run on a subset of the data prior to the main model fit.
+    
+    Parameters
+    ----------
+    model: object
+        Learning model.
+        
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
+        
+    n_time_intervals: int, optional
+        Number of time intervals to use for testing local optimization.  Defaults to 3.
+        
+    time_interval_size: int, optional
+        Size of time intervals to test (in seconds).  Defaults to 10.
+        
+    global_time: int, optional
+        Maximum time (in seconds) per individual for global optimization.
+        Defaults to 15.
+        
+    algorithm: list or None, optional
+        Global optimization algorithm to use.
+        
+    fixed_pars: dict or None, optional
+        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Defaults to None.
+
+    x0: data frame/array-like of floats or None, optional
+        Start points for each individual in the dataset.
+        If None, then parameter search starts at the midpoint
+        of each parameter's allowed interval.  Defaults to None
+
+    tau: array-like of floats or None, optional
+        Natural parameters of the log-normal prior.
+        Defaults to None (to not use log-normal prior).
+        
+    Notes
+    -----
+    Global optimization is run prior to local optimization.
+    """
+    df_list = []
+    
+    for i in range(n_time_intervals):
+        new_df = fit_indv(model = model, 
+                          ds = ds, 
+                          fixed_pars = fixed_pars,
+                          x0 = x0, 
+                          tau = tau,
+                          global_time = global_time, 
+                          local_time = (i + 1)*time_interval_size, 
+                          algorithm = algorithm)
+        new_df.index = new_df.index.rename('ident')
+        new_df.reset_index(inplace = True, drop = False)
+        df_list += [new_df]
+    df = pd.concat(df_list)
+    
+    plot = ggplot(df, aes('local_time', 'prop_log_post', color = df.index.astype(str))) + geom_point() + geom_line() + labs(color = 'ident')
+    plot.draw()
+    
+    return {'df': df, 'table': df.groupby('local_time')['prop_log_post'].mean()}
 
 def make_sim_data(model, experiment, schedule = None, pars_to_sample = None, n = 10):
     """

@@ -248,7 +248,8 @@ class experiment:
         assert len(file_set) > 0, 'Cannot find any files in specified path.'
         if not files_to_skip is None: # skip specified files
             for file in files_to_skip:
-                file_set.remove(file)
+                if file in file_set:
+                    file_set.remove(file)
         
         # determine experimental schedule to use
         if schedule is None:

@@ -227,7 +227,7 @@ class model:
                 # keep track of which outcomes have been observed so far
                 if y_psb[t, j] == 1:
                     y_psb_so_far[j] = 1
-
+                    
                 calculate = y_psb[t, j] == 1
                 if calculate:
                     # mean prior precision matrix
