@@ -421,8 +421,9 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         of each parameter's allowed interval.  Defaults to None
 
     tau: list of arrays or None, optional
-        Natural parameters of the log-normal prior.
-        Defaults to None (don't use log-normal prior).
+        Natural parameters of the logistic-normal prior.
+        Defaults to None (don't use logistic-normal prior, i.e. do maximum likelihood
+        estimation instead of maximum a posteriori estimation).
     
     global_tolerance: float or None, optional
         Specifies tolerance for relative change in parameter values (xtol_rel)
@@ -488,10 +489,8 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
     -----
     If tau is None (default) then MLE is performed (i.e. you use a uniform prior).
 
-    This currently assumes log-normal priors on all model parameters.  This may be an
-    improper prior for some cases (e.g. a learning rate parameter that must be between
-    0 and 1 might be better modeled using something like a beta prior).  I may add different
-    types of prior in the future.
+    This currently assumes logistic-normal priors on all model parameters.  See the documentation for the
+    fit_em function for more information.
 
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
     
@@ -542,12 +541,12 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         def prop_log_prior(par_val):
             return 0
     else:
-        # log-normal prior
+        # logistic-normal prior
         def prop_log_prior(par_val):
             # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
             value = 0
             for j in range(n_p):
-                y = np.log(par_val[j] - par_min[j])
+                y = np.log(par_val[j] - par_min[j]) - np.log(par_max[j] - par_val[j])
                 value += tau[0][j]*y + tau[1][j]*(y**2)
             return value
     
@@ -671,24 +670,39 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
     
     Notes
     -----
-    This assumes that all (psychological) model parameters (when shifted to (0, Inf)) have a log-normal distribution.
+    This assumes that all (psychological) model parameters have what might be called a logistic-normal
+    distribution, as described below.
     
-    Let theta be defined as any model parameter, and y be that the natural logarithm of that 
-    parameter after being shifted to the interval (0, Inf):
-    y = log(theta - min theta)
+    Let theta be defined as any model parameter.  Then (theta - theta_min)/(theta_max - theta_min) is
+    in the interval [0, 1].  We know re-parameterize in terms of a new variable called y which is in
+    (-inf, inf), assuming that (theta - theta_min)/(theta_max - theta_min) is a logistic function of y:
     
-    Then we assume y ~ N(mu, 1/rho) where rho is a precision parameters.
-    The corresponding natural parameters are tau0 = mu*rho and tau1 = -0.5*rho.
+    (theta - theta_min)/(theta_max - theta_min) = (1 + e^{-y})^{-1}
     
-    We perform the EM algorithm to estimate y, treating tau0 and tau1 as our latent variables,
+    It follows that:
+    
+    y = log(theta - theta_min) - log(theta_max - theta)
+    
+    We have now transformed theta (which is confined to a finite interval) to y (which is on the whole
+    real line).  Finally, we assume that y has a normal distribution:
+
+    y ~ N(mu, 1/rho) 
+    
+    with mean mu and precision (inverse variance) rho.  The corresponding natural parameters are
+    tau0 = mu*rho and tau1 = -0.5*rho.  This logistic-normal distribution can take the same types of
+    shapes as the beta distribution, including left skewed, right skewed, bell shaped, and valley shaped.     
+    
+    We perform the EM algorithm to estimate y (treating tau0 and tau1 as our latent variables)
     where y' is the current estimate and x is the behavioral data:
+    
     Q(y | y') = E[log p(y | x, tau0, tau1)]
     = log p(x | y) + E[tau0]*y + E[tau1]*y^2 + constant term with respect to y
+    
     This is obtained by using Bayes' theorem along with the canonical exponential form of the
     log-normal prior.  Thus the E step consists of computing E[tau0] and E[tau1], where the
     expectation is taken according to the posterior distribution of tau0 and tau1 (i.e. of mu and rho)
-    given x and y'.  Recognizing that this posterior is normal-gamma allows us to make the neccesary calculations
-    (details not provided here).
+    given x and y'.  Recognizing that this posterior is normal-gamma allows us to make the neccesary
+    calculations (details not provided here).
     """
     
     # count things, set up parameter space boundaries etc.
@@ -731,7 +745,7 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
         E_tau0 = np.zeros(n_p)
         E_tau1 = np.zeros(n_p)
         for j in range(n_p):
-            y = np.log(est_psych_par[:, j] - par_min[j])
+            y = np.log(est_psych_par[:, j] - par_min[j]) - np.log(par_max[j] - est_psych_par[:, j])
             y_bar = y.mean()
             # posterior hyperparameters for tau0 and tau1
             mu0_prime = (nu*mu0 + n*y_bar)/(nu + n)
