@@ -645,10 +645,10 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
         Defaults to None.
         
     x0: array-like of floats or None, optional
-        Start points for each individual in the dataset (for the initial
-        optimization).
-        If None, then parameter search starts at the midpoint
-        of each parameter's allowed interval.  Defaults to None
+        Start points for each individual in the dataset.  If None (the default),
+        then initial estimates are obtained using maximum likelihood estimation.
+        If x0 is provided, then typically this is from previous estimation using
+        e.g. the fit_indv function.
 
     max_em_iter: int, optional
         Maximum number of EM algorithm iterations.
@@ -709,10 +709,13 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
     # keep track of relative change in est_psych_par
     rel_change = np.zeros(max_em_iter)
     
-    # initialize (using MLE, i.e. uniform priors)
-    print('\n initial estimation with uniform priors')
-    result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, tau = None, x0 = x0, global_time = global_time, local_time = local_time, algorithm = algorithm)
-    est_psych_par = result.loc[:, free_par_names].values
+    if x0 is None:
+        # initialize (using MLE, i.e. uniform priors)
+        print('\n initial estimation with uniform priors')
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, tau = None, x0 = x0, global_time = global_time, local_time = local_time, algorithm = algorithm)
+        est_psych_par = result.loc[:, free_par_names].values
+    else:
+        est_psych_par = x0
     
     # See the following:
     # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
