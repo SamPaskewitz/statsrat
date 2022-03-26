@@ -4,6 +4,7 @@ import xarray as xr
 from scipy import stats
 from plotnine import *
 import nlopt
+from time import perf_counter
 from numpy.random import default_rng
 
 def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None):
@@ -397,7 +398,7 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
+def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -425,21 +426,17 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         Defaults to None (don't use logistic-normal prior, i.e. do maximum likelihood
         estimation instead of maximum a posteriori estimation).
     
-    global_tolerance: float or None, optional
-        Specifies tolerance for relative change in parameter values (xtol_rel)
-        as a condition for ending the global optimization.  Defaults to None.
+    global_maxeval: int, optional
+        Maximum number of function evaluations per individual for global optimization.
+        Defaults to 200.
+        
+    local_maxeval: int, optional
+        Maximum number of function evaluations per individual for local optimization.
+        Defaults to 1000.
     
-    local_tolerance: float or None, optional
+    local_tolerance: float, optional
         Specifies tolerance for relative change in parameter values (xtol_rel)
-        as a condition for ending the local optimization.  Defaults to None.
-        
-    global_time: int, optional
-        Maximum time (in seconds) per individual for global optimization.
-        Defaults to 15.
-        
-    local_time: int, optional
-        Maximum time (in seconds) per individual for local optimization.
-        Defaults to 15.  If 0, then local optimization is not run.
+        as a condition for ending the local optimization.  Defaults to 0.05.
         
     algorithm: object, optional
         The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
@@ -455,6 +452,10 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         
         fixed_par_values: Values of fixed parameters (if any).
         
+        global_time_used: Actual global optimization time (in seconds).
+        
+        local_time_used: Actual local optimization time (in seconds).
+        
         prop_log_post: Quantity proportional to the maximum log-posterior (equal
                        to log-likelihood given a uniform prior).
                        
@@ -462,13 +463,13 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         
         model: Learning model name.
         
-        global_time: Maximum time (in seconds) per individual for global optimization.
+        global_maxeval: Maximum number of function evaluations per individual for
+                        global optimization.
         
-        local_time: Maximum time (in seconds) per individual for local optimization.
+        local_maxeval: Maximum number of function evaluations per individual for
+                       local optimization.
         
-        global_tolerance: Global relative tolerance.
-        
-        local_tolerance: Local relative tolerance.
+        local_tolerance: Relative tolerance (xtol_rel) for terminating local optimization.
         
         algorithm: Name of the global optimization algorithm.
         
@@ -484,7 +485,6 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         
         aic_guess: AIC for the guessing model = 2*(0 - log_lik_guess)
         
-
     Notes
     -----
     If tau is None (default) then MLE is performed (i.e. you use a uniform prior).
@@ -497,6 +497,18 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
     The model is fitted by first using a global non-linear optimization algorithm (specified by the
     'algorithm parameter', with GN_ORIG_DIRECT as default), and then a local non-linear optimization
     algorithm (LN_SBPLX) for refining the answer.  Both algorithms are from the nlopt package.
+    
+    Global optimization is run for a set number of function evaluations (global_maxeval).  Experience
+    suggests that it is very hard to get global optimization of model fit to converge using an relative
+    change criterion such as that used for local optimization.
+    
+    Local optimization is run for either a set number of function evaluations (local_maxeval) or until
+    the relative change in parameter estimates falls below the tolerance criterion (local_tolerance).
+    Increasing local_tolerance will tend to decrease the accuracy of the final answer, but speed up
+    optimization.
+    
+    If local_maxeval = 0, then local optimization is not run.  This should not generally be how the function is
+    used.
     """
     # count things etc.
     idents = ds['ident'].values
@@ -574,21 +586,23 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
             gopt.set_max_objective(f)
             gopt.set_lower_bounds(np.array(par_min + 0.001))
             gopt.set_upper_bounds(np.array(par_max - 0.001))
-            if not global_time is None:
-                gopt.set_maxtime(global_time)
-            if not global_tolerance is None:
-                gopt.set_xtol_rel(global_tolerance)
+            gopt.set_maxeval(global_maxeval)
+            tic = perf_counter()
             gxopt = gopt.optimize(x0_i)
-            if local_time > 0:
+            toc = perf_counter()
+            df.loc[idents[i], 'global_time_used'] = toc - tic
+            if local_maxeval > 0:
                 # local optimization (to refine answer)
                 lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
                 lopt.set_max_objective(f)
                 lopt.set_lower_bounds(np.array(par_min + 0.001))
                 lopt.set_upper_bounds(np.array(par_max - 0.001))
-                lopt.set_maxtime(local_time)
-                if not local_tolerance is None:
-                    lopt.set_xtol_rel(local_tolerance)
+                lopt.set_maxeval(local_maxeval)
+                lopt.set_xtol_rel(local_tolerance)
+                tic = perf_counter()
                 lxopt = lopt.optimize(gxopt)
+                toc = perf_counter()
+                df.loc[idents[i], 'local_time_used'] = toc - tic
                 df.loc[idents[i], free_par_names] = lxopt
                 df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
             else:
@@ -604,9 +618,8 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         
     # record information about the model, optimization algorithm and length of optimization time per person
     df['model'] = model.name
-    df['global_time'] = global_time
-    df['local_time'] = local_time
-    df['global_tolerance'] = global_tolerance
+    df['global_maxeval'] = global_maxeval
+    df['local_maxeval'] = local_maxeval
     df['local_tolerance'] = local_tolerance
     df['algorithm'] = nlopt.algorithm_name(algorithm)
     
@@ -615,18 +628,24 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_toleran
         for fxpn in fixed_par_names:
             df[fxpn] = fixed_pars[fxpn]
     
-    # if performing maximum likelihood estimation, then add some columns
+    # log likelihood of choices
     if tau is None:
-        df['log_lik'] = df['prop_log_post'] # log likelihood
-        df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)
-        # compute log-likelihood and AIC of the guessing model (all choices have equal probability) for comparison
-        choices_per_time_step = ds_i['y_psb'].values.sum(1) 
-        df['log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
-        df['aic_guess'] = 2*(0 - df['log_lik_guess'])
+        df['log_lik'] = df['prop_log_post'] 
+    else:
+        df['log_lik'] = 0.0
+        for ident in df.index:
+            ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
+            df.loc[ident, 'log_lik'] = log_lik(model, ds_i, df.loc[ident, list(model.pars.index)])
+    # AIC
+    df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)    
+    # compute log-likelihood and AIC of the guessing model (all choices have equal probability) for comparison
+    choices_per_time_step = ds_i['y_psb'].values.sum(1) 
+    df['log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
+    df['aic_guess'] = 2*(0 - df['log_lik_guess'])
     
     return df
 
-def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO):
+def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -646,20 +665,24 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
     x0: array-like of floats or None, optional
         Start points for each individual in the dataset.  If None (the default),
         then initial estimates are obtained using maximum likelihood estimation.
-        If x0 is provided, then typically this is from previous estimation using
-        e.g. the fit_indv function.
+        If x0 is provided, then typically this is from previous maximum likelihood
+        estimation using the fit_indv function.
 
     max_em_iter: int, optional
         Maximum number of EM algorithm iterations.
         Defaults to 5.
         
-    global_time: int, optional
-        Maximum time (in seconds) per individual for global optimization.
-        Defaults to 15.
+    global_maxeval: int, optional
+        Maximum number of function evaluations per individual for global optimization.
+        Defaults to 200.
         
-    local_time: int, optional
-        Maximum time (in seconds) per individual for local optimization.
-        Defaults to 15.
+    local_maxeval: int, optional
+        Maximum number of function evaluations per individual for local optimization.
+        Defaults to 1000.
+    
+    local_tolerance: float, optional
+        Specifies tolerance for relative change in parameter values (xtol_rel)
+        as a condition for ending the local optimization.  Defaults to 0.05.
         
     algorithm: object, optional
             The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
@@ -726,7 +749,7 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
     if x0 is None:
         # initialize (using MLE, i.e. uniform priors)
         print('\n initial estimation with uniform priors')
-        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, tau = None, x0 = x0, global_time = global_time, local_time = local_time, algorithm = algorithm)
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, tau = None, x0 = None, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
         est_psych_par = result.loc[:, free_par_names].values
     else:
         est_psych_par = x0
@@ -756,7 +779,7 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
             E_tau0[j] = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
             E_tau1[j] = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
-        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, x0 = est_psych_par, tau = [E_tau0, E_tau1], global_time = global_time, local_time = local_time, algorithm = algorithm)
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, x0 = est_psych_par, tau = [E_tau0, E_tau1], global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
         new_est_psych_par = result.loc[:, free_par_names].values
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
@@ -770,7 +793,7 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_time
     # output
     return result
 
-def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None, x0 = None, tau = None, global_time = 15):
+def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200):
     """
     Compare global optimization algorithms (in fit_indv).
     This can be run on a subset of the data prior to the main model fit.
@@ -800,9 +823,9 @@ def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None
         Natural parameters of the log-normal prior.
         Defaults to None (to not use log-normal prior).   
         
-    global_time: int, optional
-        Maximum time (in seconds) per individual for global optimization.
-        Defaults to 15.
+    global_maxeval: int, optional
+        Maximum number of function evaluations per individual for global optimization.
+        Defaults to 200.
 
     Notes
     -----
@@ -816,8 +839,8 @@ def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None
                           fixed_pars = fixed_pars,
                           x0 = x0, 
                           tau = tau, 
-                          global_time = global_time, 
-                          local_time = 0, 
+                          global_maxeval = global_maxeval, 
+                          local_maxeval = 0, 
                           algorithm = algorithm)
         new_df.index = new_df.index.rename('ident')
         new_df.reset_index(inplace = True, drop = False)
@@ -828,132 +851,6 @@ def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None
     plot.draw()
     
     return {'df': df, 'table': df.groupby('algorithm')['prop_log_post'].mean()}
-    
-def compare_global_times(model, ds, n_time_intervals = 3, time_interval_size = 5, algorithm = nlopt.GD_STOGO, fixed_pars = None, x0 = None, tau = None):
-    """
-    Compare runtimes for global optimization.
-    This can be run on a subset of the data prior to the main model fit.
-    
-    Parameters
-    ----------
-    model: object
-        Learning model.
-        
-    ds: dataset (xarray)
-        Dataset of time step level experimental data (cues, outcomes etc.)
-        for each participant.
-        
-    n_time_intervals: int, optional
-        Number of time intervals to use for testing global optimization.  Defaults to 3.
-        
-    time_interval_size: int, optional
-        Size of time intervals to test (in seconds).  Defaults to 5.
-        
-    algorithm: list or None, optional
-        Global optimization algorithm to use.  Defaults to nlopt.GD_STOGO.
-        
-    fixed_pars: dict or None, optional
-        Dictionary with names of parameters held fixed (keys) and fixed values.
-        Defaults to None.
-
-    x0: data frame/array-like of floats or None, optional
-        Start points for each individual in the dataset.
-        If None, then parameter search starts at the midpoint
-        of each parameter's allowed interval.  Defaults to None
-
-    tau: array-like of floats or None, optional
-        Natural parameters of the log-normal prior.
-        Defaults to None (to not use log-normal prior).
-        
-    Notes
-    -----
-    No local optimization is run.
-    """
-    df_list = []
-    
-    for i in range(n_time_intervals):
-        new_df = fit_indv(model = model, 
-                          ds = ds,
-                          fixed_pars = fixed_pars,
-                          x0 = x0, 
-                          tau = tau, 
-                          global_time = (i + 1)*time_interval_size, 
-                          local_time = 0, 
-                          algorithm = algorithm)
-        new_df.index = new_df.index.rename('ident')
-        new_df.reset_index(inplace = True, drop = False)
-        df_list += [new_df]
-    df = pd.concat(df_list)
-    
-    plot = ggplot(df, aes('global_time', 'prop_log_post', color = df.index.astype(str))) + geom_point() + geom_line() + labs(color = 'ident')
-    plot.draw()
-    
-    return {'df': df, 'table': df.groupby('global_time')['prop_log_post'].mean()}
-    
-def compare_local_times(model, ds, n_time_intervals = 3, time_interval_size = 5, global_time = 15, algorithm = nlopt.GD_STOGO, fixed_pars = None, x0 = None, tau = None):
-    """
-    Compare runtimes for local optimization.
-    This can be run on a subset of the data prior to the main model fit.
-    
-    Parameters
-    ----------
-    model: object
-        Learning model.
-        
-    ds: dataset (xarray)
-        Dataset of time step level experimental data (cues, outcomes etc.)
-        for each participant.
-        
-    n_time_intervals: int, optional
-        Number of time intervals to use for testing local optimization.  Defaults to 3.
-        
-    time_interval_size: int, optional
-        Size of time intervals to test (in seconds).  Defaults to 10.
-        
-    global_time: int, optional
-        Maximum time (in seconds) per individual for global optimization.
-        Defaults to 15.
-        
-    algorithm: list or None, optional
-        Global optimization algorithm to use.
-        
-    fixed_pars: dict or None, optional
-        Dictionary with names of parameters held fixed (keys) and fixed values.
-        Defaults to None.
-
-    x0: data frame/array-like of floats or None, optional
-        Start points for each individual in the dataset.
-        If None, then parameter search starts at the midpoint
-        of each parameter's allowed interval.  Defaults to None
-
-    tau: array-like of floats or None, optional
-        Natural parameters of the log-normal prior.
-        Defaults to None (to not use log-normal prior).
-        
-    Notes
-    -----
-    Global optimization is run prior to local optimization.
-    """
-    df_list = []
-    
-    for i in range(n_time_intervals):
-        new_df = fit_indv(model = model, 
-                          ds = ds, 
-                          fixed_pars = fixed_pars,
-                          x0 = x0, 
-                          tau = tau,
-                          global_time = global_time, 
-                          local_time = (i + 1)*time_interval_size, 
-                          algorithm = algorithm)
-        new_df.index = new_df.index.rename('ident')
-        new_df.reset_index(inplace = True, drop = False)
-        df_list += [new_df]
-    df = pd.concat(df_list)
-    
-    plot = ggplot(df, aes('local_time', 'prop_log_post', color = df.index.astype(str))) + geom_point() + geom_line() + labs(color = 'ident')
-    plot.draw()
-    
-    return {'df': df, 'table': df.groupby('local_time')['prop_log_post'].mean()}
 
 def make_sim_data(model, experiment, schedule = None, pars_to_sample = None, n = 10):
     """
@@ -1033,49 +930,48 @@ def make_sim_data(model, experiment, schedule = None, pars_to_sample = None, n =
     output = {'par': par, 'ds': ds}
     return output
 
-def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n = 10, fixed_pars = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, method = "indv"):
+def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n = 10, fixed_pars = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, method = "indv"):
     """
     Perform a parameter recovery test.
     
     Parameters
     ----------
-    model : object
+    model: object
         Learning model.
         
-    experiment : object
+    experiment: object
         The experiment to be used for the recovery test.
         
-    schedule : str, optional
+    schedule: str, optional
         Name of the experimental schedule to be used for the test.
         Defaults to the first schedule in the experiment definition.
         
-    pars_to_sample : dataframe or None, optional
+    pars_to_sample: dataframe or None, optional
         If None, then model parameters are drawn from uniform distributions.
         Otherwise, parameters are sampled (with replacement) from the rows of
         the dataframe; each parameter is sampled independently.
         
-    n : int, optional
+    n: int, optional
         Number of individuals to simulate.  Defaults to 10.
         
     fixed_pars: dict or None, optional
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
         
-    global_tolerance: float or None, optional
-        Specifies tolerance for relative change in parameter values (xtol_rel)
-        as a condition for ending the global optimization.  Defaults to None.
+    global_maxeval: int, optional
+        Maximum number of function evaluations per individual for global optimization.
+        Defaults to 200.
+        
+    local_maxeval: int, optional
+        Maximum number of function evaluations per individual for local optimization.
+        Defaults to 1000.
     
-    local_tolerance: float or None, optional
+    local_tolerance: float, optional
         Specifies tolerance for relative change in parameter values (xtol_rel)
-        as a condition for ending the local optimization.  Defaults to None.
-        
-    global_time: int, optional
-        Maximum time (in seconds) per individual for global optimization.
-        Defaults to 15.
-        
-    local_time: int, optional
-        Maximum time (in seconds) per individual for local optimization.
-        Defaults to 15.  If 0, then local optimization is not run.
+        as a condition for ending the local optimization.  Defaults to 0.05.
+    
+    algorithm: object, optional
+        The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
         
     method: str, optional
         Either 'indv' (individual fits) or 'em' (EM algorithm).  Deafults
@@ -1117,22 +1013,29 @@ def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n =
     sim_data = make_sim_data(model, experiment, schedule, pars_to_sample, n)
 
     # estimate parameters
-    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds'], fixed_pars = fixed_pars, global_time = global_time, local_time = local_time, global_tolerance = global_tolerance, local_tolerance = local_tolerance),
-                'em': lambda ds : fit_em(model = model, ds = sim_data['ds'])}
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds'], fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm),
+                'em': lambda ds : fit_em(model = model, ds = sim_data['ds'], fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)}
     fit = fit_dict[method](sim_data['ds'])
 
     # combine true and estimated parameters into one dataframe
     par_names = list(model.pars.index)
-    n_p = len(par_names)
+    n_p = len(par_names) # number of parameters
     par = pd.concat((sim_data['par'], fit[par_names]), axis = 1)
     par.columns = pd.MultiIndex.from_product([['true', 'est'], par_names])
 
     # compare parameter estimates to true values
-    comp = pd.DataFrame(0, index = range(n_p), columns = ['par', 'mse', 'r', 'rsq', 'bias', 'bias_effect_size'])
-    comp.loc[:, 'par'] = par_names
-    for i in range(n_p):
-        true = par.loc[:, ('true', par_names[i])]
-        est = par.loc[:, ('est', par_names[i])]
+    if fixed_pars is None:
+        free_par_names = par_names
+    else:
+        fixed_par_names = list(fixed_pars.keys())
+        par_names = list(model.pars.index)
+        free_par_names = list(set(par_names).difference(fixed_par_names))
+    n_fp = len(free_par_names)
+    comp = pd.DataFrame(0.0, index = range(n_fp), columns = ['par', 'mse', 'r', 'rsq', 'bias', 'bias_effect_size'])
+    comp.loc[:, 'par'] = free_par_names
+    for i in range(n_fp):
+        true = par.loc[:, ('true', free_par_names[i])]
+        est = par.loc[:, ('est', free_par_names[i])]
         comp.loc[i, 'mse'] = np.mean((est - true)**2)
         comp.loc[i, 'r'] = est.corr(true)
         comp.loc[i, 'rsq'] = comp.loc[i, 'r']**2
@@ -1143,68 +1046,7 @@ def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n =
     output = {'par': par, 'fit': fit, 'comp': comp, 'sim_data': sim_data}
     return output
 
-# UPDATE        
-def one_step_pred(model, ds, n_pred = 10, method = "indv"):
-    """
-    One step ahead prediction test (similar to cross-validation).
-
-    Parameters
-    ----------
-    ds : dataset (xarray)
-        Dataset of time step level experimental data (cues, outcomes etc.)
-        for each participant.
-    n_pred : int
-        The number of trials to be predicted (at the end of each data
-        set).
-    method : string
-        The method used to fit the model, either "indv" or "em".  Defaults
-        to 'indv'.
-
-    Returns
-    -------
-    dict
-
-    Notes
-    -----
-    This tests how well each of the last few choices is predicted by the model when fit to preceding trials.
-    
-    For now, this assumes discrete choice data (i.e. resp_type = 'choice')
-    
-    It is based on the 'prediction method' of Yechiam and Busemeyer (2005).
-
-    We assume that each trial/response sequence has the same length.
-    """
-
-    # count things, set up parameter space boundaries etc.
-    n = len(ds.ident) # number of individuals
-    par_names = list(model.pars.index)
-    n_p = len(par_names)
-    n_t = len(ds.t) # number of time steps
-    bounds = []
-    for i in range(len(model.pars)):
-        bounds += [(model.pars['min'][i] + 0.001, model.pars['max'][i] - 0.001)]
-    pred_log_lik = np.zeros(n)
-        
-    # loop through time steps
-    for t in range(n_t - n_pred, n_t):
-        # trial and response data from time steps before t
-        prev_ds = ds.loc[{'t' : np.array(ds.t <= t), 'trial' : np.array(ds.t <= t)}]        
-        # fit model to data from time steps before t
-        fit_dict = {'indv': lambda ds : fit_indv(ds = ds, model = model),
-                'em': lambda ds : fit_em(ds = ds, model = model)}
-        est_par = fit_dict[method](prev_ds).loc[:, 'est_par']
-        # simulate model to predict response on time step t
-        for i in range(n):
-            ds_i = ds.loc[{'t' : np.array(ds.t <= t + 1), 'trial' : np.array(ds.t <= t + 1), 'ident' : ds.ident[i]}].squeeze()
-            sim = model.simulate(ds_i, resp_type = 'choice', par_val = est_par.iloc[i, :])
-            prob_t = np.array(sim['b_hat'].loc[{'t' : t}], dtype = 'float64')
-            choice_matrix = np.array(ds_i['b'][{'t' : t}])
-            pred_log_lik += np.sum( np.log(prob_t)*choice_matrix )
-            
-    return {'pred_log_lik': pred_log_lik, 'mean': pred_log_lik.mean(), 'std': pred_log_lik.std()}
-
-# FINISH UPDATING
-def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, global_tolerance = None, local_tolerance = None, global_time = 15, local_time = 15, algorithm = nlopt.GD_STOGO, method = 'indv'):
+def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, method = 'indv'):
     """
     Split prediction test (similar to cross-validation): fit the model to
     earlier learning data in order to predict later learning data.
@@ -1235,21 +1077,17 @@ def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, globa
         Natural parameters of the log-normal prior.
         Defaults to None (don't use log-normal prior).
     
-    global_tolerance: float or None, optional
-        Specifies tolerance for relative change in parameter values (xtol_rel)
-        as a condition for ending the global optimization.  Defaults to None.
+    global_maxeval: int, optional
+        Maximum number of function evaluations per individual for global optimization.
+        Defaults to 200.
+        
+    local_maxeval: int, optional
+        Maximum number of function evaluations per individual for local optimization.
+        Defaults to 1000.
     
-    local_tolerance: float or None, optional
+    local_tolerance: float, optional
         Specifies tolerance for relative change in parameter values (xtol_rel)
-        as a condition for ending the local optimization.  Defaults to None.
-        
-    global_time: int, optional
-        Maximum time (in seconds) per individual for global optimization.
-        Defaults to 15.
-        
-    local_time: int, optional
-        Maximum time (in seconds) per individual for local optimization.
-        Defaults to 15.  If 0, then local optimization is not run.
+        as a condition for ending the local optimization.  Defaults to 0.05.
         
     algorithm: object, optional
         The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
@@ -1271,8 +1109,8 @@ def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, globa
     ds_late = ds.loc[{'t': ds['t'] > t_fit}]
 
     # estimate parameters using earlier data
-    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = ds_early, fixed_pars = fixed_pars, global_time = global_time, local_time = local_time, global_tolerance = global_tolerance, local_tolerance = local_tolerance),
-                'em': lambda ds : fit_em(model = model, ds = ds_early)}
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = ds_early, fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm),
+                'em': lambda ds : fit_em(model = model, ds = ds_early, fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)}
     fit = fit_dict[method](ds_early)
 
     # compute log-likelihood of later responses
