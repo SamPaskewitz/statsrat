@@ -606,6 +606,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
                 df.loc[idents[i], free_par_names] = lxopt
                 df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
             else:
+                df.loc[idents[i], 'local_time_used'] = 0
                 df.loc[idents[i], free_par_names] = gxopt
                 df.loc[idents[i], 'prop_log_post'] = gopt.last_optimum_value()
         except:
