@@ -11,7 +11,7 @@ from_aux_norm: Produce weights that normalize features (e.g. CompAct).
     So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.
 '''
 
-def none(aux, t, fbase, fweight, n_f, sim_pars):
+def none(aux, t, fbase, n_f, sim_pars):
     '''
     No special feature weights (vector of ones).
     '''
@@ -19,7 +19,7 @@ def none(aux, t, fbase, fweight, n_f, sim_pars):
     return new_fweight
 none.par_names = []
 
-def from_aux_feature(aux, t, fbase, fweight, n_f, sim_pars):
+def from_aux_feature(aux, t, fbase, n_f, sim_pars):
     '''
     Take feature weights directly from 'aux'.
     '''
@@ -27,7 +27,7 @@ def from_aux_feature(aux, t, fbase, fweight, n_f, sim_pars):
     return new_fweight
 from_aux_feature.par_names = []
 
-def from_aux_norm2(aux, t, fbase, fweight, n_f, sim_pars):
+def from_aux_norm2(aux, t, fbase, n_f, sim_pars):
     '''
     Produce weights that normalize features (e.g. CompAct) according to a Euclidean metric.
     This is a version of 'from_aux_norm' with the metric fixed at 2.
@@ -40,7 +40,7 @@ def from_aux_norm2(aux, t, fbase, fweight, n_f, sim_pars):
     return new_fweight
 from_aux_norm2.par_names = []
 
-def from_aux_norm(aux, t, fbase, fweight, n_f, sim_pars):
+def from_aux_norm(aux, t, fbase, n_f, sim_pars):
     '''
     Produce weights that normalize features (e.g. CompAct).
     So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.

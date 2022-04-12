@@ -80,8 +80,7 @@ def log_lik(model, ds, par_val):
     """
     # For now, this assumes discrete choice data (i.e. resp_type = 'choice')
     # 'b' has the same dimensions as 'b_hat' with 0 for choices not made and 1 for choices made
-    sim_ds = model.simulate(ds, par_val = par_val) # run simulation
-    b_hat = np.array(sim_ds['b_hat'])
+    b_hat = model.simulate(ds, par_val = par_val)['b_hat'].values # run simulation
     b_hat[b_hat == 0] = 0.00000001
     log_prob = np.log(b_hat) # logarithms of choice probabilities
     resp = np.array(ds['b'])
@@ -422,8 +421,8 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         of each parameter's allowed interval.  Defaults to None
 
     tau: list of arrays or None, optional
-        Natural parameters of the logistic-normal prior.
-        Defaults to None (don't use logistic-normal prior, i.e. do maximum likelihood
+        Natural parameters of the logit-normal prior.
+        Defaults to None (don't use logit-normal prior, i.e. do maximum likelihood
         estimation instead of maximum a posteriori estimation).
     
     global_maxeval: int, optional
@@ -489,7 +488,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
     -----
     If tau is None (default) then MLE is performed (i.e. you use a uniform prior).
 
-    This currently assumes logistic-normal priors on all model parameters.  See the documentation for the
+    This currently assumes logit-normal priors on all model parameters.  See the documentation for the
     fit_em function for more information.
 
     For now, this assumes discrete choice data (i.e. resp_type = 'choice').
@@ -553,7 +552,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         def prop_log_prior(par_val):
             return 0
     else:
-        # logistic-normal prior
+        # logit-normal prior
         def prop_log_prior(par_val):
             # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
             value = 0
@@ -694,7 +693,7 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     
     Notes
     -----
-    This assumes that all (psychological) model parameters have what might be called a logistic-normal
+    This assumes that all (psychological) model parameters have what might be called a logit-normal
     distribution, as described below.
     
     Let theta be defined as any model parameter.  Then (theta - theta_min)/(theta_max - theta_min) is
@@ -707,13 +706,14 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     
     y = log(theta - theta_min) - log(theta_max - theta)
     
-    We have now transformed theta (which is confined to a finite interval) to y (which is on the whole
-    real line).  Finally, we assume that y has a normal distribution:
+    This is the logit function, which is the inverse of the logistic function.  We have now transformed theta
+    (which is confined to a finite interval) to y (which is on the whole real line).  Finally, we assume that
+    y has a normal distribution:
 
     y ~ N(mu, 1/rho) 
     
     with mean mu and precision (inverse variance) rho.  The corresponding natural parameters are
-    tau0 = mu*rho and tau1 = -0.5*rho.  This logistic-normal distribution can take the same types of
+    tau0 = mu*rho and tau1 = -0.5*rho.  This logit-normal distribution can take the same types of
     shapes as the beta distribution, including left skewed, right skewed, bell shaped, and valley shaped.     
     
     We perform the EM algorithm to estimate y (treating tau0 and tau1 as our latent variables)
@@ -730,19 +730,18 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     """
     
     # count things, set up parameter space boundaries etc.
-    # count things etc.
     idents = ds['ident'].values
-    n = len(idents)
+    n = len(idents) # number of individuals
     all_par_names = list(model.pars.index)
     free_par_names = all_par_names.copy()
     if not fixed_pars is None:
         fixed_par_names = list(fixed_pars.keys())
-        fixed_par_values = list(fixed_pars.values())
+        print(free_par_names)
         for fxpn in fixed_par_names:
             free_par_names.remove(fxpn)
     par_max = model.pars.loc[free_par_names, 'max'].values
     par_min = model.pars.loc[free_par_names, 'min'].values
-    n_p = len(free_par_names)
+    n_p = len(free_par_names) # number of free parameters
 
     # keep track of relative change in est_psych_par
     rel_change = np.zeros(max_em_iter)

@@ -8,7 +8,7 @@ cnst.par_names = ['lrate']
 
 def pos_neg(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''Separate learning rates for positive and negative prediction error.'''
-    is_pos = delta[t] > 0
+    is_pos = delta > 0
     lrate_par_to_use = is_pos*sim_pars['lrate_pos'] + (1 - is_pos)*sim_pars['lrate_neg']
     new_lrate = np.array(n_y*[fbase[t, :].tolist()]).transpose()*lrate_par_to_use
     return new_lrate

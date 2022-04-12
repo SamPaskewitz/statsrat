@@ -4,6 +4,7 @@ import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
 from . import pred, fbase, fweight, aux, lrate, drate
+from time import time
 
 class model:
     '''
@@ -116,6 +117,7 @@ class model:
 
         Returns
         -------
+        
         ds: dataset
             Simulation data.
             
@@ -168,13 +170,14 @@ class model:
             sim_pars = pd.Series(par_val, self.pars.index)
 
         # set stuff up
-        x = np.array(trials['x'], dtype = 'float64')
-        y = np.array(trials['y'], dtype = 'float64')
-        y_psb = np.array(trials['y_psb'], dtype = 'float64')
-        y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
+        x = np.array(trials['x'], dtype = 'float64').squeeze()
+        y = np.array(trials['y'], dtype = 'float64').squeeze()
+        y_psb = np.array(trials['y_psb'], dtype = 'float64').squeeze()
+        y_lrn = np.array(trials['y_lrn'], dtype = 'float64').squeeze()
         x_names = list(trials.x_name.values)
         y_names = list(trials.y_name.values)
         (fbase, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names
+        fbase = fbase.squeeze()
         n_t = fbase.shape[0] # number of time points
         n_x = x.shape[1] # number of cues/stimulus elements
         n_f = fbase.shape[1] # number of features
@@ -202,19 +205,19 @@ class model:
 
         # loop through time steps
         for t in range(n_t):
-            fweight[t, :] = self.fweight(aux, t, fbase, fweight, n_f, sim_pars)
+            fweight[t, :] = self.fweight(aux, t, fbase, n_f, sim_pars)
             f_x[t, :] = fbase[t, :]*fweight[t, :] # weight base features
             y_hat[t, :] = self.pred(y_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = y_lrn[t, :]*(y[t, :] - y_hat[t, :]) # prediction error
-            aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat, delta, w) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
-            lrate[t, :, :] = self.lrate(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
+            aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat[t, :], delta[t, :], w[t, :, :]) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
+            lrate[t, :, :] = self.lrate(aux, t, delta[t, :], fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
             drate[t, :, :] = self.drate(aux, t, w, n_f, n_y, sim_pars) # decay rates for this time step
             w[t + 1, :, :] = w[t, :, :] + y_lrn[t, :]*lrate[t, :, :]*delta[t, :].reshape((1, n_y)) - drate[t, :, :]*w[t, :, :] # association learning
-
+        
         # generate simulated responses
         (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
-        
+
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
         ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
@@ -237,9 +240,8 @@ class model:
         if random_resp and trials.resp_type == 'choice':
             ds = ds.assign({'b_index': (['t'], b_index),
                             'b_name': (['t'], np.array(y_names)[b_index])})
-        
         return ds
-
+        
 ########## PARAMETERS ##########
 par_names = []; par_list = []
 par_names += ['feature_count_window']; par_list += [{'min': 0.0, 'max': 100, 'default': 20}]

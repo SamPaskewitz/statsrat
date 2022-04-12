@@ -95,8 +95,8 @@ class grad:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_direct').'''
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
-        ngrad = delta[t, :] @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        ngrad = delta @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
         new_atn = self.data['atn'][t, :] + sim_pars['lrate_atn'] * ngrad
         abv_min = new_atn >= 0.01
         blw_max = new_atn < 1
@@ -126,8 +126,8 @@ class grad_elem_bias:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_direct').'''
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
-        ngrad = delta[t, :] @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        ngrad = delta @ w_psb.T @ np.diag(fbase[t, :]) # negative gradient
         new_atn = self.data['atn'][t, :] + sim_pars['lrate_atn'] * ngrad
         abv_min = new_atn >= 0.01
         blw_max = new_atn < 1
@@ -147,13 +147,13 @@ class gradcomp:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').'''
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
 
     def add_data(self, ds):
@@ -186,13 +186,13 @@ class gradcomp_elem_bias:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         '''Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').'''
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
         # Update feature counts.
         self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[0:(t+1), :] > 0)
@@ -214,13 +214,13 @@ class gradcomp_feature_counts:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         # Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
         # Update feature counts.
         self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fbase[0:(t+1), :] > 0)
@@ -242,13 +242,13 @@ class gradcomp_feature_sums:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         # Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
         # Update feature counts.
         self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fweight[0:(t+1), :]*fbase[0:(t+1), :])
@@ -284,13 +284,13 @@ class gradcomp_elem_bias_feature_sums:
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
         # Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm').
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
         # Update feature sums.
         self.data['f_counts'][t, :] = np.apply_along_axis(np.sum, 0, fweight[0:(t+1), :]*fbase[0:(t+1), :])
@@ -321,13 +321,13 @@ class gradcomp_atn_decay:
         Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm')
         with decay of 'atn' for features that are present.
         '''
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient
         decay_term = sim_pars['drate_atn']*self.data['atn'][t, :]*fbase[t, :]
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad - decay_term, n_f*[0.01])
 
@@ -365,13 +365,13 @@ class gradcomp_Kruschke_idea:
         the virtual 'outcome' that is initially predicted but never occurs.
         '''
         # calculations based on the real outcomes
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient from real outcomes
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient from real outcomes
         # calculations based on the virtual 'outcome'
         y_hat_virtual = np.sum(self.data['w_virtual'][t, :]*f_x)
         delta_virtual = 0 - y_hat_virtual
@@ -423,13 +423,13 @@ class gradcomp_Kruschke_idea_elem_bias:
         the virtual 'outcome' that is initially predicted but never occurs.
         '''
         # calculations based on the real outcomes
-        w_psb = w[t, :, :] @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
+        w_psb = w @ np.diag(y_psb[t, :]) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(fbase[t, :])
         comp_factor = fweight[t, :]**(sim_pars['metric'] - 1)
-        y_hat_dif = y_hat_alone - np.outer(y_hat[t, :], comp_factor)
+        y_hat_dif = y_hat_alone - np.outer(y_hat, comp_factor)
         atn_gain = self.data['atn'][t, :]*fbase[t, :]
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
-        ngrad = delta[t, :].reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient from real outcomes
+        ngrad = delta.reshape((1, n_y)) @ y_hat_dif @ np.diag(fbase[t, :]/norm) # negative gradient from real outcomes
         # calculations based on the virtual 'outcome'
         y_hat_virtual = np.sum(self.data['w_virtual'][t, :]*f_x)
         delta_virtual = 0 - y_hat_virtual
