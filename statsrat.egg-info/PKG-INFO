@@ -1,0 +1,20 @@
+Metadata-Version: 1.2
+Name: statsrat
+Version: 1.0.0
+Summary: Learning models for psychology and neuroscience.
+Home-page: UNKNOWN
+Author: Samuel Peter Paskewitz
+Author-email: sapa1760@colorado.edu
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: psychology,neuroscience,learning
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Artificial IntelligenceLicense :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.7, <4
