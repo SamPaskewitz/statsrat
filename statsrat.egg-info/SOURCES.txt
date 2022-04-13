@@ -1,6 +1,0 @@
-setup.py
-statsrat.egg-info/PKG-INFO
-statsrat.egg-info/SOURCES.txt
-statsrat.egg-info/dependency_links.txt
-statsrat.egg-info/requires.txt
-statsrat.egg-info/top_level.txt
