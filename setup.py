@@ -93,7 +93,6 @@ setup(
         # Indicate who your project is intended for
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence',
 
         # Pick your license as you wish
         'License :: OSI Approved :: MIT License',
