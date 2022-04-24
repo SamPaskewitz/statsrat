@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: statsrat
-Version: 0.0.1
+Version: 0.0.14
 Summary: Learning models for psychology and neuroscience.
 Home-page: https://github.com/SamPaskewitz/statsrat
 Author: Sam Paskewitz
@@ -12,10 +12,8 @@ Platform: UNKNOWN
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Science/Research
 Classifier: Topic :: Scientific/Engineering
-Classifier: Topic :: Scientific/Engineering :: Artificial IntelligenceLicense :: OSI Approved :: MIT License
+Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.7
-Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3 :: Only
 Requires-Python: >=3.7, <4
 Description-Content-Type: text/markdown

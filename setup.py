@@ -37,7 +37,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.1',  # Required
+    version='0.0.14',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -101,8 +101,6 @@ setup(
         # that you indicate you support Python 3. These classifiers are *not*
         # checked by 'pip install'. See instead 'python_requires' below.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3 :: Only'
     ],
 
@@ -120,14 +118,8 @@ setup(
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
-    #
-    # Alternatively, if you just want to distribute a single Python file, use
-    # the `py_modules` argument instead as follows, which will expect a file
-    # called `my_module.py` to exist:
-    #
-    #   py_modules=["my_module"],
-    #
-    packages=find_packages(where='\statsrat'),  # Required
+    packages=find_packages(where='statsrat'),  # Required
+    #packages=['src', 'src.expr', 'src.rw', 'src.bayes_regr', 'src.exemplar', 'src.examples', 'src.latent_cause'],
 
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
@@ -143,19 +135,6 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['numpy', 'pandas', 'xarray', 'scipy', 'nlopt', 'plotnine'],  # Optional
 
-    # List additional groups of dependencies here (e.g. development
-    # dependencies). Users will be able to install these using the "extras"
-    # syntax, for example:
-    #
-    #   $ pip install sampleproject[dev]
-    #
-    # Similar to `install_requires` above, these must be valid existing
-    # projects.
-    #extras_require={  # Optional
-    #    'dev': ['check-manifest'],
-    #    'test': ['coverage'],
-    #},
-
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     #package_data={  # Optional
@@ -168,19 +147,6 @@ setup(
     #
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     #data_files=[('my_data', ['data/data_file'])],  # Optional
-
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # `pip` to create the appropriate form of executable for the target
-    # platform.
-    #
-    # For example, the following would provide a command called `sample` which
-    # executes the function `main` from this package when invoked:
-    #entry_points={  # Optional
-    #    'console_scripts': [
-    #        'sample=sample:main',
-    #    ],
-    #},
 
     # List additional URLs that are relevant to your project as a dict.
     #
