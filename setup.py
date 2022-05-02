@@ -3,6 +3,17 @@
 # https://github.com/pypa/sampleproject
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode
 
+# Important:
+# https://blog.ionelmc.ro/2014/05/25/python-packaging/
+# https://blog.ionelmc.ro/2014/06/25/python-packaging-pitfalls/
+
+# It seems that putting the code in 'src' and/or deleting 'build', 'dist', and
+# 'egg-info' allows the package to be built and installed.
+# I also got rid of the Jupyter notebook example files.
+# Code used: python -m build
+
+# Versions that work: python==3.8.5, nlopt==2.6.2, numpy==1.21.5
+
 """Learning models for psychology and neuroscience."""
 
 # Always prefer setuptools over distutils
@@ -114,11 +125,11 @@ setup(
 
     # When your source code is in a subdirectory under the project root, e.g.
     # `src/`, it is necessary to specify the `package_dir` argument.
-    package_dir={'': 'statsrat'},  # Optional
+    package_dir={'': 'src'},  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
-    packages=find_packages(where='statsrat'),  # Required
+    packages=find_packages(where='src'),  # Required
     #packages=['src', 'src.expr', 'src.rw', 'src.bayes_regr', 'src.exemplar', 'src.examples', 'src.latent_cause'],
 
     # Specify which Python versions you support. In contrast to the
