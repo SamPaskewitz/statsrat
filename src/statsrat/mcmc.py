@@ -324,7 +324,7 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
 
         # logistic function to transform parameters from -infty, infty to their original space
         logistic_transform[m] = lambda theta: par_min[m] + par_range[m]/(1 + np.exp(-theta))
-     n_p = len(free_par_names) # number of free parameters
+    n_p = len(free_par_names) # number of free parameters
         
     # set up xarray dataset for storing MCMC samples
     samples = xr.Dataset(data_vars = {'theta': (['sample', 'ident', 'par_name'], np.zeros((n_samples + 1, n, n_p))), # logit-transformed psych pars
