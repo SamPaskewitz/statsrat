@@ -3,6 +3,7 @@ pyproject.toml
 setup.cfg
 setup.py
 src/statsrat/__init__.py
+src/statsrat/mcmc.py
 src/statsrat/plot.py
 src/statsrat/resp_fun.py
 src/statsrat.egg-info/PKG-INFO
