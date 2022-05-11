@@ -165,7 +165,10 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         XtX = Xt@X.values
     
     # initialize the chain (sample "-1" is not included in the actual output)
-    samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p)) # NOTE: this previously had a SD of 1 instead of 4
+    if start_theta is None:
+        samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p)) # NOTE: this previously had a SD of 1 instead of 4
+    else:
+        samples['theta'].loc[{'sample': -1}] = start_theta
     if not X is None:
         samples['rho'].loc[{'sample': - 1}] = stats.gamma.rvs(size = n_p, a = 1, scale = 1)
     
