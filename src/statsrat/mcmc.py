@@ -171,8 +171,7 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         if not X is None:
             samples['rho'].loc[{'sample': - 1}] = stats.gamma.rvs(size = n_p, a = 1, scale = 1)
     else:
-        samples['theta'].loc[{'sample': -1}] = start['theta']
-        samples['rho'].loc[{'sample': -1}] = start['rho']
+        samples.loc[{'sample': -1}] = start
     
     # define other required variables
     old_log_lik = pd.Series(0.0, index = ds['ident'])
@@ -374,7 +373,7 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
         samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p))
         samples['mu'].loc[{'sample': -1}] = stats.norm.rvs(size = n_p, scale = 4)
     else:
-        samples.loc[{'sample': -1} = start
+        samples.loc[{'sample': -1}] = start
     
     # define other required variables
     old_log_lik = pd.Series(0.0, index = idents)
