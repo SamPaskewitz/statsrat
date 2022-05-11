@@ -22,7 +22,7 @@ def Gelman_Rubin_stat(samples):
     V_hat = (1/n_s)*((n_s - 1)*W + B)
     return np.sqrt(V_hat/W)
 
-def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_width_factor = 0.1, start_theta = None):
+def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_width_factor = 0.1, start_theta = None, seed = 1234):
     '''
     Estimates psychological parameters in a hierarchical Bayesian manner
     using a Markov chain Monte Carlo (MCMC) method.
@@ -60,6 +60,9 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         Starting sample for theta.  If None, then these initial values are
         randomly sampled.
         
+    seed: int, optional
+        Random seed.  Defaults to 1234.
+        
     Returns
     -------
     An xarray dataset of samples.
@@ -82,6 +85,8 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
     This runs a Gibbs sampler that uses a single Metropolis-Hastings step to
     sample theta.
     '''
+    # set random seed
+    np.random.seed(seed)
     
     # count things, set up parameter space boundaries etc.
     idents = ds['ident'].values
@@ -260,7 +265,7 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         
     return samples.loc[{'sample': range(0, n_samples)}]
 
-def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, proposal_width_factor = 0.1):
+def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, proposal_width_factor = 0.1, seed = 1234):
     '''
     Estimates psychological parameters from multiple tasks in a hierarchical Bayesian manner
     using a Markov chain Monte Carlo (MCMC) method.
@@ -287,6 +292,9 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
         the Metropolis-Hastings random walk proposal distribution for theta
         is.  Defaults to 0.1
         
+    seed: int, optional
+        Random seed.  Defaults to 1234.
+        
     Returns
     -------
     An xarray dataset of samples.
@@ -304,6 +312,9 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
     This runs a Gibbs sampler that uses a single Metropolis-Hastings step to
     sample theta.
     '''
+    # set random seed
+    np.random.seed(seed)
+    
     # count things, set up parameter space boundaries etc.
     idents = ds_list[0]['ident'].values
     n = len(idents) # number of individuals
