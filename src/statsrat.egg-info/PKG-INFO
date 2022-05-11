@@ -5,10 +5,8 @@ Summary: Learning models for psychology and neuroscience.
 Home-page: https://github.com/SamPaskewitz/statsrat
 Author: Sam Paskewitz
 Author-email: sam_paskewitz@yahoo.com
-License: UNKNOWN
 Project-URL: Bug Tracker, https://github.com/SamPaskewitz/statsrat/issues
 Keywords: psychology,neuroscience,learning
-Platform: UNKNOWN
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Science/Research
 Classifier: Topic :: Scientific/Engineering
@@ -42,5 +40,3 @@ and examples are not yet complete or up to date.  When this gets to a more finis
 actually publish the package.
 
 author: Samuel Paskewitz
-
-

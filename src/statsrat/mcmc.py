@@ -101,6 +101,7 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
     par_max = model.pars.loc[all_par_names, 'max'].values
     par_min = model.pars.loc[all_par_names, 'min'].values
     par_range = par_max - par_min
+    free_par_names = sorted(free_par_names)
     n_p = len(free_par_names) # number of free parameters
     if not X is None:
         ds = ds.loc[{'ident': X.index}] # make sure that ds['ident'] is sorted the same way as X.index
@@ -170,7 +171,8 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         if not X is None:
             samples['rho'].loc[{'sample': - 1}] = stats.gamma.rvs(size = n_p, a = 1, scale = 1)
     else:
-        samples.loc[{'sample': -1}] = start    
+        samples['theta'].loc[{'sample': -1}] = start['theta']
+        samples['rho'].loc[{'sample': -1}] = start['rho']
     
     # define other required variables
     old_log_lik = pd.Series(0.0, index = ds['ident'])
