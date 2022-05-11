@@ -22,7 +22,7 @@ def Gelman_Rubin_stat(samples):
     V_hat = (1/n_s)*((n_s - 1)*W + B)
     return np.sqrt(V_hat/W)
 
-def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_width_factor = 0.1):
+def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_width_factor = 0.1, start_theta = None):
     '''
     Estimates psychological parameters in a hierarchical Bayesian manner
     using a Markov chain Monte Carlo (MCMC) method.
@@ -55,6 +55,10 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         Initial value for the proposal width factor, which controls how wide
         the Metropolis-Hastings random walk proposal distribution for theta
         is.  Defaults to 0.1
+        
+    start_theta: array-like or None, optional
+        Starting sample for theta.  If None, then these initial values are
+        randomly sampled.
         
     Returns
     -------
