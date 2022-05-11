@@ -22,7 +22,7 @@ def Gelman_Rubin_stat(samples):
     V_hat = (1/n_s)*((n_s - 1)*W + B)
     return np.sqrt(V_hat/W)
 
-def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_width_factor = 0.1, start_theta = None, seed = 1234):
+def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_width_factor = 0.1, start = None, seed = 1234):
     '''
     Estimates psychological parameters in a hierarchical Bayesian manner
     using a Markov chain Monte Carlo (MCMC) method.
@@ -56,9 +56,9 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         the Metropolis-Hastings random walk proposal distribution for theta
         is.  Defaults to 0.1
         
-    start_theta: array-like or None, optional
-        Starting sample for theta.  If None, then these initial values are
-        randomly sampled.
+    start: dataset (xarray) or None, optional
+        Starting sample for theta, mu/beta, and rho.  If None, then initial values
+        are randomly sampled.
         
     seed: int, optional
         Random seed.  Defaults to 1234.
@@ -165,12 +165,12 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         XtX = Xt@X.values
     
     # initialize the chain (sample "-1" is not included in the actual output)
-    if start_theta is None:
-        samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p)) # NOTE: this previously had a SD of 1 instead of 4
+    if start is None:
+        samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p))
+        if not X is None:
+            samples['rho'].loc[{'sample': - 1}] = stats.gamma.rvs(size = n_p, a = 1, scale = 1)
     else:
-        samples['theta'].loc[{'sample': -1}] = start_theta
-    if not X is None:
-        samples['rho'].loc[{'sample': - 1}] = stats.gamma.rvs(size = n_p, a = 1, scale = 1)
+        samples.loc[{'sample': -1}] = start    
     
     # define other required variables
     old_log_lik = pd.Series(0.0, index = ds['ident'])
