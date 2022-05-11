@@ -170,10 +170,10 @@ class model:
             sim_pars = pd.Series(par_val, self.pars.index)
 
         # set stuff up
-        x = np.array(trials['x'], dtype = 'float64').squeeze()
-        y = np.array(trials['y'], dtype = 'float64').squeeze()
-        y_psb = np.array(trials['y_psb'], dtype = 'float64').squeeze()
-        y_lrn = np.array(trials['y_lrn'], dtype = 'float64').squeeze()
+        x = np.array(trials['x'], dtype = 'float64')
+        y = np.array(trials['y'], dtype = 'float64')
+        y_psb = np.array(trials['y_psb'], dtype = 'float64')
+        y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         x_names = list(trials.x_name.values)
         y_names = list(trials.y_name.values)
         (fbase, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names

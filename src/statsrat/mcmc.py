@@ -308,37 +308,40 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
     idents = ds_list[0]['ident'].values
     n = len(idents) # number of individuals
     n_tasks = len(models)
-    all_par_names = []; task_par_names = []; free_par_names = []; fixed_par_names = []; fixed_par_values = []; par_max = []; par_min = []; par_range = []; logit_transform = []; logistic_transform = []
+    all_par_names = []; task_par_names = []; fixed_par_names = []; fixed_par_values = []; par_max = []; par_min = []; par_range = []; logit_transform = []; logistic_transform = []
     for m in range(n_tasks):
-        # ADD TASK NUMBER TO PAR NAMES
-        task_par_names += [list(models[m].pars.index)] # par names for task m
+        n_mp = len(list(models[m].pars.index.values))
+        new_names = np.array(models[m].pars.index.values, dtype = 'str')
+        task_par_names += [list(np.char.add(new_names, n_mp*['_' + str(m)]))] # par names for task m
         all_par_names += task_par_names[m]
-        if fixed_pars[m] is None:
-            free_par_names += task_par_names[m].copy()     
-        else:
-            fixed_par_names += list(fixed_pars[m].keys())
+        if not fixed_pars[m] is None:
+            n_mfxp = len(list(fixed_pars[m].keys()))
+            fixed_par_names += list(np.char.add(np.array(list(fixed_pars[m].keys()), dtype = 'str'), n_mfxp*['_' + str(m)]))
             fixed_par_values += list(fixed_pars[m].values())
-            free_par_names += list(set(task_par_names[m]).difference(fixed_par_names[m]))
-        par_max[m] = models[m].pars.loc[task_par_names[m], 'max'].values
-        par_min[m] = models[m].pars.loc[task_par_names[m], 'min'].values
-        par_range[m] = par_max[m] - par_min[m]
+        par_max += [models[m].pars.loc[new_names, 'max'].values]
+        par_min += [models[m].pars.loc[new_names, 'min'].values]
+        par_range += [par_max[m] - par_min[m]]
     
         # logit function to transform parameters from their original space to -infty, infty
-        logit_transform[m] = lambda par: np.log(par - par_min[m]) - np.log(par_max[m] - par)
-
+        logit_transform += [lambda par: np.log(par - par_min[m]) - np.log(par_max[m] - par)]
         # logistic function to transform parameters from -infty, infty to their original space
-        logistic_transform[m] = lambda theta: par_min[m] + par_range[m]/(1 + np.exp(-theta))
+        logistic_transform += [lambda theta: par_min[m] + par_range[m]/(1 + np.exp(-theta))]
+
+    free_par_names = sorted(list(set(all_par_names).difference(fixed_par_names)), key = lambda name: name[-1]) # free parameters
     n_p = len(free_par_names) # number of free parameters
+    # logistic function to transform parameters from -infty, infty to their original space
+    all_logistic_transform = lambda theta: np.concatenate(par_min) + np.concatenate(par_range)/(1 + np.exp(-theta))
         
     # set up xarray dataset for storing MCMC samples
     samples = xr.Dataset(data_vars = {'theta': (['sample', 'ident', 'par_name'], np.zeros((n_samples + 1, n, n_p))), # logit-transformed psych pars
                                       'par': (['sample', 'ident', 'par_name'], np.zeros((n_samples + 1, n, n_p))), # psych pars
                                       'mu': (['sample', 'par_name'], np.zeros((n_samples + 1, n_p))), # mean of theta
-                                      'Sigma': (['sample', 'par_name'], np.zeros((n_samples + 1, n_p))), # covariance matrix of theta
+                                      'Sigma': (['sample', 'par_name', 'par_name1'], np.zeros((n_samples + 1, n_p, n_p))), # covariance matrix of theta
                                       'accept_prob': (['sample', 'ident'], np.zeros((n_samples + 1, n)))}, # probability of accepting the proposed new theta vector
                          coords = {'sample': range(-1, n_samples),
-                                   'ident': ds['ident'].values,
-                                   'par_name': free_par_names})
+                                   'ident': idents,
+                                   'par_name': free_par_names,
+                                   'par_name1': free_par_names})
 
     # define multivariate normal on mu (prior mean is 0, prior covariance matrix is 10*I_{n_p})
     Sigma0_inv = (1/10)*np.identity(n_p) # prior precision matrix for mu (prior variance is 10)
@@ -351,8 +354,8 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
     samples['mu'].loc[{'sample': -1}] = stats.norm.rvs(size = n_p, scale = 4)
     
     # define other required variables
-    old_log_lik = pd.Series(0.0, index = ds['ident'])
-    old_log_prior = pd.Series(0.0, index = ds['ident'])
+    old_log_lik = pd.Series(0.0, index = idents)
+    old_log_prior = pd.Series(0.0, index = idents)
     adjustment_factor = np.sqrt(1.1) # affects the standard deviation of the proposal distribution (adjusted to keep acceptance rate between 0.1 and 0.4)
     last_adjustment = 0 # last time step that proposal_width_factor was changed
     
@@ -370,10 +373,9 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
         
         # SAMPLE MU (MEAN OF THETA)
         Sigma_inv = np.linalg.inv(samples['Sigma'].loc[{'sample': s}].values)
-        Sigma0_prime = np.linalg(Sigma0_inv + n*Sigma_inv)
-        if s == 0:
-            print(theta.shape)
-        samples['mu'].loc[{'sample': s}] = stats.multivariate_normal.rvs(mean = Sigma0_prime*n*Sigma_inv*theta.mean(axis = 1),
+        Sigma0_prime = np.linalg.inv(Sigma0_inv + n*Sigma_inv)
+        theta_bar = theta.mean(axis = 0).reshape((n_p, 1))
+        samples['mu'].loc[{'sample': s}] = stats.multivariate_normal.rvs(mean = (Sigma0_prime@(n*Sigma_inv)@theta_bar).squeeze(),
                                                                          cov = Sigma0_prime)
         
         # SAMPLE THETA (LOGIT-TRANSFORMED PSYCH PARS) FOR EACH INDIVIDUAL
@@ -382,8 +384,8 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
             proposed_theta = pd.Series(0.0, index = all_par_names)
             if not fixed_pars is None:
                 proposed_theta[fixed_par_names] = fixed_par_values
-            proposal_mean = mean = samples['theta'].loc[{'sample': s - 1, 'ident': i}].values
-            proposal_cov = np.diag(proposal_width_factor*np.diag(samples['Sigma'].loc[{'sample': s - 1, 'ident': i}].values)) # diagonal proposal distribution (IS THIS RIGHT?)
+            proposal_mean = samples['theta'].loc[{'sample': s - 1, 'ident': i}].values
+            proposal_cov = np.diag(proposal_width_factor*np.diag(samples['Sigma'].loc[{'sample': s - 1}].values)) # diagonal proposal distribution
             proposed_theta[free_par_names] = stats.multivariate_normal.rvs(mean = proposal_mean,
                                                                            cov = proposal_cov)
             u = stats.uniform.rvs()
@@ -392,7 +394,7 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
                                                                   cov = samples['Sigma'].loc[{'sample': s}])
             proposed_log_lik = 0.0
             for m in range(n_tasks): # loop through tasks
-                pars_im = logistic_transform[m](proposed_theta[task_par_names[m]]) # psych parameters for participant i, task m
+                pars_im = list(logistic_transform[m](proposed_theta[task_par_names[m]])) # psych parameters for participant i, task m
                 ds_im = ds_list[m].loc[{'ident' : i}].squeeze() # data from participant i, task m
                 proposed_log_lik += sr.log_lik(models[m], ds_im, pars_im) # log-likelihood of participant i, task m
             log_accept_prob = np.min([0, proposed_log_prior + proposed_log_lik - old_log_prior[i] - old_log_lik[i]])
@@ -400,7 +402,7 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
             if (np.log(u) <= log_accept_prob) or (s == 0):
                 # accept the proposed new value of theta
                 samples['theta'].loc[{'sample': s, 'ident': i}] = proposed_theta[free_par_names]
-                samples['par'].loc[{'sample': s, 'ident': i}] = logistic_transform(proposed_theta)[free_par_names]
+                samples['par'].loc[{'sample': s, 'ident': i}] = all_logistic_transform(proposed_theta)[free_par_names]
                 old_log_prior[i] = proposed_log_prior
                 old_log_lik[i] = proposed_log_lik
             else:
