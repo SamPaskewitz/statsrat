@@ -361,7 +361,7 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
     Sigma0_inv = (1/10)*np.identity(n_p) # prior precision matrix for mu (prior variance is 10)
     # define inverse Wishart prior on Sigma (this should have a prior mean of I_{n_p})
     nu = n_p + 2
-    Psi = (nu - n_p - 1)*np.identity(n_p)
+    Psi = np.identity(n_p)
     
     # initialize the chain (sample "-1" is not included in the actual output)
     samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p))
