@@ -270,7 +270,7 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         
     return samples.loc[{'sample': range(0, n_samples)}]
 
-def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, proposal_width_factor = 0.1, seed = 1234):
+def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, proposal_width_factor = 0.1, start = None, seed = 1234):
     '''
     Estimates psychological parameters from multiple tasks in a hierarchical Bayesian manner
     using a Markov chain Monte Carlo (MCMC) method.
@@ -296,6 +296,10 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
         Initial value for the proposal width factor, which controls how wide
         the Metropolis-Hastings random walk proposal distribution for theta
         is.  Defaults to 0.1
+        
+    start: dataset (xarray) or None, optional
+        Starting sample for theta, mu, and Sigma.  If None, then initial values
+        are randomly sampled.
         
     seed: int, optional
         Random seed.  Defaults to 1234.
@@ -366,8 +370,11 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
     Psi = np.identity(n_p)
     
     # initialize the chain (sample "-1" is not included in the actual output)
-    samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p))
-    samples['mu'].loc[{'sample': -1}] = stats.norm.rvs(size = n_p, scale = 4)
+    if start == None:
+        samples['theta'].loc[{'sample': -1}] = stats.norm.rvs(size = n*n_p, scale = 4).reshape((n, n_p))
+        samples['mu'].loc[{'sample': -1}] = stats.norm.rvs(size = n_p, scale = 4)
+    else:
+        samples.loc[{'sample': -1} = start
     
     # define other required variables
     old_log_lik = pd.Series(0.0, index = idents)
