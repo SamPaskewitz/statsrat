@@ -4,6 +4,7 @@ import xarray as xr
 from scipy import stats
 from plotnine import *
 import nlopt
+import multiprocessing
 from time import perf_counter
 from numpy.random import default_rng
 
@@ -397,7 +398,100 @@ def oat_grid(model, experiment, free_par, fixed_values, n_points = 10, oat = Non
     df['oat_score'] = oat_score
     return df
         
-def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO):
+def _fit_person_i_(arg):
+    '''
+    This is necessary because locally defined functions (i.e. defined within another function)
+    apparently cannot be used with multiprocessing.
+    
+    Notes
+    -----
+    Because the pool.map method for multiprocessing only allows one argument to be mapped
+    to a function (this function in our case), all of the details about the optimization problem
+    are contained in a single dictionary called "arg" which is produced by fit_indv for each person.
+    '''
+    try:
+        df_row_i = dict.fromkeys(arg['all_par_names'] + ['prop_log_post'])
+        df_row_i['ident'] = arg['ident']
+        if arg['fixed_par_names'] is None:
+            df_row_i['fixed_par_names'] = None
+            df_row_i['fixed_par_values'] = None
+        else:
+            df_row_i['fixed_par_names'] = ', '.join(arg['fixed_par_names'])
+            df_row_i['fixed_par_values'] = str(arg['fixed_par_values'])
+
+        # function to return parameter values
+        if arg['fixed_par_names'] is None:
+            def par_val(x):
+                return x
+        else:
+            # incorporate fixed parameters (this could probably be much more efficient)
+            def par_val(x):
+                pvs = pd.Series(0.0, index = arg['all_par_names'])
+                pvs[arg['free_par_names']] = x
+                pvs[arg['fixed_par_names']] = arg['fixed_par_values']
+                return list(pvs)
+
+        # function proportional to log prior
+        if arg['tau'] is None:
+            # uniform prior (i.e. maximum likelihood)
+            def prop_log_prior(par_val):
+                return 0
+        else:
+            # logit-normal prior
+            def prop_log_prior(par_val):
+                # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
+                value = 0
+                for j in range(arg['n_p']):
+                    y = np.log(par_val[j] - arg['par_min'][j]) - np.log(arg['par_max'][j] - par_val[j])
+                    value += arg['tau'][0][j]*y + arg['tau'][1][j]*(y**2)
+                return value
+
+        # objective function (proportional to log posterior)
+        def f(x, grad = None):
+            if grad.size > 0:
+                grad = None
+            pv = par_val(x)
+            return log_lik(arg['model'], arg['ds_i'], pv) + prop_log_prior(pv)
+
+        # global optimization (to find approximate optimum)
+        if arg['x0'] is None:
+            x0_i = (arg['par_max'] + arg['par_min'])/2 # midpoint of each parameter's allowed interval
+        else:
+            x0_i = arg['x0']
+        gopt = nlopt.opt(arg['algorithm'], arg['n_p'])
+        gopt.set_max_objective(f)
+        gopt.set_lower_bounds(np.array(arg['par_min'] + 0.001))
+        gopt.set_upper_bounds(np.array(arg['par_max'] - 0.001))
+        gopt.set_maxeval(arg['global_maxeval'])
+        tic = perf_counter()
+        gxopt = gopt.optimize(x0_i) # IT'S BREAKING HERE
+        toc = perf_counter()
+        df_row_i['global_time_used'] = toc - tic
+        if arg['local_maxeval'] > 0:
+            # local optimization (to refine answer)
+            lopt = nlopt.opt(nlopt.LN_SBPLX, arg['n_p'])
+            lopt.set_max_objective(f)
+            lopt.set_lower_bounds(np.array(arg['par_min'] + 0.001))
+            lopt.set_upper_bounds(np.array(arg['par_max'] - 0.001))
+            lopt.set_maxeval(arg['local_maxeval'])
+            lopt.set_xtol_rel(arg['local_tolerance'])
+            tic = perf_counter()
+            lxopt = lopt.optimize(gxopt)
+            toc = perf_counter()
+            df_row_i['local_time_used'] = toc - tic
+            for p in range(arg['n_p']):
+                df_row_i[arg['free_par_names'][p]] = lxopt[p]
+            df_row_i['prop_log_post'] = lopt.last_optimum_value()
+        else:
+            df_row_i['local_time_used'] = 0
+            for p in range(arg['n_p']):
+                df_row_i[arg['free_par_names'][p]] = gxopt[p]
+            df_row_i['prop_log_post'] = gopt.last_optimum_value()
+        return df_row_i
+    except:
+        pass
+
+def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -421,7 +515,8 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         of each parameter's allowed interval.  Defaults to None
 
     tau: list of arrays or None, optional
-        Natural parameters of the logit-normal prior.
+        Natural parameters of the logit-normal prior.  Should be a list of two
+        array-likes, each of dimension n_p (the number of free parameters).
         Defaults to None (don't use logit-normal prior, i.e. do maximum likelihood
         estimation instead of maximum a posteriori estimation).
     
@@ -439,6 +534,9 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         
     algorithm: object, optional
         The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
+        
+    use_multiproc: Boolean, optional
+        Whether or not to use multiprocessing.  Defaults to True.
 
     Returns
     -------
@@ -519,103 +617,49 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         fixed_par_values = list(fixed_pars.values())
         for fxpn in fixed_par_names:
             free_par_names.remove(fxpn)
+    else:
+        fixed_par_names = None
+        fixed_par_values = None
     par_max = model.pars.loc[free_par_names, 'max'].values
     par_min = model.pars.loc[free_par_names, 'min'].values
-    n_p = len(free_par_names)  
-    # set up data frame
-    col_index = all_par_names + ['prop_log_post']
-    df = pd.DataFrame(0.0, index = pd.Series(idents, dtype = str), columns = col_index)
-    if fixed_pars is None:
-        df['fixed_par_names'] = None
-        df['fixed_par_values'] = None
-    else:
-        df['fixed_par_names'] = ', '.join(fixed_par_names)
-        df['fixed_par_values'] = str(fixed_par_values)
-    # list of participants to drop because their data could not be fit (if any)
-    idents_to_drop = []
-       
-    # function to return parameter values
-    if fixed_pars is None:
-        def par_val(x):
-            return x
-    else:
-        # incorporate fixed parameters (this could probably be much more efficient)
-        def par_val(x):
-            pvs = pd.Series(0.0, index = all_par_names)
-            pvs[free_par_names] = x
-            pvs[fixed_par_names] = fixed_par_values
-            return list(pvs)
-
-    # function proportional to log prior
-    if tau is None:
-        # uniform prior (i.e. maximum likelihood)
-        def prop_log_prior(par_val):
-            return 0
-    else:
-        # logit-normal prior
-        def prop_log_prior(par_val):
-            # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
-            value = 0
-            for j in range(n_p):
-                y = np.log(par_val[j] - par_min[j]) - np.log(par_max[j] - par_val[j])
-                value += tau[0][j]*y + tau[1][j]*(y**2)
-            return value
+    n_p = len(free_par_names)
     
-    # maximize log-likelihood/posterior
+    args = [] # this list of dicts is needed due to pecularities with how multiprocessing works
     for i in range(n):
-        try:
-            if (i + 1) <= 5 or (i + 1) % 10 == 0:
-                pct = np.round(100*(i + 1)/n, 1)
-                print('Fitting ' + str(i + 1) + ' of ' + str(n) + ' (' + str(pct) + '%)')
-            ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
-  
-            # objective function (proportional to log posterior)
-            def f(x, grad = None):
-                if grad.size > 0:
-                    grad = None
-                pv = par_val(x)
-                return log_lik(model, ds_i, pv) + prop_log_prior(pv)
-
-            # global optimization (to find approximate optimum)
-            if x0 is None:
-                x0_i = (par_max + par_min)/2 # midpoint of each parameter's allowed interval
-            else:
-                x0_i = x0[i, :]
-            gopt = nlopt.opt(algorithm, n_p)
-            gopt.set_max_objective(f)
-            gopt.set_lower_bounds(np.array(par_min + 0.001))
-            gopt.set_upper_bounds(np.array(par_max - 0.001))
-            gopt.set_maxeval(global_maxeval)
-            tic = perf_counter()
-            gxopt = gopt.optimize(x0_i)
-            toc = perf_counter()
-            df.loc[idents[i], 'global_time_used'] = toc - tic
-            if local_maxeval > 0:
-                # local optimization (to refine answer)
-                lopt = nlopt.opt(nlopt.LN_SBPLX, n_p)
-                lopt.set_max_objective(f)
-                lopt.set_lower_bounds(np.array(par_min + 0.001))
-                lopt.set_upper_bounds(np.array(par_max - 0.001))
-                lopt.set_maxeval(local_maxeval)
-                lopt.set_xtol_rel(local_tolerance)
-                tic = perf_counter()
-                lxopt = lopt.optimize(gxopt)
-                toc = perf_counter()
-                df.loc[idents[i], 'local_time_used'] = toc - tic
-                df.loc[idents[i], free_par_names] = lxopt
-                df.loc[idents[i], 'prop_log_post'] = lopt.last_optimum_value()
-            else:
-                df.loc[idents[i], 'local_time_used'] = 0
-                df.loc[idents[i], free_par_names] = gxopt
-                df.loc[idents[i], 'prop_log_post'] = gopt.last_optimum_value()
-        except:
-            print('There was a problem fitting the model to data from participant ' + idents[i] + ' (' + str(i + 1) + ' of ' + str(n) + ')')
-            idents_to_drop += [idents[i]] # record that this participant's data could not be fit.
+        new_arg = {}
+        new_arg['ident'] = idents[i]
+        new_arg['par_min'] = par_min
+        new_arg['par_max'] = par_max
+        new_arg['algorithm'] = algorithm
+        new_arg['n_p'] = n_p
+        new_arg['all_par_names'] = all_par_names
+        new_arg['fixed_par_names'] = fixed_par_names
+        new_arg['fixed_par_values'] = fixed_par_values
+        new_arg['free_par_names'] = free_par_names        
+        new_arg['ds_i'] = ds.loc[{'ident' : idents[i]}].squeeze()
+        new_arg['global_maxeval'] = global_maxeval
+        new_arg['local_maxeval'] = local_maxeval
+        new_arg['local_tolerance'] = local_tolerance
+        new_arg['tau'] = tau
+        new_arg['model'] = model
+        if x0 is None:
+            new_arg['x0'] = None
+        else:
+            new_arg['x0'] = x0[i, :]
+        args += [new_arg]
+    if use_multiproc:
+        # use the multiprocessing library to optimize in parallel
+        pool = multiprocessing.Pool()
+        fit_rows = pool.map(_fit_person_i_, args)
+    else:
+        fit_rows = []
+        for i in range(n):
+            fit_rows += [_fit_person_i_(args[i])]
     
-    # drop participants (rows) if data could not be fit (if any)
-    if len(idents_to_drop) > 0:
-        df = df.drop(idents_to_drop)
-        
+    # stitch dataframe together
+    valid_fit_rows = [e for e in fit_rows if not e is None]
+    df = pd.DataFrame.from_records(valid_fit_rows, index = 'ident')
+    
     # record information about the model, optimization algorithm and length of optimization time per person
     df['model'] = model.name
     df['global_maxeval'] = global_maxeval
@@ -639,13 +683,13 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
     # AIC
     df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)    
     # compute log-likelihood and AIC of the guessing model (all choices have equal probability) for comparison
-    choices_per_time_step = ds_i['y_psb'].values.sum(1) 
+    choices_per_time_step = new_arg['ds_i']['y_psb'].values.sum(1) 
     df['log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
     df['aic_guess'] = 2*(0 - df['log_lik_guess'])
     
     return df
 
-def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO):
+def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -686,6 +730,9 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
         
     algorithm: object, optional
             The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
+            
+    use_multiproc: Boolean, optional
+        Whether or not to use multiprocessing.  Defaults to True.
 
     Returns
     -------
@@ -736,7 +783,6 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     free_par_names = all_par_names.copy()
     if not fixed_pars is None:
         fixed_par_names = list(fixed_pars.keys())
-        print(free_par_names)
         for fxpn in fixed_par_names:
             free_par_names.remove(fxpn)
     par_max = model.pars.loc[free_par_names, 'max'].values
@@ -773,13 +819,13 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
             # posterior hyperparameters for tau0 and tau1
             mu0_prime = (nu*mu0 + n*y_bar)/(nu + n)
             nu_prime = nu + n
-            alpha_prime = alpha + n/2
+            alpha_prime = alpha + n/2 
             beta_prime = beta + 0.5*np.sum((y - y_bar)**2) + 0.5*(n*nu/(n + nu))*(y_bar - mu0)**2
             # expectations of natural hyperparameters (https://en.wikipedia.org/wiki/Normal-gamma_distribution)
             E_tau0[j] = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
             E_tau1[j] = -0.5*(alpha_prime/beta_prime)
         # M step (MAP estimates of psych_par given results of E step)
-        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, x0 = est_psych_par, tau = [E_tau0, E_tau1], global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, x0 = est_psych_par, tau = [E_tau0, E_tau1], global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm, use_multiproc = use_multiproc)
         new_est_psych_par = result.loc[:, free_par_names].values
         # relative change (to assess convergence)
         rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))

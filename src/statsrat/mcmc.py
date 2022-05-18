@@ -75,7 +75,7 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
     regression.
     
     'theta' indicates logit-transformed psychological parameters, while 'par'
-    indicates these parameter in their original space.
+    indicates these parameters in their original space.
     
     theta (logit-transformed psychological parameters) are assumed to have independent
     normal group level priors, which in turn are given normal-gamma hyperpriors.
@@ -174,10 +174,12 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
         samples.loc[{'sample': -1}] = start
     
     # define other required variables
-    old_log_lik = pd.Series(0.0, index = ds['ident'])
-    old_log_prior = pd.Series(0.0, index = ds['ident'])
+    old_log_lik = pd.Series(0.0, index = idents)
+    old_log_prior = pd.Series(0.0, index = idents)
     adjustment_factor = np.sqrt(1.1) # affects the standard deviation of the proposal distribution (adjusted to keep acceptance rate between 0.1 and 0.4)
-    last_adjustment = 0 # last time step that proposal_width_factor was changed
+    last_adjustment = pd.Series(0, index = idents, dtype = 'int') # last time step that proposal_width_factor was changed
+    mean_accept_prob = pd.Series(0.0, index = idents)
+    proposal_width_factor = pd.Series(proposal_width_factor, index = idents)
     
     # advance through the chain
     for s in range(0, n_samples):
@@ -234,7 +236,7 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
             if not fixed_pars is None:
                 proposed_theta[fixed_par_names] = fixed_par_values
             proposed_theta[free_par_names] = stats.norm.rvs(loc = samples['theta'].loc[{'sample': s - 1, 'ident': i}],
-                                                            scale = proposal_width_factor*samples['sigma'].loc[{'sample': s}])
+                                                            scale = proposal_width_factor[i]*samples['sigma'].loc[{'sample': s}])
             u = stats.uniform.rvs()
             if X is None:
                 proposed_log_prior = stats.norm.logpdf(proposed_theta[free_par_names],
@@ -257,15 +259,15 @@ def fit_mcmc(model, ds, fixed_pars = None, X = None, n_samples = 2000, proposal_
                 # reject the proposed new value of theta (keep the old one)
                 samples['theta'].loc[{'sample': s, 'ident': i}] = samples['theta'].loc[{'sample': s - 1, 'ident': i}]
     
-        # adjust the proposal distribution to keep the acceptance rate within desired bounds
-        if s > last_adjustment + 10: # wait 10 iterations since last adjustment before considering adjusting again
-            mean_accept_prob = samples['accept_prob'].loc[{'sample': range(s - 10, s)}].mean() # mean over the last 10 sampling iterations
-            if mean_accept_prob < 0.1: # acceptance rate too low
-                proposal_width_factor /= adjustment_factor # tighten proposal distribution
-                last_adjustment = s
-            elif mean_accept_prob > 0.4: # acceptance rate too high
-                proposal_width_factor *= adjustment_factor # widen proposal distribution
-                last_adjustment = s
+            # adjust the proposal distribution to keep the acceptance rate within desired bounds
+            if s > last_adjustment[i] + 10: # wait 10 iterations since last adjustment before considering adjusting again
+                mean_accept_prob[i] = samples['accept_prob'].loc[{'ident': i, 'sample': range(s - 10, s)}].mean() # mean over the last 10 sampling iterations
+                if mean_accept_prob[i] < 0.1: # acceptance rate too low
+                    proposal_width_factor[i] /= adjustment_factor # tighten proposal distribution
+                    last_adjustment[i] = s
+                elif mean_accept_prob[i] > 0.4: # acceptance rate too high
+                    proposal_width_factor[i] *= adjustment_factor # widen proposal distribution
+                    last_adjustment[i] = s
         
     return samples.loc[{'sample': range(0, n_samples)}]
 
@@ -379,7 +381,9 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
     old_log_lik = pd.Series(0.0, index = idents)
     old_log_prior = pd.Series(0.0, index = idents)
     adjustment_factor = np.sqrt(1.1) # affects the standard deviation of the proposal distribution (adjusted to keep acceptance rate between 0.1 and 0.4)
-    last_adjustment = 0 # last time step that proposal_width_factor was changed
+    last_adjustment = pd.Series(0, index = idents, dtype = 'int') # last time step that proposal_width_factor was changed
+    mean_accept_prob = pd.Series(0.0, index = idents)
+    proposal_width_factor = pd.Series(proposal_width_factor, index = idents)
     
     # SOME INFO ON MULTIVARIATE NORMAL DISTRIBUTIONS
     # https://www.stat.pitt.edu/sungkyu/course/2221Spring15/lec1.pdf
@@ -407,7 +411,7 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
             if not fixed_pars is None:
                 proposed_theta[fixed_par_names] = fixed_par_values
             proposal_mean = samples['theta'].loc[{'sample': s - 1, 'ident': i}].values
-            proposal_cov = np.diag(proposal_width_factor*np.diag(samples['Sigma'].loc[{'sample': s - 1}].values)) # diagonal proposal distribution
+            proposal_cov = np.diag(proposal_width_factor[i]*np.diag(samples['Sigma'].loc[{'sample': s - 1}].values)) # diagonal proposal distribution
             proposed_theta[free_par_names] = stats.multivariate_normal.rvs(mean = proposal_mean,
                                                                            cov = proposal_cov)
             u = stats.uniform.rvs()
@@ -431,14 +435,14 @@ def fit_multi_task_mcmc(models, ds_list, fixed_pars = None, n_samples = 2000, pr
                 # reject the proposed new value of theta (keep the old one)
                 samples['theta'].loc[{'sample': s, 'ident': i}] = samples['theta'].loc[{'sample': s - 1, 'ident': i}]
                 
-        # adjust the proposal distribution to keep the acceptance rate within desired bounds
-        if s > last_adjustment + 10: # wait 10 iterations since last adjustment before considering adjusting again
-            mean_accept_prob = samples['accept_prob'].loc[{'sample': range(s - 10, s)}].mean() # mean over the last 10 sampling iterations
-            if mean_accept_prob < 0.1: # acceptance rate too low
-                proposal_width_factor /= adjustment_factor # tighten proposal distribution
-                last_adjustment = s
-            elif mean_accept_prob > 0.4: # acceptance rate too high
-                proposal_width_factor *= adjustment_factor # widen proposal distribution
-                last_adjustment = s
+            # adjust the proposal distribution to keep the acceptance rate within desired bounds
+            if s > last_adjustment[i] + 10: # wait 10 iterations since last adjustment before considering adjusting again
+                mean_accept_prob[i] = samples['accept_prob'].loc[{'ident': i, 'sample': range(s - 10, s)}].mean() # mean over the last 10 sampling iterations
+                if mean_accept_prob[i] < 0.1: # acceptance rate too low
+                    proposal_width_factor[i] /= adjustment_factor # tighten proposal distribution
+                    last_adjustment[i] = s
+                elif mean_accept_prob[i] > 0.4: # acceptance rate too high
+                    proposal_width_factor[i] *= adjustment_factor # widen proposal distribution
+                    last_adjustment[i] = s
         
     return samples.loc[{'sample': range(0, n_samples)}]
