@@ -155,7 +155,7 @@ class experiment:
 
         return trials
 
-    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, file_type = 'csv', header = 'infer', skiprows = 0, encoding = None, sep = ',', n_final = 8, files_to_skip = None):
+    def read_csv(self, path, x_col, resp_col, resp_map, test_for_rows_to_omit = None, ident_col = None, conf_col = None, schedule = None, other_info = None, file_type = 'csv', header = 'infer', skiprows = 0, encoding = None, sep = ',', n_final = 8, files_to_skip = None):
         """
         Import empirical data from .csv files.
 
@@ -171,6 +171,10 @@ class experiment:
         resp_map: dict
             Maps response names in the raw data to response names in the
             schedule definition.
+        test_for_rows_to_omit: dict or None, optional
+            Indicates rows to omit from data import.  For each key-value pair
+            in the dict, drop rows for which data['key'] == 'value'.  Defaults
+            to None.
         ident_col: str or None, optional
             If string, name of column indicating individual identifier
             (the 'ident' variable).  If None, then file names are used
@@ -233,6 +237,11 @@ class experiment:
         adding '-1', '-2', '-3' etc. (respectively for the second, third, fourth etc. instance
         of the ID) to the end of the ID string.
         
+        Response values (in resp_col) will be automatically converted to strings.
+        Integer valued responses will first be converted to floats, and hence will
+        have decimal points (e.g. "1" -> "1.0").  This conversion of integers to floats
+        is a limitation of Pandas (a Python package used for data structures).
+        
         Current Limitations:
         
         For now, I assume that each time step represents a trial (i.e. iti = 0).
@@ -287,18 +296,27 @@ class experiment:
             usecols = x_col + resp_col # columns to import as the data frame 'raw'
         else:
             usecols = x_col + resp_col + [conf_col] # columns to import as the data frame 'raw'
+        if not test_for_rows_to_omit is None:
+            usecols += list(test_for_rows_to_omit.keys())
         for i in range(n_f):
             # **** import raw data ****
             try:
-                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, encoding = encoding, usecols = usecols, sep = sep)
-                raw.dropna(subset = x_col, thresh = 1, inplace = True) # drop rows without recorded cues ('x')
-                raw.dropna(subset = resp_col, thresh = 1, inplace = True) # drop rows without recorded responses
-                raw_full = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, encoding = encoding, na_filter = True, sep = sep) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
+                raw = pd.read_csv(file_set[i], on_bad_lines = 'skip', header = header, skiprows = skiprows, encoding = encoding, usecols = usecols, sep = sep)
+                raw[resp_col] = raw[resp_col].astype(str) # convert response columns to strings
+                raw_full = pd.read_csv(file_set[i], on_bad_lines = 'skip', header = header, skiprows = skiprows, encoding = encoding, na_filter = True, sep = sep) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
+                
+                # drop specified rows
+                if not test_for_rows_to_omit is None:
+                    for col in test_for_rows_to_omit:
+                        raw = raw.loc[raw[col] != test_for_rows_to_omit[col]]
+                
+                # drop rows in which none of the stimulus columns has one of the expected stimuli/cues
                 index = np.zeros(raw.shape[0])
-                # drop rows in which none of the response columns has one of the expected responses
-                for col in resp_col:
-                    index += raw[col].isin(list(resp_map.keys()))
+                for col in x_col:
+                    raw[col] = raw[col].str.lower() # make stimulus column lower case
+                    index += raw[col].isin(list(scd.x_names))
                 raw = raw.loc[np.array(index > 0)]
+                
                 n_r = raw.shape[0] # number of rows in raw data frame
                 raw.index = range(n_r) # re-index 'raw'
                 assert n_r == scd.n_t, 'wrong number of trials for file {}'.format(file_set[i]) + '\n' + 'trials found: ' + str(n_r) + '\n' + 'trials expected: ' + str(scd.n_t)
@@ -334,13 +352,15 @@ class experiment:
                 try:
                     # **** determine b (response) from raw data ****
                     b = xr.DataArray(0, coords = [range(scd.n_t), scd.y_names], dims = ['t', 'y_name']) # observed responses
-                    for m in range(scd.n_t):
-                        for k in range(n_rc):
+                    for m in range(scd.n_t): # loop through time steps
+                        for k in range(n_rc): # loop through response columns
                             if pd.notna(raw.loc[m, resp_col[k]]):
                                 raw_y_name = raw.loc[m, resp_col[k]].lower()
-                                assert raw_y_name in resp_map.keys(), 'raw data response name "{}" is not found in "resp_map" (trial {})'.format(raw_y_name, m)
-                                mapped_y_name = resp_map[raw_y_name]
-                                b.loc[{'t' : m, 'y_name' : mapped_y_name}] = 1
+                                #assert raw_y_name in resp_map.keys(), 'raw data response name "{}" is not found in "resp_map" (trial {})'.format(raw_y_name, m)
+                                if raw_y_name in resp_map.keys():
+                                    mapped_y_name = resp_map[raw_y_name]
+                                    b.loc[{'t' : m, 'y_name' : mapped_y_name}] = 1
+                    valid_resp = b.sum(dim = 'y_name').astype(bool) # indicates whether responses are missing, i.e. if a valid response was found (0 = missing, 1 = not missing)
                 except Exception as e:
                     print(e)
                     did_not_work_b += [file_set[i]]
@@ -358,7 +378,7 @@ class experiment:
                             raw_x = pd.Series(0, index = scd.x_names)
                             for k in range(n_xc):
                                 if pd.notna(raw.loc[m, x_col[k]]):
-                                    raw_x_name = raw.loc[m, x_col[k]].lower()
+                                    raw_x_name = raw.loc[m, x_col[k]]
                                     if raw_x_name in scd.x_names:
                                         raw_x[raw_x_name] = 1
                             # find corresponding trial definition (will only work if ITI = 0)
@@ -382,7 +402,7 @@ class experiment:
                     ds_new = scd.trial_def.loc[{'t' : t_order}]
                     n_t = len(t_order)
                     ds_new = ds_new.assign_coords({'t' : range(n_t), 'trial' : ('t', range(len(t_order))), 'time': ('t', range(n_t))})
-                    ds_new = ds_new.assign(b = b)
+                    ds_new = ds_new.assign(b = b, valid_resp = valid_resp)
                     ds_new = ds_new.expand_dims(ident = [ident])
                     # **** add confidence ratings ****
                     if not conf_col is None:
