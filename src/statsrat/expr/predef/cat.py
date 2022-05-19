@@ -85,6 +85,31 @@ fast = expr.experiment(
                           'threat_benign_trel': threat_benign_trel},
                   notes = 'Facial Affect Salience Task.  Cues b1, b2 etc. represent benign faces; cues t1, t2 etc. represent threatening faces.  In the "training" stage, b1, b2, t3 and t4 are relevant, while all other cues are irrelevant.  In the "transfer" stage, b5, b6, t5 and t6 form an embedded overshadowing design.  The OAT "rel_irl" measures attentional transfer toward relevant cues opposed to irrelevant ones.  The OAT "threat_benign_os" measures threat salience in overshadowing trials (b4, b5, t5 and t6); "threat_benign_brel" measures threat salience after the benign cues were relevant (b1, b2, t1 and t2) and "threat_benign_trel" measures threat salience after threat cues were relevant (b3, b4, t3 and t4).  Names of OAT scores in RO1 proposal: measure1 = threat_benign_os, measure2 = threat_benign_brel, and measure3 = threat_benign_trel.')
 
+fast_no_tutorial = expr.experiment(
+                  schedules = {'design': expr.schedule(resp_type = 'choice',
+                  stages = {
+                      'relevance': expr.stage(
+                            x_pn = [['b1', 't1'], ['b1', 't2'], ['b2', 't1'], ['b2', 't2'], ['t3', 'b3'], ['t3', 'b4'], ['t4', 'b3'], ['t4', 'b4']],
+                            y = 2*[['cat1'], ['cat1'], ['cat2'], ['cat2']],
+                            y_psb = ['cat1', 'cat2'],
+                            n_rep = 12),
+                      'transfer': expr.stage(
+                            x_pn = [['t5', 'b5'], ['t6', 'b6'], ['t1', 'b1'], ['t2', 'b2'], ['t3', 'b3'], ['t4', 'b4']],
+                            y = 3*[['cat3'], ['cat4']],
+                            y_psb = ['cat3', 'cat4'],
+                            n_rep = 8),
+                      'test': expr.stage(
+                            x_pn = [['t5', 'b6'], ['t6', 'b5'], ['t1', 'b2'], ['t2', 'b1'], ['t3', 'b4'], ['t4', 'b3']],
+                            y_psb = ['cat3', 'cat4'],
+                            lrn = False,
+                            n_rep = 2)},
+                   x_dims = {'fruits': ['alpha', 'beta', 'theta', 'phi'], 'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})},
+                  oats = {'rel_irl': rel_irl, 
+                          'threat_benign_os': threat_benign_os, 
+                          'threat_benign_brel': threat_benign_brel, 
+                          'threat_benign_trel': threat_benign_trel},
+                  notes = 'Facial Affect Salience Task without the tutorial stage (stage 0).  Cues b1, b2 etc. represent benign faces; cues t1, t2 etc. represent threatening faces.  In the "training" stage, b1, b2, t3 and t4 are relevant, while all other cues are irrelevant.  In the "transfer" stage, b5, b6, t5 and t6 form an embedded overshadowing design.  The OAT "rel_irl" measures attentional transfer toward relevant cues opposed to irrelevant ones.  The OAT "threat_benign_os" measures threat salience in overshadowing trials (b4, b5, t5 and t6); "threat_benign_brel" measures threat salience after the benign cues were relevant (b1, b2, t1 and t2) and "threat_benign_trel" measures threat salience after threat cues were relevant (b3, b4, t3 and t4).  Names of OAT scores in RO1 proposal: measure1 = threat_benign_os, measure2 = threat_benign_brel, and measure3 = threat_benign_trel.')
+
 del design; rel_irl; threat_benign_os; threat_benign_brel; threat_benign_trel
 
 # Kruschke 1996, Experiment 1 (inverse base rate effect)

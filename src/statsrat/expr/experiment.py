@@ -155,7 +155,7 @@ class experiment:
 
         return trials
 
-    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', skiprows = 0, n_final = 8, files_to_skip = None):
+    def read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, file_type = 'csv', header = 'infer', skiprows = 0, encoding = None, sep = ',', n_final = 8, files_to_skip = None):
         """
         Import empirical data from .csv files.
 
@@ -190,11 +190,17 @@ class experiment:
             values give the corresponding row index (e.g. a question such as 
             'What is your age?') and column name as a tuple.  Defaults to None
             (do not import any additional data).
+        file_type: str, optional
+            Type of file (suffix) to look for.  Defaults to 'csv'.
         header: int or list of int, default = ‘infer’
             Passed to pandas.read_csv.  Row number(s) to use as the column names,
             and the start of the data.
         skiprows: int, optional, default = 0
             Passed to pandas.read_csv.  Initial rows to skip.
+        encoding: str or None, optional
+            Passed to pandas.read_csv.
+        sep: str, optional
+            Passed to pandas.read_csv.  Defaults to ','.
         n_final: int, optional
             Number of trials at end of each stage to use for calculating percent correct
             choices.  For example, set n_final = 10 to compute percent correct choices
@@ -244,7 +250,7 @@ class experiment:
         experiment.
         """        
         # list .csv files in the directory
-        file_set = [file for file in glob.glob(path + "**/*.csv", recursive=True)]
+        file_set = [file for file in glob.glob(path + "**/*." + file_type, recursive=True)]
         assert len(file_set) > 0, 'Cannot find any files in specified path.'
         if not files_to_skip is None: # skip specified files
             for file in files_to_skip:
@@ -284,10 +290,10 @@ class experiment:
         for i in range(n_f):
             # **** import raw data ****
             try:
-                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, usecols = usecols)
+                raw = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, encoding = encoding, usecols = usecols, sep = sep)
                 raw.dropna(subset = x_col, thresh = 1, inplace = True) # drop rows without recorded cues ('x')
                 raw.dropna(subset = resp_col, thresh = 1, inplace = True) # drop rows without recorded responses
-                raw_full = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, na_filter = True) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
+                raw_full = pd.read_csv(file_set[i], error_bad_lines = False, warn_bad_lines = False, header = header, skiprows = skiprows, encoding = encoding, na_filter = True, sep = sep) # copy of 'raw' whose rows won't be dropped (used for importing 'ident' and 'other info', e.g. demographics)
                 index = np.zeros(raw.shape[0])
                 # drop rows in which none of the response columns has one of the expected responses
                 for col in resp_col:
