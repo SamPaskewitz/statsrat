@@ -637,6 +637,8 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         new_arg['fixed_par_values'] = fixed_par_values
         new_arg['free_par_names'] = free_par_names        
         new_arg['ds_i'] = ds.loc[{'ident' : idents[i]}].squeeze()
+        if 'valid_resp' in list(new_arg['ds_i'].keys()): # exclude time steps (trials) without valid responses
+            new_arg['ds_i'] = new_arg['ds_i'].loc[{'t': new_arg['ds_i']['valid_resp']}]
         new_arg['global_maxeval'] = global_maxeval
         new_arg['local_maxeval'] = local_maxeval
         new_arg['local_tolerance'] = local_tolerance
@@ -677,15 +679,15 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         df['log_lik'] = df['prop_log_post'] 
     else:
         df['log_lik'] = 0.0
-        for ident in df.index:
-            ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
-            df.loc[ident, 'log_lik'] = log_lik(model, ds_i, df.loc[ident, list(model.pars.index)])
+        for i in range(n):
+            df.loc[idents[i], 'log_lik'] = log_lik(model, args[i]['ds_i'], df.loc[idents[i], list(model.pars.index)])
     # AIC
     df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)    
     # compute log-likelihood and AIC of the guessing model (all choices have equal probability) for comparison
-    choices_per_time_step = new_arg['ds_i']['y_psb'].values.sum(1) 
-    df['log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
-    df['aic_guess'] = 2*(0 - df['log_lik_guess'])
+    for i in range(n):
+        choices_per_time_step = args[i]['ds_i']['y_psb'].values.sum(1) 
+        df.loc[idents[i], 'log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
+        df.loc[idents[i], 'aic_guess'] = 2*(0 - df.loc[idents[i], 'log_lik_guess'])
     
     return df
 
