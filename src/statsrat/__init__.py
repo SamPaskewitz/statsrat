@@ -419,52 +419,42 @@ def _fit_person_i_(arg):
             df_row_i['fixed_par_names'] = ', '.join(arg['fixed_par_names'])
             df_row_i['fixed_par_values'] = str(arg['fixed_par_values'])
 
-        # function to return parameter values
+        # function to return full set of parameter values
         if arg['fixed_par_names'] is None:
-            def par_val(x):
-                return x
+            def full_phi(phi):
+                return phi
         else:
             # incorporate fixed parameters (this could probably be much more efficient)
-            def par_val(x):
+            def full_phi(phi):
                 pvs = pd.Series(0.0, index = arg['all_par_names'])
-                pvs[arg['free_par_names']] = x
+                pvs[arg['free_par_names']] = phi
                 pvs[arg['fixed_par_names']] = arg['fixed_par_values']
                 return list(pvs)
 
-        # function proportional to log prior
-        if arg['tau'] is None:
-            # uniform prior (i.e. maximum likelihood)
-            def prop_log_prior(par_val):
-                return 0
-        else:
-            # logit-normal prior
-            def prop_log_prior(par_val):
-                # loop through parameters to compute prop_log_prior (the part of the log prior that depends on par_val)
-                value = 0
-                for j in range(arg['n_p']):
-                    y = np.log(par_val[j] - arg['par_min'][j]) - np.log(arg['par_max'][j] - par_val[j])
-                    value += arg['tau'][0][j]*y + arg['tau'][1][j]*(y**2)
-                return value
-
         # objective function (proportional to log posterior)
-        def f(x, grad = None):
-            if grad.size > 0:
-                grad = None
-            pv = par_val(x)
-            return log_lik(arg['model'], arg['ds_i'], pv) + prop_log_prior(pv)
+        if arg['log_prior'] is None: # no prior distribution -> perform MLE
+            def f(phi, grad = None):
+                if grad.size > 0:
+                    grad = None
+                return log_lik(arg['model'], arg['ds_i'], full_phi(phi))
+        else:
+            def f(phi, grad = None): # prior distribution specified -> perform MAP
+                if grad.size > 0:
+                    grad = None
+                return log_lik(arg['model'], arg['ds_i'], full_phi(phi)) + arg['log_prior'](phi)            
 
         # global optimization (to find approximate optimum)
-        if arg['x0'] is None:
-            x0_i = (arg['par_max'] + arg['par_min'])/2 # midpoint of each parameter's allowed interval
+        if arg['phi0'] is None:
+            phi0_i = (arg['par_max'] + arg['par_min'])/2 # midpoint of each parameter's allowed interval
         else:
-            x0_i = arg['x0']
+            phi0_i = arg['phi0']
         gopt = nlopt.opt(arg['algorithm'], arg['n_p'])
         gopt.set_max_objective(f)
         gopt.set_lower_bounds(np.array(arg['par_min'] + 0.001))
         gopt.set_upper_bounds(np.array(arg['par_max'] - 0.001))
         gopt.set_maxeval(arg['global_maxeval'])
         tic = perf_counter()
-        gxopt = gopt.optimize(x0_i) # IT'S BREAKING HERE
+        gxopt = gopt.optimize(phi0_i)
         toc = perf_counter()
         df_row_i['global_time_used'] = toc - tic
         if arg['local_maxeval'] > 0:
@@ -491,7 +481,7 @@ def _fit_person_i_(arg):
     except:
         pass
 
-def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit_indv(model, ds, fixed_pars = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -509,16 +499,15 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
 
-    x0: array-like of floats or None, optional
+    phi0: array-like of floats or None, optional
         Start points for each individual in the dataset.
         If None, then parameter search starts at the midpoint
         of each parameter's allowed interval.  Defaults to None
-
-    tau: list of arrays or None, optional
-        Natural parameters of the logit-normal prior.  Should be a list of two
-        array-likes, each of dimension n_p (the number of free parameters).
-        Defaults to None (don't use logit-normal prior, i.e. do maximum likelihood
-        estimation instead of maximum a posteriori estimation).
+    
+    log_prior: function or None, optional
+        Returns the logarithm of the prior distribution over logit-transformed psych
+        model parameters.  This is used for maximum a priori (MAP) estimation. Defaults
+        to None, i.e. no prior is used and maximum likelihood estimation (MLE) is performed.
     
     global_maxeval: int, optional
         Maximum number of function evaluations per individual for global optimization.
@@ -642,12 +631,12 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
         new_arg['global_maxeval'] = global_maxeval
         new_arg['local_maxeval'] = local_maxeval
         new_arg['local_tolerance'] = local_tolerance
-        new_arg['tau'] = tau
+        new_arg['log_prior'] = log_prior
         new_arg['model'] = model
-        if x0 is None:
-            new_arg['x0'] = None
+        if phi0 is None:
+            new_arg['phi0'] = None
         else:
-            new_arg['x0'] = x0[i, :]
+            new_arg['phi0'] = phi0[i, :]
         args += [new_arg]
     if use_multiproc:
         # use the multiprocessing library to optimize in parallel
@@ -675,7 +664,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
             df[fxpn] = fixed_pars[fxpn]
     
     # log likelihood of choices
-    if tau is None:
+    if log_prior is None:
         df['log_lik'] = df['prop_log_post'] 
     else:
         df['log_lik'] = 0.0
@@ -691,7 +680,7 @@ def fit_indv(model, ds, fixed_pars = None, x0 = None, tau = None, global_maxeval
     
     return df
 
-def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit_em(model, ds, fixed_pars = None, phi0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -708,10 +697,10 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
         
-    x0: array-like of floats or None, optional
+    phi0: array-like of floats or None, optional
         Start points for each individual in the dataset.  If None (the default),
         then initial estimates are obtained using maximum likelihood estimation.
-        If x0 is provided, then typically this is from previous maximum likelihood
+        If phi0 is provided, then typically this is from previous maximum likelihood
         estimation using the fit_indv function.
 
     max_em_iter: int, optional
@@ -745,36 +734,36 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     This assumes that all (psychological) model parameters have what might be called a logit-normal
     distribution, as described below.
     
-    Let theta be defined as any model parameter.  Then (theta - theta_min)/(theta_max - theta_min) is
-    in the interval [0, 1].  We know re-parameterize in terms of a new variable called y which is in
-    (-inf, inf), assuming that (theta - theta_min)/(theta_max - theta_min) is a logistic function of y:
+    Let phi be defined as any model parameter.  Then (phi - phi_min)/(phi_max - phi_min) is
+    in the interval [0, 1].  We know re-parameterize in terms of a new variable called theta which is in
+    (-inf, inf), assuming that (phi - phi_min)/(phi_max - phi_min) is a logistic function of theta:
     
-    (theta - theta_min)/(theta_max - theta_min) = (1 + e^{-y})^{-1}
+    (phi - phi_min)/(phi_max - phi_min) = (1 + e^{-theta})^{-1}
     
     It follows that:
     
-    y = log(theta - theta_min) - log(theta_max - theta)
+    theta = log(phi - phi_min) - log(phi_max - phi)
     
-    This is the logit function, which is the inverse of the logistic function.  We have now transformed theta
-    (which is confined to a finite interval) to y (which is on the whole real line).  Finally, we assume that
-    y has a normal distribution:
+    This is the logit function, which is the inverse of the logistic function.  We have now transformed phi
+    (which is confined to a finite interval) to theta (which is on the whole real line).  Finally, we assume that
+    theta has a normal distribution:
 
-    y ~ N(mu, 1/rho) 
+    theta ~ N(mu, sigma^2) 
     
     with mean mu and precision (inverse variance) rho.  The corresponding natural parameters are
-    tau0 = mu*rho and tau1 = -0.5*rho.  This logit-normal distribution can take the same types of
+    tau0 = mu/sigma^2 and tau1 = -1/(2*sigma^2).  This logit-normal distribution can take the same types of
     shapes as the beta distribution, including left skewed, right skewed, bell shaped, and valley shaped.     
     
-    We perform the EM algorithm to estimate y (treating tau0 and tau1 as our latent variables)
-    where y' is the current estimate and x is the behavioral data:
+    We perform the EM algorithm to estimate theta (treating tau0 and tau1 as our latent variables)
+    where theta' is the current estimate and D is the behavioral data:
     
-    Q(y | y') = E[log p(y | x, tau0, tau1)]
-    = log p(x | y) + E[tau0]*y + E[tau1]*y^2 + constant term with respect to y
+    Q(theta | theta') = E[log p(theta | D, tau0, tau1)]
+    = log p(D | theta) + E[tau0]*theta + E[tau1]*theta^2 + constant term with respect to theta
     
     This is obtained by using Bayes' theorem along with the canonical exponential form of the
     log-normal prior.  Thus the E step consists of computing E[tau0] and E[tau1], where the
     expectation is taken according to the posterior distribution of tau0 and tau1 (i.e. of mu and rho)
-    given x and y'.  Recognizing that this posterior is normal-gamma allows us to make the neccesary
+    given D and theta'.  Recognizing that this posterior is normal-gamma allows us to make the neccesary
     calculations (details not provided here).
     """
     
@@ -791,16 +780,16 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     par_min = model.pars.loc[free_par_names, 'min'].values
     n_p = len(free_par_names) # number of free parameters
 
-    # keep track of relative change in est_psych_par
+    # keep track of relative change in phi (estimated psych model parameters)
     rel_change = np.zeros(max_em_iter)
     
-    if x0 is None:
+    if phi0 is None:
         # initialize (using MLE, i.e. uniform priors)
         print('\n initial estimation with uniform priors')
-        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, tau = None, x0 = None, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
-        est_psych_par = result.loc[:, free_par_names].values
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, log_prior = None, phi0 = None, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
+        phi = result.loc[:, free_par_names].values # estimated psych model parameters
     else:
-        est_psych_par = x0
+        phi = phi0
     
     # See the following:
     # https://en.wikipedia.org/wiki/Conjugate_prior#When_likelihood_function_is_a_continuous_distribution
@@ -816,24 +805,34 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
         E_tau0 = np.zeros(n_p)
         E_tau1 = np.zeros(n_p)
         for j in range(n_p):
-            y = np.log(est_psych_par[:, j] - par_min[j]) - np.log(par_max[j] - est_psych_par[:, j])
-            y_bar = y.mean()
+            theta = np.log(phi[:, j] - par_min[j]) - np.log(par_max[j] - phi[:, j])
+            theta_bar = theta.mean()
             # posterior hyperparameters for tau0 and tau1
-            mu0_prime = (nu*mu0 + n*y_bar)/(nu + n)
+            mu0_prime = (nu*mu0 + n*theta_bar)/(nu + n)
             nu_prime = nu + n
             alpha_prime = alpha + n/2 
-            beta_prime = beta + 0.5*np.sum((y - y_bar)**2) + 0.5*(n*nu/(n + nu))*(y_bar - mu0)**2
+            beta_prime = beta + 0.5*np.sum((theta - theta_bar)**2) + 0.5*(n*nu/(n + nu))*(theta_bar - mu0)**2
             # expectations of natural hyperparameters (https://en.wikipedia.org/wiki/Normal-gamma_distribution)
             E_tau0[j] = mu0_prime*(alpha_prime/beta_prime) # see "Moments of the natural statistics" on the above page
             E_tau1[j] = -0.5*(alpha_prime/beta_prime)
+        # transform E_tau0 and E_tau1 back into conventional hyperparameters (E_step_mu and E_step_sigma)
+        E_step_sigma = np.sqrt(-1/(2*E_tau1))
+        E_step_mu = E_tau0*(E_step_sigma**2)
+        # define log-prior function (logit-normal) using the results of the E step
+        global logit_normal_log_prior # needs this for multiprocessing to work
+        def logit_normal_log_prior(phi):
+            theta = np.log(phi - par_min) - np.log(par_max - phi)
+            return np.sum(stats.norm.logpdf(theta, loc = E_step_mu, scale = E_step_sigma))
         # M step (MAP estimates of psych_par given results of E step)
-        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, x0 = est_psych_par, tau = [E_tau0, E_tau1], global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm, use_multiproc = use_multiproc)
-        new_est_psych_par = result.loc[:, free_par_names].values
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, phi0 = phi,
+                          log_prior = logit_normal_log_prior,
+                          global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm, use_multiproc = use_multiproc)
+        new_phi = result.loc[:, free_par_names].values
         # relative change (to assess convergence)
-        rel_change[i] = np.sum(abs(new_est_psych_par - est_psych_par))/np.sum(abs(est_psych_par))
+        rel_change[i] = np.sum(abs(new_phi - phi))/np.sum(abs(phi))
         print('relative change: ' + '{:.8}'.format(rel_change[i]))
-        # update est_psych_par
-        est_psych_par = new_est_psych_par
+        # update phi
+        phi = new_phi
         # exit loop if have achieved tolerance
         if rel_change[i] < 0.0001:
             break
@@ -841,7 +840,7 @@ def fit_em(model, ds, fixed_pars = None, x0 = None, max_em_iter = 5, global_maxe
     # output
     return result
 
-def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200):
+def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None, phi0 = None, tau = None, global_maxeval = 200):
     """
     Compare global optimization algorithms (in fit_indv).
     This can be run on a subset of the data prior to the main model fit.
@@ -862,7 +861,7 @@ def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
 
-    x0: data frame/array-like of floats or None, optional
+    phi0: data frame/array-like of floats or None, optional
         Start points for each individual in the dataset.
         If None, then parameter search starts at the midpoint
         of each parameter's allowed interval.  Defaults to None
@@ -885,7 +884,7 @@ def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None
         new_df = fit_indv(model = model, 
                           ds = ds,
                           fixed_pars = fixed_pars,
-                          x0 = x0, 
+                          phi0 = phi0, 
                           tau = tau, 
                           global_maxeval = global_maxeval, 
                           local_maxeval = 0, 
@@ -1094,7 +1093,7 @@ def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n =
     output = {'par': par, 'fit': fit, 'comp': comp, 'sim_data': sim_data}
     return output
 
-def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, method = 'indv'):
+def split_pred(model, ds, t_fit, fixed_pars = None, phi0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, method = 'indv'):
     """
     Split prediction test (similar to cross-validation): fit the model to
     earlier learning data in order to predict later learning data.
@@ -1116,7 +1115,7 @@ def split_pred(model, ds, t_fit, fixed_pars = None, x0 = None, tau = None, globa
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
 
-    x0: data frame/array-like of floats or None, optional
+    phi0: data frame/array-like of floats or None, optional
         Start points for each individual in the dataset.
         If None, then parameter search starts at the midpoint
         of each parameter's allowed interval.  Defaults to None
