@@ -105,34 +105,39 @@ class experiment:
         on different days).  Starts at 0 for the first time step, and each time
         step represents a time unit of 1.
         """
-        # determine experimental schedule to use
+        # ** determine experimental schedule to use **
         if schedule is None:
             scd = self.schedules[list(self.schedules.keys())[0]]
         else:
             scd = self.schedules[schedule]
         
-        # make list of time steps
+        # ** make list of time steps **
         t_order = []
         trial_index = []
         m = 0 # index for trials
+        # loop through stages
         for st in scd.stages:
             iti = scd.stages[st].iti
             order = scd.stages[st].order
+            # add intro period to stage if needed
             if scd.stages[st].intro_length > 0:
                 trial_def_bool = np.array( (scd.trial_def.stage_name == st) & (scd.trial_def.trial_name == 'intro') )
                 trial_def_index = list( scd.trial_def.t[trial_def_bool].values )
                 t_order += trial_def_index
                 trial_index += scd.stages[st].intro_length*[m]
                 m += 1
+            # loop through blocks within the stage
             for j in range(scd.stages[st].n_rep):
-                if scd.stages[st].order_fixed == False:
-                    np.random.shuffle(order)
+                if scd.stages[st].order_fixed == False: # shuffle trial order if needed
+                    np.random.shuffle(order) 
+                # loop through trials within the block
                 for k in range(scd.stages[st].n_trial):
                     trial_def_bool = np.array( (scd.trial_def.stage_name == st) & (scd.trial_def.trial == order[k]) )
                     trial_def_index = list( scd.trial_def.t[trial_def_bool].values )
                     t_order += trial_def_index
                     trial_index += (iti + 1)*[m]
                     m += 1
+            # add outro period to stage if needed
             if scd.stages[st].outro_length > 0:
                 trial_def_bool = np.array( (scd.trial_def.stage_name == st) & (scd.trial_def.trial_name == 'outro') )
                 trial_def_index = list( scd.trial_def.t[trial_def_bool].values )
@@ -140,14 +145,14 @@ class experiment:
                 trial_index += scd.stages[st].outro_length*[m]
                 m += 1
                        
-        # make list for 'time' coordinate
+        # ** make list for 'time' coordinate **
         st_names = list(scd.stages.keys())
         time = list(np.arange(scd.stages[st_names[0]].n_t))
         for i in range(1, scd.n_stage):
             time += list(np.arange(scd.stages[st_names[i]].n_t) + scd.delays[i - 1] + time[-1] + 1)
         
-        # make new trials object
-        trials = scd.trial_def.loc[{'t' : t_order}]
+        # ** make new trials object **
+        trials = scd.trial_def.loc[{'t' : t_order}].copy()
         trials = trials.assign_coords({'t' : range(scd.n_t)})
         trials = trials.assign_coords({'trial' : ('t', trial_index)})
         trials = trials.assign_coords({'time' : ('t', time)})

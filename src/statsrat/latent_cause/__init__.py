@@ -36,6 +36,13 @@ class model:
     
     particle_filter(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim')
         Simulate the model using a particle filter algorithm.
+        
+    par_logit_transform(phi)
+        Perform logit (inverse logistic) transformation on model parameters.
+        
+    par_logistic_transform(theta)        
+        Perform logistic transform on numbers in (-infty, infty) to bring
+        them back to the model's specified parameter range.
     
     Notes
     -----
@@ -627,7 +634,54 @@ class model:
                               'sim_pars': sim_pars,
                               'n_z': n_z,
                               'n_p': n_p})
-        return ds        
+        return ds
+    
+    def par_logit_transform(self, phi):
+        '''
+        Arguments
+        ---------
+        phi: array-like of floats
+            Numbers to be transformed.
+            
+        Perform logit (inverse logistic) transformation on model parameters.
+        
+        Notes
+        -----
+        The methods par_logit_transform and par_logistic_transform are designed
+        for use with hierarchical model fitting methods, which in this package use
+        logit-normal priors.  That is, model parameters (denoted phi) are logit
+        transformed into the space -infty, infty (the logit-transformed parameters
+        are denoted theta) where they are given some variation on normal distribution
+        prior.  Inference is done on the logit-transformed parameters (theta), and
+        the logistic transformation can be used to transform them back to their
+        original range (theta -> phi).
+        '''
+        theta = np.log(phi - self.pars['min']) - np.log(self.pars['max'] - phi)
+        return theta
+    
+    def par_logistic_transform(self, theta):
+        '''
+        Arguments
+        ---------
+        theta: array-like of floats
+            Numbers to be transformed.
+        
+        Perform logistic transform on numbers in (-infty, infty) to bring
+        them back to the model's specified parameter range.
+        
+        Notes
+        -----
+        The methods par_logit_transform and par_logistic_transform are designed
+        for use with hierarchical model fitting methods, which in this package use
+        logit-normal priors.  That is, model parameters (denoted phi) are logit
+        transformed into the space -infty, infty (the logit-transformed parameters
+        are denoted theta) where they are given some variation on normal distribution
+        prior.  Inference is done on the logit-transformed parameters (theta), and
+        the logistic transformation can be used to transform them back to their
+        original range (theta -> phi).
+        '''
+        phi = self.pars['min'] + (self.pars['max'] - self.pars['min'])/(1 + np.exp(-theta))
+        return phi
 
 ########## PARAMETERS ##########
 # Note: allowing prior_a to be close to 1 seems to cause problems.

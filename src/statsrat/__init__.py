@@ -821,7 +821,7 @@ def fit_em(model, ds, fixed_pars = None, phi0 = None, max_em_iter = 5, global_ma
         # define log-prior function (logit-normal) using the results of the E step
         global logit_normal_log_prior # needs this for multiprocessing to work
         def logit_normal_log_prior(phi):
-            theta = np.log(phi - par_min) - np.log(par_max - phi)
+            theta = model.par_logit_transform(phi)
             return np.sum(stats.norm.logpdf(theta, loc = E_step_mu, scale = E_step_sigma))
         # M step (MAP estimates of psych_par given results of E step)
         result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, phi0 = phi,
@@ -1021,7 +1021,7 @@ def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n =
         The algorithm used for global optimization.  Defaults to nlopt.GD_STOGO.
         
     method: str, optional
-        Either 'indv' (individual fits) or 'em' (EM algorithm).  Deafults
+        Either 'indv' (individual fits) or 'em' (EM algorithm).  Defaults
         to 'indv'.
 
     Returns
