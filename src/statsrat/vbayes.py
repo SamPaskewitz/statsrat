@@ -108,16 +108,6 @@ def fit_vbayes(model, ds, fixed_pars = None, X = None, max_vb_iter = 5, global_m
         x_names = X.columns.values # names of regressors
         n_x = X.shape[1] # number of regressors
     
-    # logit function to transform parameters from their original space to -infty, infty (phi -> theta)
-    def logit_transform(phi):
-        theta = np.log(phi - par_min) - np.log(par_max - phi)
-        return theta
-    
-    # logistic function to transform parameters from -infty, infty to their original space (theta -> phi)
-    def logistic_transform(theta):
-        phi = par_min + par_range/(1 + np.exp(-theta))
-        return phi
-    
     # keep track of relative change in theta
     rel_change = np.zeros(max_vb_iter)
     
@@ -142,12 +132,12 @@ def fit_vbayes(model, ds, fixed_pars = None, X = None, max_vb_iter = 5, global_m
         # ** compute approximate posterior of theta | rho, beta (Laplace approximation) **
         global logit_normal_log_prior # needs this for multiprocessing to work
         def logit_normal_log_prior(phi): # define log-prior function (logit-normal)
-            theta = logit_transform(phi)
+            theta = model.par_logit_transform(phi)
             return np.sum(stats.norm.logpdf(theta, loc = ***, scale = 1/np.sqrt(E_rho)))
         map_fit = fit_indv(model = model,
                            ds = ds,
                            fixed_pars = fixed_pars,
-                           phi0 = logistic_transform(theta_star),
+                           phi0 = model.par_logistic_transform(theta_star),
                            log_prior = logit_normal_log_prior, # FIGURE THAT OUT
                            global_maxeval = global_maxeval,
                            local_maxeval = local_maxeval,
@@ -155,7 +145,7 @@ def fit_vbayes(model, ds, fixed_pars = None, X = None, max_vb_iter = 5, global_m
                            algorithm = algorithm,
                            use_multiproc = use_multiproc)
         phi_star = result.loc[:, free_par_names] # MAP estimate of phi
-        E_theta = logit_transform(phi_star) # MAP estimate of theta is aprx. posterior mean
+        E_theta = model.par_logit_transform(phi_star) # MAP estimate of theta is aprx. posterior mean
         E_theta2 = pd.DataFrame(0.0, columns = free_par_names, index = idents) # aprx. posterior mean of theta^2
         for i in idents: # loop through subjects to compute E_theta2
             ds_i = ds.loc[{'ident': i}].squeeze() # data from subject i

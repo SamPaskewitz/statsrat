@@ -8,6 +8,73 @@ import multiprocessing
 from time import perf_counter
 from numpy.random import default_rng
 
+def par_logit_transform(model, phi, par_names = None):
+    '''
+    Arguments
+    ---------
+    model: object
+        Model to use.
+        
+    phi: array-like of floats
+        Numbers to be transformed.
+
+    par_names: array-like of strings or None, optional
+        Names of parameters to transform, or None if all parameters should
+        be included.  Defaults to None.
+
+    Perform logit (inverse logistic) transformation on model parameters.
+
+    Notes
+    -----
+    The functions par_logit_transform and par_logistic_transform are designed
+    for use with hierarchical model fitting methods, which in this package use
+    logit-normal priors.  That is, model parameters (denoted phi) are logit
+    transformed into the space -infty, infty (the logit-transformed parameters
+    are denoted theta) where they are given some variation on normal distribution
+    prior.  Inference is done on the logit-transformed parameters (theta), and
+    the logistic transformation can be used to transform them back to their
+    original range (theta -> phi).
+    '''
+    if par_names is None:
+        theta = np.log(phi - model.pars['min']) - np.log(model.pars['max'] - phi)
+    else:
+        theta = np.log(phi - model.pars.loc[par_names, 'min']) - np.log(model.pars.loc[par_names, 'max'] - phi)
+    return theta
+
+def par_logistic_transform(model, theta, par_names = None):
+    '''
+    Arguments
+    ---------
+    model: object
+        Model to use.
+        
+    theta: array-like of floats
+        Numbers to be transformed.
+
+    par_names: array-like of strings or None, optional
+        Names of parameters to transform, or None if all parameters should
+        be included.  Defaults to None.
+
+    Perform logistic transform on numbers in (-infty, infty) to bring
+    them back to the model's specified parameter range.
+
+    Notes
+    -----
+    The functions par_logit_transform and par_logistic_transform are designed
+    for use with hierarchical model fitting methods, which in this package use
+    logit-normal priors.  That is, model parameters (denoted phi) are logit
+    transformed into the space -infty, infty (the logit-transformed parameters
+    are denoted theta) where they are given some variation on normal distribution
+    prior.  Inference is done on the logit-transformed parameters (theta), and
+    the logistic transformation can be used to transform them back to their
+    original range (theta -> phi).
+    '''
+    if par_names is None:
+        phi = model.pars['min'] + (model.pars['max'] - model.pars['min'])/(1 + np.exp(-theta))
+    else:
+        phi = model.pars.loc[par_names, 'min'] + (model.pars.loc[par_names, 'max'] - model.pars.loc[par_names, 'min'])/(1 + np.exp(-theta))
+    return phi
+
 def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None):
     """
     Simulate one or more trial sequences from the same schedule with known parameters.
@@ -441,7 +508,7 @@ def _fit_person_i_(arg):
             def f(phi, grad = None): # prior distribution specified -> perform MAP
                 if grad.size > 0:
                     grad = None
-                return log_lik(arg['model'], arg['ds_i'], full_phi(phi)) + arg['log_prior'](phi)            
+                return log_lik(arg['model'], arg['ds_i'], full_phi(phi)) + arg['log_prior'](phi, arg['X'])            
 
         # global optimization (to find approximate optimum)
         if arg['phi0'] is None:
@@ -481,7 +548,7 @@ def _fit_person_i_(arg):
     except:
         pass
 
-def fit_indv(model, ds, fixed_pars = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit_indv(model, ds, fixed_pars = None, X = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -498,6 +565,11 @@ def fit_indv(model, ds, fixed_pars = None, phi0 = None, log_prior = None, global
     fixed_pars: dict or None, optional
         Dictionary with names of parameters held fixed (keys) and fixed values.
         Defaults to None.
+        
+    X: data frame or None, optional
+        Optional data frame of regressors that can allow the log_prior function
+        to give different output for each individual.  The index (row names) should
+        be the same participant IDs as in ds.  Defaults to None.
 
     phi0: array-like of floats or None, optional
         Start points for each individual in the dataset.
@@ -507,7 +579,8 @@ def fit_indv(model, ds, fixed_pars = None, phi0 = None, log_prior = None, global
     log_prior: function or None, optional
         Returns the logarithm of the prior distribution over logit-transformed psych
         model parameters.  This is used for maximum a priori (MAP) estimation. Defaults
-        to None, i.e. no prior is used and maximum likelihood estimation (MLE) is performed.
+        to None, i.e. no prior is used and thus maximum likelihood estimation (MLE) is
+        performed.
     
     global_maxeval: int, optional
         Maximum number of function evaluations per individual for global optimization.
@@ -573,6 +646,11 @@ def fit_indv(model, ds, fixed_pars = None, phi0 = None, log_prior = None, global
         
     Notes
     -----
+    The log_prior function - if specified - should have two arguments: 'phi' and 'X'.
+    'phi' is the vector of psychological model parameter values, while 'X' is a vector
+    of regressors.  In some cases 'X' will allow the log prior to vary between individuals,
+    although the log_prior function does not need to actually use it.
+    
     If tau is None (default) then MLE is performed (i.e. you use a uniform prior).
 
     This currently assumes logit-normal priors on all model parameters.  See the documentation for the
@@ -633,6 +711,10 @@ def fit_indv(model, ds, fixed_pars = None, phi0 = None, log_prior = None, global
         new_arg['local_tolerance'] = local_tolerance
         new_arg['log_prior'] = log_prior
         new_arg['model'] = model
+        if X is None:
+            new_arg['X'] = None
+        else:
+            new_arg['X'] = X.loc[idents[i]]
         if phi0 is None:
             new_arg['phi0'] = None
         else:
@@ -820,8 +902,8 @@ def fit_em(model, ds, fixed_pars = None, phi0 = None, max_em_iter = 5, global_ma
         E_step_mu = E_tau0*(E_step_sigma**2)
         # define log-prior function (logit-normal) using the results of the E step
         global logit_normal_log_prior # needs this for multiprocessing to work
-        def logit_normal_log_prior(phi):
-            theta = model.par_logit_transform(phi)
+        def logit_normal_log_prior(phi, X):
+            theta = par_logit_transform(model, phi, free_par_names)
             return np.sum(stats.norm.logpdf(theta, loc = E_step_mu, scale = E_step_sigma))
         # M step (MAP estimates of psych_par given results of E step)
         result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, phi0 = phi,
