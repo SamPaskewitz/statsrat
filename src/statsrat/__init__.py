@@ -548,7 +548,7 @@ def _fit_person_i_(arg):
     except:
         pass
 
-def fit_indv(model, ds, fixed_pars = None, X = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit_indv(model, ds, fixed_pars = None, X = None, trial_names = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -570,6 +570,9 @@ def fit_indv(model, ds, fixed_pars = None, X = None, phi0 = None, log_prior = No
         Optional data frame of regressors that can allow the log_prior function
         to give different output for each individual.  The index (row names) should
         be the same participant IDs as in ds.  Defaults to None.
+        
+    trial_names: list or None, optional
+        List of trial names to include.  Defaults to None (include all).
 
     phi0: array-like of floats or None, optional
         Start points for each individual in the dataset.
@@ -703,7 +706,10 @@ def fit_indv(model, ds, fixed_pars = None, X = None, phi0 = None, log_prior = No
         new_arg['fixed_par_names'] = fixed_par_names
         new_arg['fixed_par_values'] = fixed_par_values
         new_arg['free_par_names'] = free_par_names        
-        new_arg['ds_i'] = ds.loc[{'ident' : idents[i]}].squeeze()
+        ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
+        if not trial_names is None:
+            ds_i = ds_i.loc[{'t': ds_i['trial_name'].isin(trial_names)}]
+        new_arg['ds_i'] = ds_i
         if 'valid_resp' in list(new_arg['ds_i'].keys()): # exclude time steps (trials) without valid responses
             new_arg['ds_i'] = new_arg['ds_i'].loc[{'t': new_arg['ds_i']['valid_resp']}]
         new_arg['global_maxeval'] = global_maxeval

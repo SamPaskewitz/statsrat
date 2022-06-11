@@ -6,7 +6,7 @@ from scipy import stats
 import nlopt
 import numdifftools as nd
 
-def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, dif_step_size = 0.05, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Estimates psychological parameters in a hierarchical Bayesian manner
     using variational Bayesian inference.
@@ -39,6 +39,10 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, g
     max_vb_iter: int, optional
         Maximum number of variational Bayes algorithm iterations.
         Defaults to 10.
+        
+    dif_step_size: float, optional
+        Step size for numerical differentiation used in the Laplace approximation for
+        theta.  Defaults to 0.05.
         
     global_maxeval: int, optional
         Maximum number of function evaluations per individual for global optimization.
@@ -131,6 +135,7 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, g
     b = np.zeros(n_p)
     E_beta_beta = np.zeros((n_x, n_x, n_p))
     E_theta = np.zeros((n, n_p))
+    Cov_theta = np.zeros((n, n_p, n_p))
     V_theta = np.zeros((n, n_p))
     E_theta2 = np.zeros((n, n_p))
     E_resid2 = np.zeros((n, n_p))
@@ -172,8 +177,9 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, g
                     phi[free_par_names] = sr.par_logistic_transform(model, theta, free_par_names)
                     phi[fixed_par_names] = fixed_par_values
                 return np.sum(stats.norm.logpdf(theta, loc = theta_hat, scale = 1/np.sqrt(E_rho))) + sr.log_lik(model, ds_i, phi)
-            H = nd.Hessian(f, step = 0.05)(E_theta[i, :].squeeze()) # -Hessian is aprx. post. precision matrix
-            V_theta[i, :] = np.diag(np.linalg.inv(-H)) # aprx. posterior variance of theta
+            H = nd.Hessian(f, step = dif_step_size)(E_theta[i, :].squeeze()) # -Hessian is aprx. post. precision matrix
+            Cov_theta[i, :, :] = np.linalg.inv(-H)
+            V_theta[i, :] = np.diag(Cov_theta[i, :, :]) # aprx. posterior variance of theta (diagonal of covariance matrix)
             E_theta2[i, :] = V_theta[i, :] + E_theta[i, :]**2
         
         # ** compute approximate posterior of beta | theta, rho **
@@ -206,6 +212,7 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, g
             
     # package results into an Xarray dataset
     result = xr.Dataset({'E_theta': (['ident', 'par_name'], E_theta),
+                         'Cov_theta': (['ident', 'par_name', 'par_name1'], Cov_theta),
                          'V_theta': (['ident', 'par_name'], V_theta),
                          'E_beta': (['x_name', 'par_name'], E_beta),
                          'Sigma': (['x_name', 'x_name1', 'par_name'], Sigma),
@@ -213,6 +220,7 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, g
                          'a': (['par_name'], a),
                          'b': (['par_name'], b)},
                         coords = {'par_name': free_par_names,
+                                  'par_name1': free_par_names,
                                   'x_name': x_names,
                                   'x_name1': x_names,
                                   'ident': idents})
