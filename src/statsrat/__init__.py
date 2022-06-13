@@ -115,7 +115,7 @@ def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None)
                                     par_val = par_val,
                                     random_resp = random_resp,
                                     ident = 'sim_' + str(i))
-            data{'sim_' + str(i)} = ds_new
+            data['sim_' + str(i)] = ds_new
     else:
         for i in range(n_sim):
             ds_new = model.simulate(trials = trials_list[i],
@@ -123,7 +123,7 @@ def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None)
                                     random_resp = random_resp,
                                     ident = 'sim_' + str(i),
                                     sim_type = sim_type)
-            data{'sim_' + str(i)} = ds_new
+            data['sim_' + str(i)] = ds_new
     return data
 
 def log_lik(model, ds, par_val):
