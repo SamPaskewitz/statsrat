@@ -103,19 +103,17 @@ def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None)
 
     Returns
     -------
-    data: dict
-        Dictionary of time step level experimental data (cues, outcomes etc.).  Keys
-        are participant IDs and values are xarray datasets.
+    ds : dataset
     """
     n_sim = len(trials_list)
-    data = {}
+    ds_list = []
     if sim_type is None:
         for i in range(n_sim):
             ds_new = model.simulate(trials = trials_list[i],
                                     par_val = par_val,
                                     random_resp = random_resp,
                                     ident = 'sim_' + str(i))
-            data{'sim_' + str(i)} = ds_new
+            ds_list += [ds_new]
     else:
         for i in range(n_sim):
             ds_new = model.simulate(trials = trials_list[i],
@@ -123,8 +121,9 @@ def multi_sim(model, trials_list, par_val, random_resp = False, sim_type = None)
                                     random_resp = random_resp,
                                     ident = 'sim_' + str(i),
                                     sim_type = sim_type)
-            data{'sim_' + str(i)} = ds_new
-    return data
+            ds_list += [ds_new]
+    ds = xr.combine_nested(ds_list, concat_dim = ['ident'])
+    return ds
 
 def log_lik(model, ds, par_val):
     """
@@ -504,12 +503,12 @@ def _fit_person_i_(arg):
             def f(phi, grad = None):
                 if grad.size > 0:
                     grad = None
-                return log_lik(arg['model'], arg['data_i'], full_phi(phi))
+                return log_lik(arg['model'], arg['ds_i'], full_phi(phi))
         else:
             def f(phi, grad = None): # prior distribution specified -> perform MAP
                 if grad.size > 0:
                     grad = None
-                return log_lik(arg['model'], arg['data_i'], full_phi(phi)) + arg['log_prior'](phi, arg['X'])            
+                return log_lik(arg['model'], arg['ds_i'], full_phi(phi)) + arg['log_prior'](phi, arg['X'])            
 
         # global optimization (to find approximate optimum)
         if arg['phi0'] is None:
@@ -549,7 +548,7 @@ def _fit_person_i_(arg):
     except:
         pass
 
-def fit_indv(model, data, fixed_pars = None, X = None, trial_names = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit_indv(model, ds, fixed_pars = None, X = None, trial_names = None, phi0 = None, log_prior = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data by individual maximum likelihood
     estimation (ML) or maximum a posteriori (MAP) estimation.
@@ -559,9 +558,9 @@ def fit_indv(model, data, fixed_pars = None, X = None, trial_names = None, phi0 
     model: object
         Learning model.
         
-    data: dict
-        Dictionary of time step level experimental data (cues, outcomes etc.).  Keys
-        are participant IDs and values are xarray datasets.
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
         
     fixed_pars: dict or None, optional
         Dictionary with names of parameters held fixed (keys) and fixed values.
@@ -679,7 +678,7 @@ def fit_indv(model, data, fixed_pars = None, X = None, trial_names = None, phi0 
     used.
     """
     # count things etc.
-    idents = list(data.keys())
+    idents = ds['ident'].values
     n = len(idents)
     all_par_names = list(model.pars.index)
     free_par_names = all_par_names.copy()
@@ -707,12 +706,12 @@ def fit_indv(model, data, fixed_pars = None, X = None, trial_names = None, phi0 
         new_arg['fixed_par_names'] = fixed_par_names
         new_arg['fixed_par_values'] = fixed_par_values
         new_arg['free_par_names'] = free_par_names        
-        data_i = data[idents[i]]
+        ds_i = ds.loc[{'ident' : idents[i]}].squeeze()
         if not trial_names is None:
-            data_i = data_i.loc[{'t': data_i['trial_name'].isin(trial_names)}]
-        new_arg['data_i'] = data[idents[i]]
-        if 'valid_resp' in list(new_arg['data_i'].keys()): # exclude time steps (trials) without valid responses
-            new_arg['data_i'] = new_arg['data_i'].loc[{'t': new_arg['data_i']['valid_resp']}]
+            ds_i = ds_i.loc[{'t': ds_i['trial_name'].isin(trial_names)}]
+        new_arg['ds_i'] = ds_i
+        if 'valid_resp' in list(new_arg['ds_i'].keys()): # exclude time steps (trials) without valid responses
+            new_arg['ds_i'] = new_arg['ds_i'].loc[{'t': new_arg['ds_i']['valid_resp']}]
         new_arg['global_maxeval'] = global_maxeval
         new_arg['local_maxeval'] = local_maxeval
         new_arg['local_tolerance'] = local_tolerance
@@ -758,18 +757,18 @@ def fit_indv(model, data, fixed_pars = None, X = None, trial_names = None, phi0 
     else:
         df['log_lik'] = 0.0
         for i in range(n):
-            df.loc[idents[i], 'log_lik'] = log_lik(model, args[i]['data_i'], df.loc[idents[i], list(model.pars.index)])
+            df.loc[idents[i], 'log_lik'] = log_lik(model, args[i]['ds_i'], df.loc[idents[i], list(model.pars.index)])
     # AIC
     df['aic'] = 2*(n_p - df['log_lik']) # Akaike information criterion (AIC)    
     # compute log-likelihood and AIC of the guessing model (all choices have equal probability) for comparison
     for i in range(n):
-        choices_per_time_step = args[i]['data_i']['y_psb'].values.sum(1) 
+        choices_per_time_step = args[i]['ds_i']['y_psb'].values.sum(1) 
         df.loc[idents[i], 'log_lik_guess'] = np.sum(np.log(1/choices_per_time_step))
         df.loc[idents[i], 'aic_guess'] = 2*(0 - df.loc[idents[i], 'log_lik_guess'])
     
     return df
 
-def fit_em(model, data, fixed_pars = None, phi0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit_em(model, ds, fixed_pars = None, phi0 = None, max_em_iter = 5, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Fit the model to time step data using the expectation-maximization (EM) algorithm.
     
@@ -778,9 +777,9 @@ def fit_em(model, data, fixed_pars = None, phi0 = None, max_em_iter = 5, global_
     model: object
         Learning model.
         
-    data: dict
-        Dictionary of time step level experimental data (cues, outcomes etc.).  Keys
-        are participant IDs and values are xarray datasets.
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
         
     fixed_pars: dict or None, optional
         Dictionary with names of parameters held fixed (keys) and fixed values.
@@ -857,7 +856,7 @@ def fit_em(model, data, fixed_pars = None, phi0 = None, max_em_iter = 5, global_
     """
     
     # count things, set up parameter space boundaries etc.
-    idents = list(data.keys())
+    idents = ds['ident'].values
     n = len(idents) # number of individuals
     all_par_names = list(model.pars.index)
     free_par_names = all_par_names.copy()
@@ -875,7 +874,7 @@ def fit_em(model, data, fixed_pars = None, phi0 = None, max_em_iter = 5, global_
     if phi0 is None:
         # initialize (using MLE, i.e. uniform priors)
         print('\n initial estimation with uniform priors')
-        result = fit_indv(model = model, data = data, fixed_pars = fixed_pars, log_prior = None, phi0 = None, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, log_prior = None, phi0 = None, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)
         phi = result.loc[:, free_par_names].values # estimated psych model parameters
     else:
         phi = phi0
@@ -913,7 +912,7 @@ def fit_em(model, data, fixed_pars = None, phi0 = None, max_em_iter = 5, global_
             theta = par_logit_transform(model, phi, free_par_names)
             return np.sum(stats.norm.logpdf(theta, loc = E_step_mu, scale = E_step_sigma))
         # M step (MAP estimates of psych_par given results of E step)
-        result = fit_indv(model = model, data = data, fixed_pars = fixed_pars, phi0 = phi,
+        result = fit_indv(model = model, ds = ds, fixed_pars = fixed_pars, phi0 = phi,
                           log_prior = logit_normal_log_prior,
                           global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm, use_multiproc = use_multiproc)
         new_phi = result.loc[:, free_par_names].values
@@ -929,7 +928,7 @@ def fit_em(model, data, fixed_pars = None, phi0 = None, max_em_iter = 5, global_
     # output
     return result
 
-def compare_optimization_algorithms(model, data, algorithm_list, fixed_pars = None, phi0 = None, tau = None, global_maxeval = 200):
+def compare_optimization_algorithms(model, ds, algorithm_list, fixed_pars = None, phi0 = None, tau = None, global_maxeval = 200):
     """
     Compare global optimization algorithms (in fit_indv).
     This can be run on a subset of the data prior to the main model fit.
@@ -939,9 +938,9 @@ def compare_optimization_algorithms(model, data, algorithm_list, fixed_pars = No
     model: object
         Learning model.
         
-    data: dict
-        Dictionary of time step level experimental data (cues, outcomes etc.).  Keys
-        are participant IDs and values are xarray datasets.
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
         
     algorithm_list: list
         List of global optimization algorithms to compare.
@@ -971,7 +970,7 @@ def compare_optimization_algorithms(model, data, algorithm_list, fixed_pars = No
     
     for algorithm in algorithm_list:
         new_df = fit_indv(model = model, 
-                          data = data,
+                          ds = ds,
                           fixed_pars = fixed_pars,
                           phi0 = phi0, 
                           tau = tau, 
@@ -1149,9 +1148,9 @@ def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n =
     sim_data = make_sim_data(model, experiment, schedule, pars_to_sample, n)
 
     # estimate parameters
-    fit_dict = {'indv': lambda data : fit_indv(model = model, data = sim_data['data'], fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm),
-                'em': lambda data : fit_em(model = model, data = sim_data['data'], fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)}
-    fit = fit_dict[method](sim_data['data'])
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = sim_data['ds'], fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm),
+                'em': lambda ds : fit_em(model = model, ds = sim_data['ds'], fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)}
+    fit = fit_dict[method](sim_data['ds'])
 
     # combine true and estimated parameters into one dataframe
     par_names = list(model.pars.index)
@@ -1182,7 +1181,7 @@ def recovery_test(model, experiment, schedule = None, pars_to_sample = None, n =
     output = {'par': par, 'fit': fit, 'comp': comp, 'sim_data': sim_data}
     return output
 
-def split_pred(model, data, t_fit, fixed_pars = None, phi0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, method = 'indv'):
+def split_pred(model, ds, t_fit, fixed_pars = None, phi0 = None, tau = None, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, method = 'indv'):
     """
     Split prediction test (similar to cross-validation): fit the model to
     earlier learning data in order to predict later learning data.
@@ -1192,9 +1191,9 @@ def split_pred(model, data, t_fit, fixed_pars = None, phi0 = None, tau = None, g
     model: object
         Learning model.
         
-    data: dict
-        Dictionary of time step level experimental data (cues, outcomes etc.).  Keys
-        are participant IDs and values are xarray datasets.
+    ds: dataset (xarray)
+        Dataset of time step level experimental data (cues, outcomes etc.)
+        for each participant.
         
     t_fit : int
         The first 't_fit' trials are used to predict the remaining
@@ -1241,22 +1240,21 @@ def split_pred(model, data, t_fit, fixed_pars = None, phi0 = None, tau = None, g
     It is thus much faster to run and (at least for now) more practical. 
     """
     # split data into earlier and later parts
-    idents = list(data.keys())
-    n = len(idents)
-    data_early = {}; data_late = {}
-    for i in idents:
-        data_early[i] = data[i].loc[{'t': data[i]['t'] <= t_fit}]
-        data_late[i] = data[i].loc[{'t': data[i]['t'] > t_fit}]
+    ds_early = ds.loc[{'t': ds['t'] <= t_fit}]
+    ds_late = ds.loc[{'t': ds['t'] > t_fit}]
 
     # estimate parameters using earlier data
-    fit_dict = {'indv': lambda data : fit_indv(model = model, data = data_early, fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm),
-                'em': lambda data : fit_em(model = model, data = data_early, fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)}
+    fit_dict = {'indv': lambda ds : fit_indv(model = model, ds = ds_early, fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm),
+                'em': lambda ds : fit_em(model = model, ds = ds_early, fixed_pars = fixed_pars, global_maxeval = global_maxeval, local_maxeval = local_maxeval, local_tolerance = local_tolerance, algorithm = algorithm)}
     fit = fit_dict[method](ds_early)
 
     # compute log-likelihood of later responses
-    pred_log_lik = pd.Series(0.0, index = idents)
+    idents = ds['ident'].values
+    n = len(idents)
+    pred_log_lik = np.zeros(n)
     for i in range(n):
-        par_val_i = fit.loc[i, model.pars.index]
-        pred_log_lik[i] = log_lik(model, data_late[i], par_val_i)
+        ds_i = ds_late.loc[{'ident' : idents[i]}].squeeze()
+        par_val_i = fit.loc[idents[i], model.pars.index]
+        pred_log_lik[i] = log_lik(model, ds_i, par_val_i)
             
     return {'pred_log_lik': pred_log_lik, 'fit': fit}
