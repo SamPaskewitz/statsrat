@@ -288,7 +288,7 @@ class experiment:
 
         # **** loop through files ****
         n_f = len(file_set)
-        ds_dict = {}
+        data = {}
         good_files = []
         did_not_work_read = []
         did_not_work_ident = []
@@ -437,8 +437,8 @@ class experiment:
                             index = np.array(ds_new.stage_name == stage_name)
                             var_name = stage_name + '_' + 'last' + str(n_final) + '_pct_correct'
                             pct_correct[var_name] += [100*ds_new['correct'].loc[{'t': index}][-n_final:].mean().values]    
-                    # **** add individual's dataset to ds_dict ****
-                    ds_dict[ident] = ds_new
+                    # **** add individual's dataset to data ****
+                    data[ident] = ds_new
                     good_files += [file_set[i]]
                 except Exception as e:
                     print(e)
@@ -469,12 +469,12 @@ class experiment:
                 print(did_not_work_misc[i])   
 
         # **** merge datasets together ****
-        try:
-            ds = xr.combine_nested(list(ds_dict.values()), concat_dim = 'ident', combine_attrs = 'override')
-        except Exception as e:
-            print(e)
-            print('There was a problem merging individual datasets together.')
-            
+#        try:
+#            ds = xr.combine_nested(list(data.values()), concat_dim = 'ident', combine_attrs = 'override')
+#        except Exception as e:
+#            print(e)
+#            print('There was a problem merging individual datasets together.')
+    
         # **** create summary data frame (each row corresponds to a participant) ****
         summary = ds.drop_dims(['t', 'x_name', 'y_name']).to_dataframe()
         # **** add pct_correct ****
@@ -501,4 +501,4 @@ class experiment:
         summary['file'] = good_files
         summary = summary.set_index(ds.ident.to_series(), drop = True)
         
-        return (ds, summary)
+        return (data, summary)
