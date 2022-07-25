@@ -6,7 +6,7 @@ from scipy import stats
 import nlopt
 import numdifftools as nd
 
-def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, dif_step_size = 0.05, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
+def fit(model, ds, fixed_pars = None, regr_par_names = [], X = None, phi0 = None, max_vb_iter = 10, dif_step_size = 0.05, global_maxeval = 200, local_maxeval = 1000, local_tolerance = 0.05, algorithm = nlopt.GD_STOGO, use_multiproc = True):
     """
     Estimates psychological parameters in a hierarchical Bayesian manner
     using variational Bayesian inference.
@@ -21,8 +21,14 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, d
         for each participant.
         
     fixed_pars: dict or None, optional
-        Dictionary with names of parameters held fixed (keys) and fixed values.
+        Dictionary with names of psychological parameters held fixed (keys) and their values.
         Defaults to None.
+        
+    regr_par_names: list, optional
+        Names of psychological parameters that are included in the regression model.
+        All others are assumed to not depend on the regressors (X), and only an intercept
+        term (mean) is estimated.  Defaults to an empty list (no psychological parameters
+        are included in the regression on X).
         
     X: data frame or None, optional
         Data frame of regressors for any psychological parameters in the list
@@ -185,10 +191,16 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, d
         # ** compute approximate posterior of beta | theta, rho **
         old_E_beta = E_beta.copy()
         for p in range(n_p):
-            Sigma[:, :, p] = np.linalg.inv(prior_precision + E_rho[p]*XtX)
-            mu[:, p] = (E_rho[p]*Sigma[:, :, p]@Xt@E_theta[:, p]).squeeze()
-            E_beta[:, p] = mu[:, p]
-            E_beta_beta[:, :, p] = Sigma[:, :, p] + np.outer(mu[:, p], mu[:, p])
+            if free_par_names[p] in regr_par_names:
+                Sigma[:, :, p] = np.linalg.inv(prior_precision + XtX)
+                mu[:, p] = (E_rho[p]*Sigma[:, :, p]@Xt@E_theta[:, p]).squeeze()
+                E_beta[:, p] = mu[:, p]
+                E_beta_beta[:, :, p] = Sigma[:, :, p] + np.outer(mu[:, p], mu[:, p])
+            else:
+                Sigma[0, 0, p] = 1/(1/10 + E_rho[p]*n)
+                mu[0, p] = E_rho[p]*Sigma[0, 0, p]*E_theta[:, p].sum()
+                E_beta[0, p] = mu[0, p]
+                E_beta_beta[0, 0, p] = Sigma[0, 0, p] + mu[0, p]**2
         
         # ** compute approximate posterior of rho | theta, beta **
         old_E_rho = E_rho.copy()
@@ -214,6 +226,7 @@ def fit(model, ds, fixed_pars = None, X = None, phi0 = None, max_vb_iter = 10, d
     result = xr.Dataset({'E_theta': (['ident', 'par_name'], E_theta),
                          'Cov_theta': (['ident', 'par_name', 'par_name1'], Cov_theta),
                          'V_theta': (['ident', 'par_name'], V_theta),
+                         'E_resid': (['ident', 'par_name'], E_theta - X.values@E_beta),
                          'E_beta': (['x_name', 'par_name'], E_beta),
                          'Sigma': (['x_name', 'x_name1', 'par_name'], Sigma),
                          'E_rho': (['par_name'], E_rho),

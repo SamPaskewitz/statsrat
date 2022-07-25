@@ -267,5 +267,11 @@ par_names += ['y_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}
 par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter
 par_names += ['cfg_emergence_par']; par_list += [{'min': 0.0, 'max': 20.0, 'default': 5.0}] # controls how rapidly configural features emerge
 par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
+par_names += ['eta0_t1']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
+par_names += ['eta0_t2']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
+par_names += ['eta0_t3']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
+par_names += ['eta0_t4']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
+par_names += ['eta0_t5']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
+par_names += ['eta0_t6']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
 pars = pd.DataFrame(par_list, index = par_names)
 del par_names; del par_list

@@ -1,7 +1,6 @@
 from statsrat import expr
-'''
-Category learning tasks.
-'''
+
+# Category learning tasks.
 
 # FAST (Joel Stoddard collab)
 design = expr.schedule(resp_type = 'choice',
@@ -173,85 +172,3 @@ lrn_pred = expr.experiment(schedules = {'design': design},
                            oats = {'rel_irl': rel_irl})
 
 del design; del rel_irl
-
-# NIMH kids simplified learned predictiveness
-# stages 0a, 0b and 0c constitute a tutorial
-# cue position changes in stage 0b (it's constant in stage 0a), but now we're not representing cue position
-design = expr.schedule(resp_type = 'choice',
-                  stages = {
-                      '0a': expr.stage(
-                            x_pn = [['alpha'], ['beta']],
-                            y = [['cati'], ['catii']],
-                            y_psb = ['cati', 'catii'],
-                            n_rep = 6),
-                      '0b': expr.stage(
-                            x_pn = [['alpha'], ['beta']],
-                            y = [['cati'], ['catii']],
-                            y_psb = ['cati', 'catii'],
-                            n_rep = 4),
-                      '0c': expr.stage(
-                            x_pn = [['alpha', 'theta'], ['beta', 'theta'], ['alpha', 'phi'], ['beta', 'phi']],
-                            y = 2*[['cati'], ['catii']],
-                            y_psb = ['cati', 'catii'],
-                            n_rep = 4),
-                      '0_test': expr.stage(
-                            x_pn = [['alpha', 'theta'], ['beta', 'theta'], ['alpha', 'phi'], ['beta', 'phi']],
-                            y_psb = ['cati', 'catii'],
-                            lrn = False,
-                            n_rep = 1),
-                      'training': expr.stage(
-                            x_pn = [['a', 'v'], ['b', 'v'], ['a', 'w'], ['b', 'w']],
-                            y = 2*[['cat1'], ['cat2']],
-                            y_psb = ['cat1', 'cat2'],
-                            n_rep = 12),
-                      'transfer': expr.stage(
-                            x_pn = [['a', 'v'], ['b', 'w'], ['e', 'f'], ['g', 'h']],
-                            y = 2*[['cat3'], ['cat4']],
-                            y_psb = ['cat3', 'cat4'],
-                            n_rep = 8),
-                      'test': expr.stage(
-                            freq = 2*[2] + 10*[1],
-                            x_pn = [['a', 'w'], ['b', 'v'], ['a', 'g'], ['h', 'v'], ['e', 'b'], ['f', 'w'], ['a', 'h'], ['g', 'v'], ['b', 'f'], ['e', 'w']],
-                            y_psb = 2*['cat3', 'cat4'],
-                            lrn = False,
-                            n_rep = 1)
-                  })
-
-# ADD OAT LATER
-
-kids_pred = expr.experiment(schedules = {'design': design},
-                            oats = {})
-
-del design
-
-# NIMH kids simplified angry vs. neutral face overshadowing task
-design = expr.schedule(resp_type = 'choice',
-                  stages = {
-                      'overshadowing': expr.stage(
-                            x_pn = [['t1', 'b1'], ['t2', 'b2'], ['t3', 'b3'], ['t4', 'b4']],
-                            y = [['cat_c'], ['cat_c'], ['cat_m'], ['cat_m']],
-                            y_psb = ['cat_c', 'cat_m'],
-                            n_rep = 8),
-                      'os_test': expr.stage(
-                            x_pn = [['t1', 'b3'], ['t1', 'b4'], ['t2', 'b3'], ['t2', 'b4'], ['t3', 'b1'], ['t3', 'b2'], ['t4', 'b1'], ['t4', 'b2']],
-                            y_psb = ['cat_c', 'cat_m'],
-                            lrn = False,
-                            n_rep = 1),
-                      'attenuation': expr.stage(
-                            x_pn = [['c1', 'b1'], ['c2', 'b2'], ['c3', 'b3'], ['c4', 'b4']],
-                            y = [['cat_s'], ['cat_r'], ['cat_s'], ['cat_r']],
-                            y_psb = ['cat_s', 'cat_r'],
-                            n_rep = 8),
-                      'at_test': expr.stage(
-                            x_pn = [['c1', 'b2'], ['c1', 'b4'], ['c2', 'b1'], ['c2', 'b3'], ['c3', 'b2'], ['c3', 'b4'], ['c4', 'b1'], ['c4', 'b3']],
-                            y_psb = ['cat_s', 'cat_r'],
-                            lrn = False,
-                            n_rep = 1)
-                  })
-
-# ADD OAT LATER
-
-kids_os = expr.experiment(schedules = {'design': design},
-                          oats = {})
-
-del design
