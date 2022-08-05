@@ -1,5 +1,7 @@
 ## Defining Experiments
 
+
+
 ### Variables in the Trials Object
 
 ##### y

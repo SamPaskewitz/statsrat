@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy.stats import t
+from statsrat.expr.behav_score import behav_score
 
 class oat:
     """
-    Ordinal adequacy tests (OATs).
+    Ordinal adequacy test (OAT).
 
     Attributes
     ----------
@@ -17,7 +18,12 @@ class oat:
         Schedules whose scores are counted as negative.
     behav_score_neg : behav_score object or None
         Behavioral score used for negative schedules.
-        
+    
+    Class Methods (alternative constructors for different types of OAT)
+    -------------------------------------------------------------------
+    define_within_subject_response_contrast():
+        Define a within subjects response contrast OAT.    
+    
     Methods
     -------
     compute_total(self, data_dict)
@@ -26,6 +32,13 @@ class oat:
         Compute OAT score confidence interval.
     mean_resp(self, data)
         Compute means of the responses used in computing the OAT.
+        
+        
+    Notes
+    -----
+    This class has multiple alternative constructors to conveniently create different types of OAT.
+    https://realpython.com/python-multiple-constructors/#instantiating-classes-in-python
+    ** EXPLAIN **
     """
     def __init__(self, schedule_pos, behav_score_pos, schedule_neg = None, behav_score_neg = None):
         """
@@ -54,7 +67,55 @@ class oat:
                 self.behav_score_neg = behav_score_neg
         else:
             self.behav_score_neg = None
+    
+    @classmethod
+    def define_response_contrast(cls, stage, trials, resp_pos, resp_neg, schedule = 'design'):
+        """
+        Alternative constructor to conveniently define a within subjects (single schedule)
+        OAT which contrasts responses across a single set of trials.
         
+        Parameters
+        ----------
+        stage: str
+            Stage name.
+        trials: list of str
+            Names of trial types used.
+        resp_pos: list of str
+            List of responses counted as positive.
+        resp_neg: list of str
+            List of responses counted as negative.
+        schedule: str. optional
+            Name of the schedule used.  Defaults to
+            'design', which is used when there is only
+            one schedule in an experiment.
+        """
+        bscore = behav_score(stage = stage, trial_pos = trials, resp_pos = resp_pos, trial_neg = trials, resp_neg = resp_neg)
+        return cls(schedule_pos = [schedule], behav_score_pos = bscore)
+    
+    @classmethod
+    def define_between_subjects_single_response(cls, schedule_pos, schedule_neg, stage, trials, single_resp = 'us'):
+        """
+        Alternative constructor to conveniently define a between subjects
+        OAT which contrasts different schedules across a single set of trials
+        with a single response.
+        
+        Parameters
+        ----------
+        schedule_pos: str
+            Name of the schedule counted as positive.
+        schedule_neg: str
+            Name of the schedule counted as negative.
+        stage: str
+            Name of the stage used.
+        trials: list of str
+            Names of trial types used.
+        single_resp: str, optional
+            Name of the response used.  Defaults to 'us'
+            for convenient use in Pavlovian conditioning experiments.
+        """
+        bscore = behav_score(stage = stage, trial_pos = trials, resp_pos = [single_resp])
+        return cls(schedule_pos = schedule_pos, schedule_neg = schedule_neg, behav_score_pos = bscore, behav_score_neg = bscore)
+    
     def compute_total(self, data):
         """
         Compute OAT score (contrast between schedules, i.e. groups).
@@ -103,9 +164,9 @@ class oat:
         Returns
         -------
         interval : dict
-            lower : float
-            center : float
-            upper : float
+        lower : float
+        center : float
+        upper : float
             
         Notes
         -----

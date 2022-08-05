@@ -35,9 +35,9 @@ class experiment:
 
     See Also
     --------
-    See 'predef.cat' for category learning examples.
+    See 'statsrat.expr.predef.cat' for predefined category learning tasks.
     
-    See 'predef.pvl_iti' for Pavlovian conditioning examples.
+    See 'statsrat.expr.predef.pvl_iti' for predefined Pavlovian conditioning tasks.
     """
     def __init__(self, schedules, oats = None, notes = None):
         """
