@@ -28,7 +28,7 @@ class experiment:
 
     Methods
     -------
-    make_trials(self)
+    make_trials(self, schedule = None)
         Create a time step level dataset for the whole experiment.
     read_csv(self, path, x_col, resp_col, resp_map, ident_col = None, conf_col = None, schedule = None, other_info = None, header = 'infer', n_final = 8)
         Import empirical data from .csv files.
