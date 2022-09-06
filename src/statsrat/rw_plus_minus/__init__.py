@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import stats
+from statsrat.rw import pred, fbase, fweight, aux, lrate, drate
 from statsrat import resp_fun
-from rw import pred, fbase, fweight, aux, lrate, drate
 from time import time
 
 class model:
@@ -72,7 +72,8 @@ class model:
         self.fbase = fbase
         self.fweight = fweight
         self.lrate = lrate
-        self.drate = drate
+        self.drate_plus = drate_plus
+        self.drate_minus = drate_minus
         self.aux = aux
         # determine model's parameter space
         self.par_names = list(np.unique(pred.par_names + fbase.par_names + fweight.par_names + lrate.par_names + drate_plus.par_names + drate_minus.par_names + aux.par_names + ['gamma', 'resp_scale']))
