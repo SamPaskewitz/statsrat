@@ -24,8 +24,10 @@ class model:
         Attentional weights for features.
     lrate: function
         Determines learning rates.
-    drate: function
-        Determines decay rates.
+    drate_plus: function
+        Determines decay rates for w_plus.
+    drate_plus: function
+        Determines decay rates for w_minus.
     aux: object
         Auxilliary learning, e.g. attention or weight covariance.
     par_names: list
@@ -43,7 +45,7 @@ class model:
     **DESCRIBE**
     '''
 
-    def __init__(self, name, pred, fbase, fweight, lrate, drate, aux):
+    def __init__(self, name, pred, fbase, fweight, lrate, drate_plus, drate_minus, aux):
         """
         Parameters
         ----------
@@ -57,8 +59,10 @@ class model:
             Attentional weights for features.
         lrate: function
             Determines learning rates.
-        drate: function
-            Determines decay rates.
+        drate_plus: function
+            Determines decay rates for w_plus.
+        drate_plus: function
+            Determines decay rates for w_minus.
         aux: object
             Auxilliary learning, e.g. attention or weight covariance.
         """
@@ -71,7 +75,7 @@ class model:
         self.drate = drate
         self.aux = aux
         # determine model's parameter space
-        self.par_names = list(np.unique(pred.par_names + fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names + ['resp_scale']))
+        self.par_names = list(np.unique(pred.par_names + fbase.par_names + fweight.par_names + lrate.par_names + drate_plus.par_names + drate_minus.par_names + aux.par_names + ['gamma', 'resp_scale']))
         self.pars = pars.loc[self.par_names]
  
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
@@ -172,7 +176,7 @@ class model:
         delta = np.zeros((n_t, n_y)) # prediction error
         w_plus = np.zeros((n_t + 1, n_f, n_y)); w_minus = np.zeros((n_t + 1, n_f, n_y)); w = np.zeros((n_t + 1, n_f, n_y))
         lrate = np.zeros((n_t, n_f, n_y))
-        drate = np.zeros((n_t, n_f, n_y))
+        drate_plus = np.zeros((n_t, n_f, n_y)); drate_minus = np.zeros((n_t, n_f, n_y))
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
@@ -195,14 +199,9 @@ class model:
             b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = y_lrn[t, :]*(y[t, :] - y_hat[t, :]) # prediction error
             aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat[t, :], delta[t, :], w[t, :, :]) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
-            # weight decay
-            drate[t, :, :] = self.drate(aux, t, w, n_f, n_y, sim_pars) # decay rates for this time step
-            # ADD IN WEIGHT DECAY
             
             # association learning
-            
-            # DOUBLE CHECK ALL OF THIS
-            lrate[t, :, :] = self.lrate(aux, t, delta[t, :], fbase, fweight, n_f, n_y, sim_pars) # learning rates for this time step
+            lrate[t, :, :] = self.lrate(aux, t, delta[t, :], fbase, fweight, n_f, n_y, sim_pars) # current learning rates
             for j in range(n_y):
                 if y_lrn[t, j] == 1:
                     if delta[t, j] > 0:
@@ -224,6 +223,12 @@ class model:
                 else:
                     w_plus[t + 1, i, j] = w_plus[t, i, j]
                     w_minus[t + 1, i, j] = w_minus[t, i, j]
+                    
+            # weight decay
+            drate_plus[t, :, :] = self.drate_plus(aux, t, w, n_f, n_y, sim_pars) # current decay rates for w_plus
+            w_plus[t + 1, :, :] -= drate_plus[t, :, :]*w_plus[t, :, :]
+            drate_minus[t, :, :] = self.drate_minus(aux, t, w, n_f, n_y, sim_pars) # current decay rates for w_minus
+            w_minus[t + 1, :, :] -= drate_minus[t, :, :]*w_minus[t, :, :]
         
         # generate simulated responses
         (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
@@ -242,7 +247,8 @@ class model:
                         'w' : (['t', 'f_name', 'y_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
                         'delta' : (['t', 'y_name'], delta),
                         'lrate' : (['t', 'f_name', 'y_name'], lrate),
-                        'drate' : (['t', 'f_name', 'y_name'], drate)})
+                        'drate_plus' : (['t', 'f_name', 'y_name'], drate_plus),
+                        'drate_minus' : (['t', 'f_name', 'y_name'], drate_minus)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class' : 'rw',
                               'sim_pars' : sim_pars})
@@ -255,6 +261,7 @@ class model:
 ########## PARAMETERS ##########
 par_names = []; par_list = []
 par_names += ['feature_count_window']; par_list += [{'min': 0.0, 'max': 100, 'default': 20}]
+par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}] # proportion of updates applied to w_plus
 par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['lrate_pos']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
 par_names += ['lrate_neg']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
