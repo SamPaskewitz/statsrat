@@ -6,6 +6,7 @@ src/statsrat/__init__.py
 src/statsrat/mcmc.py
 src/statsrat/plot.py
 src/statsrat/resp_fun.py
+src/statsrat/vbayes.py
 src/statsrat.egg-info/PKG-INFO
 src/statsrat.egg-info/SOURCES.txt
 src/statsrat.egg-info/dependency_links.txt
@@ -44,3 +45,4 @@ src/statsrat/rw/fweight.py
 src/statsrat/rw/lrate.py
 src/statsrat/rw/pred.py
 src/statsrat/rw/predef.py
+src/statsrat/rw_plus_minus/__init__.py

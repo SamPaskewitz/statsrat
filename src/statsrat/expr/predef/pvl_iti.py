@@ -178,6 +178,9 @@ no_cond = expr.schedule(resp_type = 'exct', stages = {'test': test_stage})
 # basic conditioning
 cond = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage, 'test': test_stage})
 
+# conditioning with a delay before test
+cond_delay = expr.schedule(resp_type = 'exct', stages = {'cond': training_stage, 'delay': delay_stage, 'test': test_stage})
+
 # blocking
 blocking = expr.schedule(resp_type = 'exct', stages = {'one_cue': one_cue_stage, 'two_cue': two_cue_stage, 'test': test_cs2_stage})
 
@@ -315,6 +318,14 @@ blocking = expr.experiment(schedules = {'control': two_cue, 'experimental': bloc
                                                         schedule_neg = ['experimental'],
                                                         behav_score_pos = cs2_score,
                                                         behav_score_neg = cs2_score)
+})
+
+# fear incubation
+incubation = expr.experiment(schedules = {'experimental': cond_delay, 'control': cond},
+                             oats = {'incubation': expr.oat(schedule_pos = ['experimental'],
+                                                            schedule_neg = ['control'],
+                                                            behav_score_pos = cs_score,
+                                                            behav_score_neg = cs_score)
 })
 
 # spontaneous recovery (explicit)

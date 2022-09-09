@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import stats
-from statsrat.rw import pred, fbase, fweight, aux, lrate, drate
 from statsrat import resp_fun
 from time import time
 
@@ -42,7 +41,17 @@ class model:
         
     Notes
     -----
-    **DESCRIBE**
+    This is a variant of the Rescorla-Wagner model family in which association weights
+    (w) are divided into positive (w_plus) and negative (w_minus) parts:
+    w = w_plus + w_minus, with w_plus >=0 and w_minus <= 0
+    
+    The learning rules for w_plus and w_minus are arranged such that the change in net
+    association weights (w) is IDENTICAL to the ordinary Rescorla-Wagner update rule,
+    while keeping w_plus >= 0 and w_minus <= 0.  The parameter gamma determines the balance
+    between changes in w_plus and w_minus: when gamma is large, w_plus mainly changes, 
+    while when gamma is small w_minus largely changes.  We keep 0 < gamma < 1.  See the code
+    below for the exact learning rules (THIS SHOULD BE ADDED TO THE HELP TEXT ITSELF IN LATER
+    VERSIONS).
     '''
 
     def __init__(self, name, pred, fbase, fweight, lrate, drate_plus, drate_minus, aux):
@@ -175,7 +184,7 @@ class model:
         y_hat = np.zeros((n_t, n_y)) # outcome predictions
         b_hat = np.zeros((n_t, n_y)) # expected behavior
         delta = np.zeros((n_t, n_y)) # prediction error
-        w_plus = np.zeros((n_t + 1, n_f, n_y)); w_minus = np.zeros((n_t + 1, n_f, n_y)); w = np.zeros((n_t + 1, n_f, n_y))
+        w_plus = np.zeros((n_t + 1, n_f, n_y)); w_minus = np.zeros((n_t + 1, n_f, n_y)); w = np.zeros((n_t, n_f, n_y))
         lrate = np.zeros((n_t, n_f, n_y))
         drate_plus = np.zeros((n_t, n_f, n_y)); drate_minus = np.zeros((n_t, n_f, n_y))
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
@@ -205,7 +214,7 @@ class model:
             lrate[t, :, :] = self.lrate(aux, t, delta[t, :], fbase, fweight, n_f, n_y, sim_pars) # current learning rates
             for j in range(n_y):
                 if y_lrn[t, j] == 1:
-                    if delta[t, j] > 0:
+                    if delta[t, j] < 0:
                         for i in range(n_f):
                             if sim_pars['gamma']*lrate[t, i, j]*delta[t, j] >= -w_plus[t, i, j]:
                                 w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma']*lrate[t, i, j]*delta[t, j]
@@ -227,9 +236,9 @@ class model:
                     
             # weight decay
             drate_plus[t, :, :] = self.drate_plus(aux, t, w, n_f, n_y, sim_pars) # current decay rates for w_plus
-            w_plus[t + 1, :, :] -= drate_plus[t, :, :]*w_plus[t, :, :]
+            w_plus[t + 1, :, :] -= drate_plus[t, :, :]*w_plus[t + 1, :, :]
             drate_minus[t, :, :] = self.drate_minus(aux, t, w, n_f, n_y, sim_pars) # current decay rates for w_minus
-            w_minus[t + 1, :, :] -= drate_minus[t, :, :]*w_minus[t, :, :]
+            w_minus[t + 1, :, :] -= drate_minus[t, :, :]*w_minus[t + 1, :, :]
         
         # generate simulated responses
         (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
@@ -245,7 +254,9 @@ class model:
                         'y_hat' : (['t', 'y_name'], y_hat),
                         'b_hat' : (['t', 'y_name'], b_hat),
                         'b' : (['t', 'y_name'], b),
-                        'w' : (['t', 'f_name', 'y_name'], w[range(n_t), :, :]), # remove unnecessary last row from w
+                        'w' : (['t', 'f_name', 'y_name'], w),
+                        'w_plus' : (['t', 'f_name', 'y_name'], w_plus[range(n_t), :, :]), # remove unnecessary last row
+                        'w_minus' : (['t', 'f_name', 'y_name'], w_minus[range(n_t), :, :]), # remove unnecessary last row
                         'delta' : (['t', 'y_name'], delta),
                         'lrate' : (['t', 'f_name', 'y_name'], lrate),
                         'drate_plus' : (['t', 'f_name', 'y_name'], drate_plus),
