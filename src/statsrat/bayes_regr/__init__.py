@@ -91,8 +91,9 @@ class model:
         self.link = link
         self.tausq_inv_dist = tausq_inv_dist
         # determine model's parameter space
-        self.par_names = list(np.unique(fbase.par_names + link.par_names + tausq_inv_dist.par_names + ['resp_scale']))
-        self.pars = pars.loc[self.par_names]
+        par_list = [elm for elm in [fbase.pars, link.pars, tausq_inv_dist.pars, pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 1.0}, index = ['resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
+        self.pars = pd.concat(par_list).drop_duplicates().sort_index()
+        self.par_names = self.pars.index.values
  
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
         """
@@ -282,13 +283,3 @@ class model:
                               'sim_pars' : sim_pars})
 
         return ds
-
-########## PARAMETERS ##########
-par_names = []; par_list = [] 
-par_names += ['prior_tausq_inv_hpar0']; par_list += [{'min' : -10.0, 'max' : 0.0, 'default' : -2.0}] # gamma distribution hyperparameter for tausq_inv (= -beta)
-par_names += ['prior_tausq_inv_hpar1']; par_list += [{'min' : 1.0, 'max' : 11.0, 'default' : 3.0}] # other gamma distribution hyperparameter for tausq_inv (= alpha - 1)
-par_names += ['y_var']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 0.1}] # outcome variance
-par_names += ['tausq_inv']; par_list += [{'min' : 0.01, 'max' : 100.0, 'default' : 1}] # prior precision of regression weights, if treated as fixed and known
-par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
-pars = pd.DataFrame(par_list, index = par_names)
-del par_names; del par_list

@@ -1,10 +1,12 @@
 import numpy as np
+import pandas as pd
 
 def cnst(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''Constant learning rate for non-zero features.'''
     new_lrate = np.array(n_y*[fbase[t, :].tolist()]).transpose()*sim_pars['lrate']
     return new_lrate
-cnst.par_names = ['lrate']
+#cnst.par_names = ['lrate']
+cnst.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.2}, index = ['lrate'])
 
 def pos_neg(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''Separate learning rates for positive and negative prediction error.'''
@@ -12,7 +14,7 @@ def pos_neg(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     lrate_par_to_use = is_pos*sim_pars['lrate_pos'] + (1 - is_pos)*sim_pars['lrate_neg']
     new_lrate = np.array(n_y*[fbase[t, :].tolist()]).transpose()*lrate_par_to_use
     return new_lrate
-pos_neg.par_names = ['lrate_pos', 'lrate_neg']
+pos_neg.pars = pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.2}, {'min': 0.0, 'max': 1.0, 'default': 0.2}], index = ['lrate_pos', 'lrate_neg'])
 
 def power(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -23,7 +25,7 @@ def power(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     new_lrate = 0.5/denom + sim_pars['lrate_min']
     new_lrate = new_lrate.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-power.par_names = ['power', 'lrate_min']
+power.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.5}, {'min': 0.0, 'max': 0.5, 'default': 0.1}], index = ['power', 'lrate_min'])
 
 def from_aux_norm2(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -37,7 +39,7 @@ def from_aux_norm2(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     norm_atn = atn_gain/norm
     new_lrate = sim_pars['lrate']*norm_atn.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-from_aux_norm2.par_names = ['lrate']
+from_aux_norm2.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.2}, index = ['lrate'])
 
 def from_aux_norm(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -50,7 +52,7 @@ def from_aux_norm(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     norm_atn = atn_gain/norm
     new_lrate = sim_pars['lrate']*norm_atn.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-from_aux_norm.par_names = ['lrate', 'metric']
+from_aux_norm.pars = pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}], index = ['lrate', 'metric'])
 
 def power_from_aux_norm(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -69,7 +71,7 @@ def power_from_aux_norm(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     power_lrate = 0.5/denom + sim_pars['lrate_min']
     power_lrate = power_lrate.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose()
     return from_aux_norm_lrate*power_lrate
-power_from_aux_norm.par_names = ['power', 'lrate_min', 'metric']
+power_from_aux_norm.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.5}, {'min': 0.0, 'max': 0.5, 'default': 0.1}, {'min': 0.1, 'max': 10, 'default': 2}], index = ['power', 'lrate_min', 'metric'])
 
 def from_aux_feature(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -79,7 +81,7 @@ def from_aux_feature(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     atn = aux.data['atn'][t, :] # current attention ('atn')
     new_lrate = sim_pars['lrate']*atn.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-from_aux_feature.par_names = ['lrate']
+from_aux_feature.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.2}, index = ['lrate'])
 
 def from_aux_feature_simple(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -89,7 +91,7 @@ def from_aux_feature_simple(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     atn = aux.data['atn'][t, :] # current attention ('atn')
     new_lrate = atn.reshape((n_f, 1))*np.array(n_y*[fbase[t, :].tolist()]).transpose() # learning rate depends on feature (row), but not outcome (column)
     return new_lrate
-from_aux_feature_simple.par_names = []
+from_aux_feature_simple.pars = None
 
 def from_aux_direct(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
@@ -98,5 +100,4 @@ def from_aux_direct(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     Depends on both features and outcomes.
     '''
     return aux.data['gain'][t, :, :]
-from_aux_direct.par_names = []
-    
+from_aux_direct.pars = None   

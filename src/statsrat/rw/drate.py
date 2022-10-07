@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 '''
 Functions for defining decay rates.
@@ -16,13 +17,14 @@ def zero(aux, t, w, n_f, n_y, sim_pars):
     '''Decay rate of zero (i.e. no weight decay).'''
     new_drate = np.zeros((n_f, n_y))
     return new_drate
-zero.par_names = []
+zero.pars = None
 
 def cnst(aux, t, w, n_f, n_y, sim_pars):
     '''Constant decay rate.'''
     new_drate = np.ones((n_f, n_y))*sim_pars['drate']
     return new_drate
 cnst.par_names = ['drate']
+cnst.pars = pd.DataFrame({'min': 0.0, 'max': 0.5, 'default': 0.25}, index = ['drate'])
 
 def only_neg(aux, t, w, n_f, n_y, sim_pars):
     '''Decay rate is constant for negative weights, and zero for positive weights.'''
@@ -30,7 +32,7 @@ def only_neg(aux, t, w, n_f, n_y, sim_pars):
     new_drate = np.ones((n_f, n_y))*sim_pars['drate']
     new_drate[is_non_neg] = 0
     return new_drate
-only_neg.par_names = ['drate']
+only_neg.pars = pd.DataFrame({'min': 0.0, 'max': 0.5, 'default': 0.25}, index = ['drate'])
 
 def hrmn(aux, t, w, n_f, n_y, sim_pars):
     '''Harmonic decay rate.'''
@@ -40,4 +42,4 @@ def hrmn(aux, t, w, n_f, n_y, sim_pars):
     new_lrate = new_lrate*abv_min + 0.01*(1 - abv_min)
     new_lrate = new_lrate.reshape((n_f, 1))*np.ones((n_y, 1))
     return new_lrate
-hrmn.par_names = ['extra_counts']
+hrmn.pars = pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 2.0}, index = ['extra_counts'])

@@ -1,10 +1,7 @@
 import numpy as np
+import pandas as pd
 
-'''
-Functions to define exemplar similarity.
-
-Gaussian: Gaussian similarity function.
-'''
+# Functions to define exemplar similarity.
 
 def Gaussian(x, x_ex, atn, sim_pars):
     '''
@@ -12,7 +9,7 @@ def Gaussian(x, x_ex, atn, sim_pars):
     '''
     squared_metric = np.sum(atn*(x - x_ex)**2, axis = 1)
     return np.exp(-sim_pars['decay_rate']*squared_metric)
-Gaussian.par_names = ['decay_rate']
+Gaussian.pars = pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 0.5}, index = ['decay_rate'])
 
 def city_block(x, x_ex, atn, sim_pars):
     '''
@@ -20,4 +17,4 @@ def city_block(x, x_ex, atn, sim_pars):
     '''
     l1_distance = np.sum(atn*np.abs(x - x_ex), axis = 1)
     return np.exp(-sim_pars['decay_rate']*l1_distance)
-city_block.par_names = ['decay_rate']
+city_block.pars = pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 0.5}, index = ['decay_rate'])

@@ -88,8 +88,9 @@ class model:
         self.drate = drate
         self.aux = aux
         # determine model's parameter space
-        self.par_names = list(np.unique(pred.par_names + fbase.par_names + fweight.par_names + lrate.par_names + drate.par_names + aux.par_names + ['resp_scale']))
-        self.pars = pars.loc[self.par_names]
+        par_list = [elm for elm in [pred.pars, fbase.pars, fweight.pars, lrate.pars, drate.pars, aux.pars, pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 1.0}, index = ['resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
+        self.pars = pd.concat(par_list).drop_duplicates().sort_index()
+        self.par_names = self.pars.index.values
  
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
         """
@@ -241,37 +242,3 @@ class model:
             ds = ds.assign({'b_index': (['t'], b_index),
                             'b_name': (['t'], np.array(y_names)[b_index])})
         return ds
-        
-########## PARAMETERS ##########
-par_names = []; par_list = []
-par_names += ['feature_count_window']; par_list += [{'min': 0.0, 'max': 100, 'default': 20}]
-par_names += ['lrate']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
-par_names += ['lrate_pos']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
-par_names += ['lrate_neg']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}]
-par_names += ['lrate_min']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.1}]
-par_names += ['drate']; par_list += [{'min': 0.0, 'max': 0.5, 'default': 0.25}]
-par_names += ['lrate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
-par_names += ['lrate_atn0']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
-par_names += ['lrate_atn1']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}]
-par_names += ['drate_atn']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.2}] # decay rate for attention
-par_names += ['lrate_tau']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.2}] # for tdrva
-par_names += ['tau0']; par_list += [{'min': 0.01, 'max': 1.0, 'default': 0.5}] # for tdrva
-par_names += ['power']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.5}]
-par_names += ['metric']; par_list += [{'min': 0.1, 'max': 10, 'default': 2}] # min is 0.1 in the R version, but this doesn't work here
-par_names += ['atn_min']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.1}]
-par_names += ['atn0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
-par_names += ['eta0']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}] # max is 10 in the R version used for the spring 2020 FAST analysis
-par_names += ['w_virtual0']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
-par_names += ['w_var0']; par_list += [{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}] # initial weight variance for Kalman filter
-par_names += ['y_var']; par_list += [{'min' : 0.0, 'max' : 5.0, 'default' : 0.1}] # outcome variance for Kalman filter
-par_names += ['drift_var']; par_list += [{'min' : 0.0, 'max' : 2.0, 'default' : 0.01}] # drift variance for Kalman filter
-par_names += ['cfg_emergence_par']; par_list += [{'min': 0.0, 'max': 20.0, 'default': 5.0}] # controls how rapidly configural features emerge
-par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
-par_names += ['eta0_t1']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
-par_names += ['eta0_t2']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
-par_names += ['eta0_t3']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
-par_names += ['eta0_t4']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
-par_names += ['eta0_t5']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
-par_names += ['eta0_t6']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1}]
-pars = pd.DataFrame(par_list, index = par_names)
-del par_names; del par_list

@@ -1,15 +1,16 @@
 import numpy as np
+import pandas as pd
 
 def equal_to_sim(sim, ex_counts, ex_seen_yet, sim_pars):
     '''Retrieval strength is equal to similarity.'''
     return ex_seen_yet*sim
-equal_to_sim.par_names = []
+equal_to_sim.pars = None
 
 def normalized_sim(sim, ex_counts, ex_seen_yet, sim_pars):
     '''Retrieval strength is normalized similarity.'''
     numerator = ex_seen_yet*sim
     return numerator/numerator.sum()
-normalized_sim.par_names = []
+normalized_sim.pars = None
 
 def normalized_sim_ex_counts(sim, ex_counts, ex_seen_yet, sim_pars):
     '''
@@ -25,4 +26,4 @@ def normalized_sim_ex_counts(sim, ex_counts, ex_seen_yet, sim_pars):
     '''
     numerator = ex_seen_yet*sim*(ex_counts + sim_pars['nu'])
     return numerator/numerator.sum()
-normalized_sim_ex_counts.par_names = ['nu']
+normalized_sim_ex_counts.pars = pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 0.0}, index = ['nu']) # extra counts for ex_mean

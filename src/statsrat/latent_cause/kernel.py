@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 '''
 Temporal kernels for the distance dependent CRP (Blei & Frazier, 2011; Zhu, Ghahramani & Lafferty).
@@ -10,7 +11,7 @@ def constant(t, N, time, sim_pars):
     This reproduces the original CRP.
     '''
     return np.ones((t, N))
-constant.par_names = []
+constant.pars = None
 
 def exponential(t, N, time, sim_pars):
     '''Exponential decay.'''
@@ -18,7 +19,7 @@ def exponential(t, N, time, sim_pars):
     for i in range(N):
         K[:, i] = np.exp(-sim_pars['gamma']*(time[t] - time[0:t]))
     return K
-exponential.par_names = ['gamma']
+exponential.pars = pd.DataFrame({'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}, index = ['gamma'])
 
 def power(t, N, time, sim_pars):
     '''Power law decay.'''
@@ -26,7 +27,7 @@ def power(t, N, time, sim_pars):
     for i in range(N):
         K[:, i] = (time[t] - time[0:t])**(-sim_pars['power'])
     return K
-power.par_names = ['power']
+power.pars = pd.DataFrame({'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for power law SCRP; higher -> favors more recent latent causes'}, index = ['power'])
 
 def power_asymptote(t, N, time, sim_pars):
     '''Power law decay with an asymptote greater than zero.'''
@@ -34,7 +35,7 @@ def power_asymptote(t, N, time, sim_pars):
     for i in range(N):
         K[:, i] = (time[t] - time[0:t])**(-sim_pars['power']) + sim_pars['kernel_asymptote']
     return K
-power_asymptote.par_names = ['power', 'kernel_asymptote']
+power_asymptote.pars = pd.DataFrame([{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for power law SCRP; higher -> favors more recent latent causes'}, {'min': 0.0, 'max': 2.0, 'default': 0.5, 'description': 'asymptote for kernel'}], index = ['power', 'kernel_asymptote'])
 
 def power_clusters(t, N, time, sim_pars):
     '''
@@ -47,7 +48,7 @@ def power_clusters(t, N, time, sim_pars):
         decay = sim_pars['power']*(i + 1)
         K[:, i] = (time[t] - time[0:t])**(-decay)
     return K
-power_clusters.par_names = ['power']
+power_clusters.pars = pd.DataFrame({'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for power law SCRP; higher -> favors more recent latent causes'}, index = ['power'])
 
 def refractory_period(t, N, time, sim_pars):
     '''
@@ -64,4 +65,4 @@ def refractory_period(t, N, time, sim_pars):
     for i in range(N):
         K[:, i] = (time[t] - time[0:t])**(-decay)
     return K
-refractory_period.par_names = ['power', 'window']
+refractory_period.pars = pd.DataFrame([{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for power law SCRP; higher -> favors more recent latent causes'}, {'min': 0.0, 'max': 1000.0, 'default': 100.0, 'description': 'window determining refractory period for kernel'}], index = ['power', 'window'])

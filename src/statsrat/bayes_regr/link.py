@@ -24,7 +24,7 @@ class linear:
     
     def mean_z(self, z_hat, y, y_psb):
         return y
-linear.par_names = ['y_var']
+linear.pars = pd.DataFrame({'min' : 0.0, 'max' : 10.0, 'default' : 0.1}, index = ['y_var']) # outcome variance
     
 class probit:
     '''
@@ -54,7 +54,7 @@ class probit:
                 else:
                     mean_z[j] = z_hat[j] - phi/PHI
         return mean_z
-probit.par_names = []
+probit.pars = None
 
 class multinomial_probit:
     '''
@@ -90,7 +90,7 @@ class multinomial_probit:
             PHI = stats.norm.cdf(z_star - z_hat[winner])
             mean_z[winner] = z_hat[winner] + phi/(1 - PHI)
         return mean_z
-multinomial_probit.par_names = []                
+multinomial_probit.pars = None                
         
                     
 # Eventually I should add a censored, i.e. tobit link as well.

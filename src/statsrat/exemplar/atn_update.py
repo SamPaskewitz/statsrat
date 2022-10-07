@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
 
 def null(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
     Don't update attention (it remains constant).
     '''
     return 0
-null.par_names = []
+null.pars = None
 
 def gradient_ngsec(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
@@ -25,7 +26,7 @@ def gradient_ngsec(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, e
             error_factor = np.sum(delta*(y_hat - y_ex[m, :]))
             update[m, n] *= rtrv[m]*sq_dist*error_factor
     return update
-gradient_ngsec.par_names = ['atn_lrate_par']
+gradient_ngsec.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['atn_lrate_par']) # learning rate for attention updates
 
 def gradient_ngsec_common(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
@@ -42,7 +43,7 @@ def gradient_ngsec_common(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x,
         ex_factor = np.sum(foo, axis = 0)
         update[:, n] *= np.sum(delta*ex_factor)
     return update
-gradient_ngsec_common.par_names = ['atn_lrate_par']
+gradient_ngsec_common.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['atn_lrate_par']) # learning rate for attention updates
 
 def gradient_ngsec_both(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
@@ -69,7 +70,7 @@ def gradient_ngsec_both(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n
             update_s[m, n] *= rtrv[m]*sq_dist*error_factor
     
     return update_c + update_s
-gradient_ngsec_both.par_names = ['atn_lrate_par']
+gradient_ngsec_both.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['atn_lrate_par']) # learning rate for attention updates
 
 def gradient_norm_cityblock_common(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
@@ -86,7 +87,7 @@ def gradient_norm_cityblock_common(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y
         ex_factor = np.sum(foo, axis = 0)
         update[:, n] *= np.sum(delta*ex_factor)
     return update
-gradient_norm_cityblock_common.par_names = ['atn_lrate_par']
+gradient_norm_cityblock_common.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['atn_lrate_par']) # learning rate for attention updates
 
 def heuristic(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_seen_yet, ex_counts, n_ex, sim_pars):
     '''
@@ -103,4 +104,4 @@ def heuristic(sim, x, y, y_psb, rtrv, y_hat, y_lrn, x_ex, y_ex, n_x, n_y, ex_see
                 sq_x_dist = (x_ex[m, n] - x[n])**2
                 update[current, n] += sim_pars['atn_lrate_par']*sq_x_dist*sq_y_dist
     return update
-heuristic.par_names = ['atn_lrate_par']
+heuristic.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['atn_lrate_par']) # learning rate for attention updates

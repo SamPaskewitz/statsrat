@@ -1,15 +1,5 @@
 import numpy as np
-
-'''
-Functions for defining trial by trial feature weighting (a form of selective attention).
-
-none: No special feature weights (vector of ones).
-
-from_aux_feature: Take feature weights directly from 'aux'.
-
-from_aux_norm: Produce weights that normalize features (e.g. CompAct).
-    So long as the base features are 0 or 1, this is equivalent to EXIT-style feature weighting.
-'''
+import pandas as pd
 
 def none(aux, t, fbase, n_f, sim_pars):
     '''
@@ -17,7 +7,7 @@ def none(aux, t, fbase, n_f, sim_pars):
     '''
     new_fweight = np.ones(n_f)
     return new_fweight
-none.par_names = []
+none.pars = None
 
 def from_aux_feature(aux, t, fbase, n_f, sim_pars):
     '''
@@ -25,7 +15,7 @@ def from_aux_feature(aux, t, fbase, n_f, sim_pars):
     '''
     new_fweight = aux.data['atn'][t, :]
     return new_fweight
-from_aux_feature.par_names = []
+from_aux_feature.pars = None
 
 def from_aux_norm2(aux, t, fbase, n_f, sim_pars):
     '''
@@ -38,7 +28,7 @@ def from_aux_norm2(aux, t, fbase, n_f, sim_pars):
     norm = sum(atn_gain**2)**(1/2)
     new_fweight = atn_gain/norm
     return new_fweight
-from_aux_norm2.par_names = []
+from_aux_norm2.pars = None
 
 def from_aux_norm(aux, t, fbase, n_f, sim_pars):
     '''
@@ -50,4 +40,4 @@ def from_aux_norm(aux, t, fbase, n_f, sim_pars):
     norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
     new_fweight = atn_gain/norm
     return new_fweight
-from_aux_norm.par_names = []
+from_aux_norm.pars = None

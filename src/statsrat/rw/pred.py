@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 '''
 Prediction functions.  Transforms sum_fw into y_hat.
@@ -22,7 +23,7 @@ def identity(sum_fw, sim_pars):
     y_hat is simply equal to sum_fw.
     '''
     return sum_fw
-identity.par_names = []
+identity.pars = None
 
 def rectified(sum_fw, sim_pars):
     '''
@@ -33,5 +34,4 @@ def rectified(sum_fw, sim_pars):
     with experimental results.
     '''
     return np.clip(sum_fw, 0, 1)
-rectified.par_names = []
-    
+rectified.pars = None   

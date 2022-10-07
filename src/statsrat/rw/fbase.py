@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from itertools import combinations
 
 def elem(x, x_names, sim_pars):
@@ -9,7 +10,7 @@ def elem(x, x_names, sim_pars):
     f_names = x_names.copy()
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-elem.par_names = []
+elem.pars = None
 
 def elem_intercept(x, x_names, sim_pars):
     '''
@@ -25,7 +26,7 @@ def elem_intercept(x, x_names, sim_pars):
     
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-elem_intercept.par_names = []
+elem_intercept.pars = None
 
 def cfg2(x, x_names, sim_pars):
     '''
@@ -49,7 +50,7 @@ def cfg2(x, x_names, sim_pars):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-cfg2.par_names = []
+cfg2.pars = None
 
 def cfg2_gradual(x, x_names, sim_pars):
     '''
@@ -87,7 +88,7 @@ def cfg2_gradual(x, x_names, sim_pars):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-cfg2_gradual.par_names = ['cfg_emergence_par']
+cfg2_gradual.pars = pd.DataFrame({'min': 0.0, 'max': 20.0, 'default': 5.0}, index = ['cfg_emergence_par']) # controls how rapidly configural features emerge
 
 def cfg2_intercept(x, x_names, sim_pars):
     '''
@@ -116,7 +117,7 @@ def cfg2_intercept(x, x_names, sim_pars):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-cfg2_intercept.par_names = []
+cfg2_intercept.pars = None
 
 def cfg2_half(x, x_names, sim_pars):
     '''
@@ -140,7 +141,7 @@ def cfg2_half(x, x_names, sim_pars):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-cfg2_half.par_names = []
+cfg2_half.pars = None
 
 def cfg2_distinct(x, x_names, sim_pars):
     '''
@@ -244,4 +245,4 @@ def cfg2_distinct(x, x_names, sim_pars):
 
     output = {'f_x': f_x, 'f_names': f_names}
     return output
-cfg2_distinct.par_names = []
+cfg2_distinct.pars = None

@@ -81,8 +81,9 @@ class model:
         self.atn_update = atn_update
         self.y_ex_update = y_ex_update
         # determine model's parameter space
-        self.par_names = list(np.unique(sim.par_names + rtrv.par_names + atn_update.par_names + y_ex_update.par_names + ['resp_scale']))
-        self.pars = pars.loc[self.par_names]
+        par_list = [elm for elm in [sim.pars, rtrv.pars, atn_update.pars, y_ex_update, pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 1.0}, index = ['resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
+        self.pars = pd.concat(par_list).drop_duplicates().sort_index()
+        self.par_names = self.pars.index.values
         
     def simulate(self, trials, par_val = None, init_atn = 1.0, random_resp = False, ident = 'sim'):
         """
@@ -230,13 +231,3 @@ class model:
                               'sim_pars' : sim_pars})
         
         return ds
-
-########## PARAMETERS ##########
-par_names = []; par_list = []   
-par_names += ['lrate_par']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}]
-par_names += ['atn_lrate_par']; par_list += [{'min': 0.0, 'max': 1.0, 'default': 0.5}] # learning rate for attention updates
-par_names += ['decay_rate']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 0.5}]
-par_names += ['nu']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 0.0}] # extra counts for ex_mean
-par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0}]
-pars = pd.DataFrame(par_list, index = par_names)
-del par_names; del par_list

@@ -31,7 +31,8 @@ class schedule:
     x_dims: dict or None
         If not None, then a dictionary specifying the cues belonging to
         each stimulus dimension.  Keys are dimension names and values
-        are cue names (i.e. 'x_names').
+        are lists cue names (i.e. 'x_names') for cues belonging to that
+        dimension.
     dim_names: list of str or None
         Names of stimulus dimensions.
     y_names: list of str

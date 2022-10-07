@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 '''
 Functions to specify how y_ex (exemplar -> outcome associations) are updated.
@@ -29,7 +30,7 @@ def from_rtrv(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y, sim_pars):
     lrate = sim_pars['lrate_par']*rtrv # learning rates for exemplars
     delta = y - y_hat # prediction error (total)
     return np.outer(lrate, y_lrn*delta)
-from_rtrv.par_names = ['lrate_par']
+from_rtrv.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['lrate_par'])
 
 def from_rtrv_indv_delta(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y, sim_pars):
     """
@@ -43,7 +44,7 @@ def from_rtrv_indv_delta(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y,
         delta = y - y_ex[i] # prediction error (only for exemplar i)
         update[i, :] = lrate[i]*delta
     return update
-from_rtrv_indv_delta.par_names = ['lrate_par']
+from_rtrv_indv_delta.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['lrate_par'])
 
 def only_max(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y, sim_pars):
     """
@@ -59,7 +60,7 @@ def only_max(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y, sim_pars):
     lrate = sim_pars['lrate_par']*selector # learning rates for exemplars
     delta = y - y_hat # prediction error (total)
     return np.outer(lrate, y_lrn*delta)
-only_max.par_names = ['lrate_par']
+only_max.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.5}, index = ['lrate_par'])
 
 def ex_mean(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y, sim_pars):
     """
@@ -78,4 +79,4 @@ def ex_mean(sim, rtrv, y, y_hat, y_lrn, y_ex, ex_counts, n_ex, n_y, sim_pars):
     lrate[index] = 1/(ex_counts[index] + sim_pars['nu'])
     delta = y - y_ex[index] # prediction error (only for current exemplar)
     return np.outer(lrate, y_lrn*delta)
-ex_mean.par_names = ['nu']
+ex_mean.pars = pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 0.0}, index = ['nu']) # extra counts for ex_mean

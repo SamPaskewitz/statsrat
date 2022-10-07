@@ -89,8 +89,19 @@ class model:
         self.name = name
         self.kernel = kernel
         # determine the model's parameter space
-        self.par_names = kernel.par_names + ['prior_tau2_x', 'prior_nu_x', 'prior_tau2_y', 'prior_nu_y', 'stick', 'alpha', 'resp_scale']
-        self.pars = pars.loc[self.par_names]
+        default_pars = pd.DataFrame([{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for x'},
+                                     {'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'other prior hyperparameter for eta for x'},
+                                     {'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'},
+                                     {'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'other prior hyperparameter for eta for y'},
+                                     {'min': -5.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'},
+                                     {'min': 0.0, 'max': 15.0, 'default': 1.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'},
+                                     {'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}],
+                                     index = ['prior_tau2_x', 'prior_nu_x', 'prior_tau2_y', 'prior_nu_y', 'stick', 'alpha', 'resp_scale'])
+        if kernel.pars is None:
+            self.pars = default_pars.sort_index()
+        else:
+            self.pars = pd.concat([default_pars, kernel.pars]).drop_duplicates().sort_index()
+        self.par_names = self.pars.index.values
         
     def simulate(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim', sim_type = 'local_vb'):
         '''
@@ -628,21 +639,3 @@ class model:
                               'n_z': n_z,
                               'n_p': n_p})
         return ds
-
-########## PARAMETERS ##########
-# Note: allowing prior_a to be close to 1 seems to cause problems.
-par_names = []; par_list = []                         
-par_names += ['gamma']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for exponential SCRP; higher -> favors more recent latent causes'}]
-par_names += ['power']; par_list += [{'min': 0.0, 'max': 5.0, 'default': 1.0, 'description': 'decay rate for power law SCRP; higher -> favors more recent latent causes'}]
-par_names += ['alpha']; par_list += [{'min': 0.0, 'max': 15.0, 'default': 1.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'}]
-par_names += ['prior_tau2_x']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for x'}]
-par_names += ['prior_nu_x']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for x'}]
-par_names += ['prior_tau2_y']; par_list += [{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'}]
-par_names += ['prior_nu_y']; par_list += [{'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'prior hyperparameter for eta for y'}]
-par_names += ['stick']; par_list += [{'min': -5.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'}]
-par_names += ['window']; par_list += [{'min': 0.0, 'max': 1000.0, 'default': 100.0, 'description': 'window determining refractory period for kernel'}]
-par_names += ['kernel_asymptote']; par_list += [{'min': 0.0, 'max': 2.0, 'default': 0.5, 'description': 'asymptote for kernel'}]
-par_names += ['resp_scale']; par_list += [{'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}]
-
-pars = pd.DataFrame(par_list, index = par_names)
-del par_names; del par_list

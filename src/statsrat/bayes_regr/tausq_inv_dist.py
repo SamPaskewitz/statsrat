@@ -17,6 +17,10 @@ ard_drv_atn: Automatic relevance determination (assuming that tausq_inv has a ga
     This ends up being a form of derived attention model.
 '''
 
+# tausq_inv = prior precision of regression weights, if treated as fixed and known
+# prior_tausq_inv_hpar0 = gamma distribution hyperparameter for tausq_inv (= -beta)
+# prior_tausq_inv_hpar1 = other gamma distribution hyperparameter for tausq_inv (= alpha - 1)
+
 class constant:
     '''
     Prior precision (tausq_inv) is treated as constant, i.e.
@@ -34,7 +38,7 @@ class constant:
     def mean_tausq(self):
         return 1/self.tausq_inv_array
 
-constant.par_names = ['tausq_inv']
+constant.pars = pd.DataFrame({'min' : 0.01, 'max' : 100.0, 'default' : 1}, index = ['tausq_inv'])
 
 class ard:
     '''
@@ -61,7 +65,7 @@ class ard:
     def mean_tausq(self):
         return -self.hpar0/self.hpar1
 
-ard.par_names = ['prior_tausq_inv_hpar0', 'prior_tausq_inv_hpar1']
+ard.pars = pd.DataFrame([{'min' : -10.0, 'max' : 0.0, 'default' : -2.0}, {'min' : 1.0, 'max' : 11.0, 'default' : 3.0}], index = ['prior_tausq_inv_hpar0', 'prior_tausq_inv_hpar1'])
 
 class ard_drv_atn:
     '''
@@ -95,4 +99,4 @@ class ard_drv_atn:
             mean_tausq[i, :] = -self.hpar0[i]/self.hpar1
         return mean_tausq
     
-ard_drv_atn.par_names = ['prior_tausq_inv_hpar0', 'prior_tausq_inv_hpar1']
+ard_drv_atn.pars = pd.DataFrame([{'min' : -10.0, 'max' : 0.0, 'default' : -2.0}, {'min' : 1.0, 'max' : 11.0, 'default' : 3.0}], index = ['prior_tausq_inv_hpar0', 'prior_tausq_inv_hpar1'])

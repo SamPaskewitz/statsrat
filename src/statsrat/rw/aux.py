@@ -16,7 +16,7 @@ class basic:
         
     def add_data(self, ds):
         return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
-basic.par_names = []
+basic.pars = None
 
 class feature_sums:
     '''
@@ -31,7 +31,7 @@ class feature_sums:
         
     def add_data(self, ds):
         return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
-feature_sums.par_names = []
+feature_sums.pars = None
 
 class recent_feature_counts:
     '''Counts recently observed features (only counts within a prescribed window).'''
@@ -44,7 +44,7 @@ class recent_feature_counts:
         
     def add_data(self, ds):
         return ds.assign(f_counts = (['t', 'f_name'], self.data['f_counts']))
-recent_feature_counts.par_names = ['feature_count_window']
+recent_feature_counts.pars = pd.DataFrame({'min': 0.0, 'max': 100, 'default': 20}, index = ['feature_count_window'])
         
 class drva:
     '''Derived attention (Le Pelley et al, 2016).'''
@@ -59,7 +59,7 @@ class drva:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'])) 
-drva.par_names = ['atn_min']
+drva.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.1}, index = ['atn_min'])
 
 class tdrva:
     '''
@@ -84,7 +84,7 @@ class tdrva:
     def add_data(self, ds):
         n_t = ds['t'].values.shape[0]
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(n_t), :]), tau = (['t', 'f_name'], self.data['tau'][range(n_t), :]))
-tdrva.par_names = ['lrate_min', 'power', 'tau0', 'lrate_tau']
+tdrva.pars = pd.DataFrame([{'min': 0.0, 'max': 0.5, 'default': 0.1}, {'min': 0.0, 'max': 2.0, 'default': 0.5}, {'min': 0.01, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 1.0, 'default': 0.2}], index = ['lrate_min', 'power', 'tau0', 'lrate_tau'])
 
 class grad:
     '''Non-competitive attention learning from gradient descent (i.e. simple predictiveness/Model 2).'''
@@ -105,7 +105,7 @@ class grad:
         
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))  
-grad.par_names = ['lrate_atn']
+grad.pars = pd.DataFrame({'min': 0.0, 'max': 2.0, 'default': 0.2}, index = ['lrate_atn'])
 
 class grad_elem_bias:
     '''
@@ -136,7 +136,7 @@ class grad_elem_bias:
         
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))  
-grad_elem_bias.par_names = ['atn0', 'lrate_atn']
+grad_elem_bias.pars = pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 2.0, 'default': 0.2}], index = ['atn0', 'lrate_atn'])
 
 class gradcomp:
     '''Competitive attention learning from gradient descent (i.e. CompAct's learning rule).'''
@@ -157,8 +157,8 @@ class gradcomp:
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad, n_f*[0.01])
 
     def add_data(self, ds):
-        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
-gradcomp.par_names = ['lrate_atn', 'metric']
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))
+gradcomp.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}], index = ['lrate_atn', 'metric'])
 
 class gradcomp_elem_bias:
     '''
@@ -199,8 +199,8 @@ class gradcomp_elem_bias:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
-                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
-gradcomp_elem_bias.par_names = ['lrate_atn', 'metric', 'eta0']
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))
+gradcomp_elem_bias.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}, {'min': 0.0, 'max': 10.0, 'default': 1}], index = ['lrate_atn', 'metric', 'eta0'])
 
 class gradcomp_feature_counts:
     '''
@@ -227,8 +227,8 @@ class gradcomp_feature_counts:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
-                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
-gradcomp_feature_counts.par_names = ['lrate_atn', 'metric']
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))
+gradcomp_feature_counts.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}], index = ['lrate_atn', 'metric'])
 
 class gradcomp_feature_sums:
     '''
@@ -255,8 +255,8 @@ class gradcomp_feature_sums:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
-                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
-gradcomp_feature_sums.par_names = ['lrate_atn', 'metric']
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))
+gradcomp_feature_sums.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}], index = ['lrate_atn', 'metric'])
 
 class gradcomp_elem_bias_feature_sums:
     '''
@@ -297,8 +297,8 @@ class gradcomp_elem_bias_feature_sums:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
-                         f_counts = (['t', 'f_name'], self.data['f_counts']))   
-gradcomp_elem_bias_feature_sums.par_names = ['lrate_atn', 'metric', 'eta0']
+                         f_counts = (['t', 'f_name'], self.data['f_counts']))
+gradcomp_elem_bias_feature_sums.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}, {'min': 0.0, 'max': 10.0, 'default': 1}], index = ['lrate_atn', 'metric', 'eta0'])
 
 class gradcomp_atn_decay:
     '''
@@ -332,8 +332,8 @@ class gradcomp_atn_decay:
         self.data['atn'][t + 1, :] = np.maximum(self.data['atn'][t, :] + sim_pars['lrate_atn']*ngrad - decay_term, n_f*[0.01])
 
     def add_data(self, ds):
-        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))   
-gradcomp_atn_decay.par_names = ['lrate_atn', 'metric', 'drate_atn']
+        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]))
+gradcomp_atn_decay.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}, {'min': 0.0, 'max': 2.0, 'default': 0.2}], index = ['lrate_atn', 'metric', 'drate_atn'])
 
 class gradcomp_Kruschke_idea:
     '''
@@ -385,8 +385,8 @@ class gradcomp_Kruschke_idea:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
-                         w_virtual = (['t', 'f_name'], self.data['w_virtual'][range(self.n_t), :]))   
-gradcomp_Kruschke_idea.par_names = ['lrate_atn', 'metric', 'w_virtual0']
+                         w_virtual = (['t', 'f_name'], self.data['w_virtual'][range(self.n_t), :]))
+gradcomp_Kruschke_idea.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}, {'min': 0.0, 'max': 1.0, 'default': 0.5}], index = ['lrate_atn', 'metric', 'w_virtual0'])
 
 class gradcomp_Kruschke_idea_elem_bias:
     '''
@@ -443,8 +443,8 @@ class gradcomp_Kruschke_idea_elem_bias:
 
     def add_data(self, ds):
         return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(self.n_t), :]),
-                         w_virtual = (['t', 'f_name'], self.data['w_virtual'][range(self.n_t), :]))   
-gradcomp_Kruschke_idea_elem_bias.par_names = ['eta0', 'lrate_atn', 'metric', 'w_virtual0']
+                         w_virtual = (['t', 'f_name'], self.data['w_virtual'][range(self.n_t), :]))
+gradcomp_Kruschke_idea_elem_bias.pars = pd.DataFrame([{'min': 0.0, 'max': 10.0, 'default': 1}, {'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}, {'min': 0.0, 'max': 1.0, 'default': 0.5}], index = ['eta0', 'lrate_atn', 'metric', 'w_virtual0'])
 
 class Kalman:
     '''Kalman filter Rescorla-Wagner (Dayan & Kakade 2001, Gershman & Diedrichsen 2015).'''
@@ -465,5 +465,5 @@ class Kalman:
 
     def add_data(self, ds):
         # possibly add Sigma and the diagonal of Sigma later
-        return ds.assign(gain = (['t', 'f_name', 'y_name'], self.data['gain'][range(self.n_t), :, :])) 
-Kalman.par_names = ['w_var0', 'y_var', 'drift_var']
+        return ds.assign(gain = (['t', 'f_name', 'y_name'], self.data['gain'][range(self.n_t), :, :]))
+Kalman.pars = pd.DataFrame([{'min' : 0.0, 'max' : 10.0, 'default' : 1.0}, {'min' : 0.0, 'max' : 5.0, 'default' : 0.1}, {'min' : 0.0, 'max' : 2.0, 'default' : 0.01}], index = ['w_var0', 'y_var', 'drift_var'])
