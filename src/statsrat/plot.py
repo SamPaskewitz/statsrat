@@ -143,10 +143,10 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
     
     return plot
 
-def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, trial_name_list = None, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
+def multiple(ds_list, var, condition_names = None, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, trial_name_list = None, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
-    Plots learning simulation data from multiple schedules (conditions, groups) as a function of time.
-    Schedules (groups) are represented by color.
+    Plots learning simulation data from multiple conditions (e.g. groups) as a function of time.
+    Conditions are represented by color.
     
     Parameters
     ----------
@@ -155,6 +155,10 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
         (output of a model's 'simulate' method) from a different schedule.
     var : string
         Variable to plot.
+    condition_names: list or None, optional
+        List of names for conditions, corresponding to the datasets in ds_list.
+        If None, then the datasets' schedule names are used as a default (assuming
+        that they come from different schedules).
     sel : list of dicts or None, optional
         If a list, then elements correspond to elements of ds_list.
         Each list element is either None (to include everything in the 
@@ -167,8 +171,10 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     linetype_var : string, optional
         Variable to be represented by linetype.  Defaults to None (see notes).
     rename_schedules : dict or None, optional
-        Either a dictionary for re-naming schedules (keys are old names and
-        values are new names), or None (don't re-name).  Defaults to None.
+        DEPRECATED: use condition_names instead.  Used only when condition_names is
+        None, and hence condition names are schedule names.  Either a dictionary for
+        re-naming schedules (keys are old names and values are new names), or None 
+        (don't re-name).  Defaults to None.
     color : dict or None, optional
         If a dict, specifies the color for each schedule (group).  If None
         (default) then the default colors are used.
@@ -237,10 +243,13 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
         new_dims.remove('t') # remove dimensions other than time step ('t')
         new_df = new_ds_var.to_dataframe()
         new_df = new_df.reset_index()
-        if rename_schedules is None:
-            new_df['schedule'] = ds.attrs['schedule']
+        if condition_names is None:
+            if rename_schedules is None:
+                new_df['condition'] = ds.attrs['schedule']
+            else:
+                new_df['condition'] = rename_schedules[ds.attrs['schedule']]
         else:
-            new_df['schedule'] = rename_schedules[ds.attrs['schedule']]
+            new_df['condition'] = condition_names[i]
         df_list += [new_df]
         i += 1
     dims = new_dims # names of dimensions in graph (excluding schedule/group)
@@ -257,13 +266,13 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     if not rename_coords is None:
         df = df.rename(columns = rename_coords)
         var_names = rename_coords
-        if not 'schedule' in rename_coords.keys():
-            var_names['schedule'] = 'schedule'
+        if not 'condition' in rename_coords.keys():
+            var_names['condition'] = 'condition'
     else:
         var_names = dict.fromkeys(dims)
         for i in range(n_dims):
             var_names[dims[i]] = dims[i]
-        var_names['schedule'] = 'schedule'
+        var_names['condition'] = 'condition'
 
     ### FIGURE OUT HOW VARIABLES ARE REPRESENTED IN THE GRAPH ###
     if n_dims > 0:
@@ -276,11 +285,11 @@ def multiple(ds_list, var, sel = None, rename_coords = None, linetype_var = None
     ### CREATE PLOT ###
     dpos = position_dodge(width = dodge_width)
     if n_dims == 0:
-        plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'])) + geom_line(position = dpos))
+        plot = (ggplot(df, aes(x='t', y=var, color=var_names['condition'])) + geom_line(position = dpos))
     elif n_dims == 1:
-        plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'], linetype=linetype_var)) + geom_line(position = dpos))
+        plot = (ggplot(df, aes(x='t', y=var, color=var_names['condition'], linetype=linetype_var)) + geom_line(position = dpos))
     else: # n_dims == 2 (doesn't work properly if n_dims is 3 or more)
-        plot = (ggplot(df, aes(x='t', y=var, color=var_names['schedule'], linetype=linetype_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
+        plot = (ggplot(df, aes(x='t', y=var, color=var_names['condition'], linetype=linetype_var)) + geom_line(position = dpos) + facet_wrap('~' + facet_var))
     
     if not color is None:
         plot += scale_color_manual(values = color)
