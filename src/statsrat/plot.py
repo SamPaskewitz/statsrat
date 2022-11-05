@@ -308,8 +308,59 @@ def multiple(ds_list, var, condition_names = None, sel = None, rename_coords = N
         plot += scale_x_continuous(name = 'stage', breaks = stage_start, labels = stage_labels)
     
     plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
-    plot += theme(figure_size = figure_size, axis_text_x = element_text(ha = 'left'), legend_key_height = 3) # Change figure size, align x axis text to the left, and squish legend lines closer together, 
+    plot += theme(figure_size = figure_size, axis_text_x = element_text(ha = 'left'), legend_key_height = 3) # Change figure size, align x axis text to the left, and squish legend lines closer together
     if not y_axis_label is None:
         plot += ylab(y_axis_label)
                         
+    return plot
+
+def mean_resp(ds_list, stage_name, trial_name, y_name, t_name = 'main', condition_names = None, text_size = 15.0, figure_size = (4.0, 2.5)):
+    """
+    Plots mean responses (b_hat) across multiple conditions (e.g. groups).
+    These mean responses are from a specified stage (stage_name), trial type (trial_name),
+    time step name (t_name), and response/outcome name (y_name).
+    
+    Parameters
+    ----------
+    ds_list : list of datasets (xarray)
+        Each element of the list consists of learning simulation data
+        (output of a model's 'simulate' method) from a different schedule.
+    stage_name : str
+        Name of the stage from which responses will be selected.
+    trial_name : str
+        Name of the trial type from which responses will be selected.
+    y_name : str
+        Name of the response/outcome selected.
+    t_name : str, optional
+        Name of the time step type from which responses will be selected.
+        Defaults to 'main'.
+    condition_names: list or None, optional
+        List of names for conditions, corresponding to the datasets in ds_list.
+        If None, then the datasets' schedule names are used as a default (assuming
+        that they come from different schedules).
+    text_size : float, optional
+        Specifies text size.  Defaults to 15.0.
+    figure_size : tuple of floats, optional
+        Figure width and height in inches.  Defaults to (4.0, 2.5).
+        
+    Returns
+    -------
+    plot : object
+        A plotnine plot object.
+    """
+    if condition_names is None:
+        c_names = []
+        for ds in ds_list:
+            c_names += [ds.attrs['schedule']]
+    n_c = len(ds_list)
+    df = pd.DataFrame({'mean response': np.zeros(n_c),
+                       'condition': c_names})
+    for i in range(n_c):
+        selector = ((ds_list[i]['stage_name'] == stage_name)&(ds_list[i]['trial_name'] == trial_name)&(ds_list[i]['t_name'] == t_name)).values
+        df.loc[df['condition'] == c_names[i], 'mean response'] = ds_list[i].loc[{'t': selector, 'y_name': y_name}]['b'].mean().values
+    
+    plot = (ggplot(df, aes(x = 'condition', y = 'mean response')) + geom_point())
+    plot += theme_classic(base_size = text_size) # set text size and use "classic" theme
+    plot += theme(figure_size = figure_size, axis_text_x = element_text(ha = 'left'), legend_key_height = 3) # Change figure size, align x axis text to the left, and squish legend lines closer together
+    
     return plot
