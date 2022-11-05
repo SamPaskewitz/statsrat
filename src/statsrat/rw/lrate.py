@@ -5,7 +5,6 @@ def cnst(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''Constant learning rate for non-zero features.'''
     new_lrate = np.array(n_y*[fbase[t, :].tolist()]).transpose()*sim_pars['lrate']
     return new_lrate
-#cnst.par_names = ['lrate']
 cnst.pars = pd.DataFrame({'min': 0.0, 'max': 1.0, 'default': 0.2}, index = ['lrate'])
 
 def pos_neg(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
@@ -20,6 +19,17 @@ def power(aux, t, delta, fbase, fweight, n_f, n_y, sim_pars):
     '''
     Power function learning rate for non-zero features.
     Learning rates decay with the number of times each feature has been observed.
+    
+    Notes
+    -----
+    The learning rate for a stimulus feature feature is:
+    $$\\lambda_i = f_i(\frac{1}{2 (N_i + 1)^p} + \\lambda_{\\min})$$
+    
+    Where
+    $N_i$ = the number of times the learner has observed that feature
+    $p$ = the ``power'' parameter
+    $\\lambda_{\\min}$ = the ``lrate_min'' parameter
+    $f_i$ = the feature value
     '''
     denom = (aux.data['f_counts'][t, :] + 1)**sim_pars['power']
     new_lrate = 0.5/denom + sim_pars['lrate_min']

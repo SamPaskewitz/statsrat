@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 
 ########## GENERAL PURPOSE AUXILIARY LEARNING OBJECTS ##########
-'''
-Defines auxilliary learning (e.g. for selective attention) in the form of classes.
-'''
+
+# Defines auxilliary learning (e.g. for selective attention) in the form of classes.
 
 class basic:
     '''Basic auxiliary learning (keeps track of feature counts).'''

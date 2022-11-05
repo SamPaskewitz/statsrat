@@ -215,8 +215,10 @@ class model:
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
-                     'supr': resp_fun.supr}
-        sim_resp_fun = resp_dict[trials.resp_type]
+                     'supr': resp_fun.supr,
+                     'normal': resp_fun.normal,
+                     'log_normal': resp_fun.log_normal}
+        response = resp_dict[trials.resp_type]
         
         # loop through time steps
         for t in range(n_t):
@@ -248,7 +250,7 @@ class model:
             # predict y (outcome) and compute b (behavior)
             z_hat[t, :] = y_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # predicted value of latent variable (z)
             y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (y)
-            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
+            b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             mean_z[t, :] = link.mean_z(z_hat[t, :], y[t, :], y_psb[t, :]) # mean of z after observing y
             # update sufficient statistics of x and y for estimating w
             f = f_x[t, :].squeeze() # for convenience
@@ -259,7 +261,11 @@ class model:
                     sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var
 
         # generate simulated responses
-        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
+        if random_resp:
+            (b, b_index) = response.random(b_hat, sim_pars['resp_scale'])
+        else:
+            b = b_hat
+            b_index = None
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)

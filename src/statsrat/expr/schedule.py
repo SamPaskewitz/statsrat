@@ -83,7 +83,7 @@ class schedule:
     x: float
         Stimulus attributes, i.e. cues.  Absent cues are indicated by 0.0
         and present cues by 1.0.
-    u: float
+    y: float
         Outcomes, e.g. unconditioned stimuli or category labels.  A value
         of 0.0 indicates that an outcome does not occur.
     y_psb: float

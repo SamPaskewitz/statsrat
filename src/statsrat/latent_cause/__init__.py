@@ -281,8 +281,10 @@ class model:
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
-                     'supr': resp_fun.supr}
-        sim_resp_fun = resp_dict[trials.resp_type]
+                     'supr': resp_fun.supr,
+                     'normal': resp_fun.normal,
+                     'log_normal': resp_fun.log_normal}
+        response = resp_dict[trials.resp_type]
         
         # run calculations for first time step
         x_sofar[x[0, :] > 0] = 1 # keep track of cues observed so far
@@ -340,7 +342,7 @@ class model:
             E_eta2_y = -(nu_y[t, ind_n1, :]*(nu_y[t, ind_n1, :] + 3))/(2*(nu_y[t, ind_n1, :]*tau2_y[t, ind_n1, :] - tau1_y[t, ind_n1, :]**2))
             est_mu_y[t, ind_n1, :] = -E_eta1_y/(2*E_eta2_y)
             y_hat[t, :] = y_psb[t, :]*np.sum(new_phi_x.reshape((N_zt, 1))*est_mu_y[t, ind_n1], axis = 0)
-            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
+            b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
 
             # compute Eq[log p(y_n | z_n = t, eta)] (expected log-likelihood of y)
             est_sigma_y[t, ind_n1, :] = 1/np.sqrt(-2*E_eta2_y)
@@ -372,7 +374,11 @@ class model:
             n[t + 1, :] = n[t, :] + phi_learn
             
         # generate simulated responses
-        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
+        if random_resp:
+            (b, b_index) = response.random(b_hat, sim_pars['resp_scale'])
+        else:
+            b = b_hat
+            b_index = None
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
@@ -482,7 +488,7 @@ class model:
         n_x = x.shape[1] # number of stimulus attributes
         n_y = y.shape[1] # number of outcomes/response options
         y_hat = np.zeros((n_t, n_y)) # outcome predictions
-        b_hat = np.zeros((n_t, n_y)) # expected behavior
+        b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
         time = trials['time'].values # real world time (in arbitrary units, starting at 0)
         x_sofar = np.zeros(n_x) # keep track of cues (x) observed so far
         
@@ -513,8 +519,10 @@ class model:
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
-                     'supr': resp_fun.supr}
-        sim_resp_fun = resp_dict[trials.resp_type]
+                     'supr': resp_fun.supr,
+                     'normal': resp_fun.normal,
+                     'log_normal': resp_fun.log_normal}
+        response = resp_dict[trials.resp_type]
         
         # run calculations for first time step
         x_sofar[x[0, :] > 0] = 1 # keep track of cues observed so far
@@ -620,7 +628,11 @@ class model:
             nu_y = nu_y[new_p, :, :]
             
         # generate simulated responses
-        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
+        if random_resp:
+            (b, b_index) = response.random(b_hat, sim_pars['resp_scale'])
+        else:
+            b = b_hat
+            b_index = None
         
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)

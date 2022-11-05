@@ -198,8 +198,10 @@ class model:
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
-                     'supr': resp_fun.supr}
-        sim_resp_fun = resp_dict[trials.resp_type]
+                     'supr': resp_fun.supr,
+                     'normal': resp_fun.normal,
+                     'log_normal': resp_fun.log_normal}
+        response = resp_dict[trials.resp_type]
 
         # loop through time steps
         for t in range(n_t):
@@ -207,7 +209,7 @@ class model:
             f_x[t, :] = fbase[t, :]*fweight[t, :] # weight base features
             w[t, :, :] = w_plus[t, :, :] + w_minus[t, :, :] # association weights
             y_hat[t, :] = self.pred(y_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
-            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
+            b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             delta[t, :] = y_lrn[t, :]*(y[t, :] - y_hat[t, :]) # prediction error
             aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat[t, :], delta[t, :], w[t, :, :]) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
             
@@ -242,7 +244,11 @@ class model:
             w_minus[t + 1, :, :] -= drate_minus[t, :, :]*w_minus[t + 1, :, :]
         
         # generate simulated responses
-        (b, b_index) = resp_fun.generate_responses(b_hat, random_resp, trials.resp_type)
+        if random_resp:
+            (b, b_index) = response.random(b_hat, sim_pars['resp_scale'])
+        else:
+            b = b_hat
+            b_index = None
 
         # put all simulation data into a single xarray dataset
         ds = trials.copy(deep = True)
