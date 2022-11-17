@@ -92,7 +92,8 @@ class model:
         self.tausq_inv_dist = tausq_inv_dist
         # determine model's parameter space
         par_list = [elm for elm in [fbase.pars, link.pars, tausq_inv_dist.pars, pd.DataFrame({'min': 0.0, 'max': 10.0, 'default': 1.0}, index = ['resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
-        self.pars = pd.concat(par_list).drop_duplicates().sort_index()
+        self.pars = pd.concat(par_list)
+        self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
  
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):

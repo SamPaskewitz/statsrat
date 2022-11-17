@@ -100,7 +100,8 @@ class model:
         if kernel.pars is None:
             self.pars = default_pars.sort_index()
         else:
-            self.pars = pd.concat([default_pars, kernel.pars]).drop_duplicates().sort_index()
+            self.pars = pd.concat(par_list)
+            self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
         
     def simulate(self, trials, par_val = None, n_z = 10, n_p = 50, random_resp = False, ident = 'sim', sim_type = 'local_vb'):

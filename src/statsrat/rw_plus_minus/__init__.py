@@ -85,8 +85,9 @@ class model:
         self.drate_minus = drate_minus
         self.aux = aux
         # determine model's parameter space
-        par_list = [elm for elm in [pred.pars, fbase.pars, fweight.pars, lrate.pars, drate_plus.pars, drate_minus.pars, aux.pars, pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 10.0, 'default': 1.0}], index = ['gamma', 'resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
-        self.pars = pd.concat(par_list).drop_duplicates().sort_index()
+        par_list = [elm for elm in [pred.pars, fbase.pars, fweight.pars, lrate.pars, drate_plus.pars, drate_minus.pars, aux.pars, pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 10.0, 'default': 1.0}], index = ['gamma_pos', 'gamma_neg', 'resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
+        self.pars = pd.concat(par_list)
+        self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
  
     def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
@@ -219,17 +220,17 @@ class model:
                 if y_lrn[t, j] == 1:
                     if delta[t, j] < 0:
                         for i in range(n_f):
-                            if sim_pars['gamma']*lrate[t, i, j]*delta[t, j] >= -w_plus[t, i, j]:
-                                w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma']*lrate[t, i, j]*delta[t, j]
-                                w_minus[t + 1, i, j] = w_minus[t, i, j] + (1 - sim_pars['gamma'])*lrate[t, i, j]*delta[t, j]
+                            if sim_pars['gamma_neg']*lrate[t, i, j]*delta[t, j] >= -w_plus[t, i, j]:
+                                w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma_neg']*lrate[t, i, j]*delta[t, j]
+                                w_minus[t + 1, i, j] = w_minus[t, i, j] + (1 - sim_pars['gamma_neg'])*lrate[t, i, j]*delta[t, j]
                             else:
                                 w_plus[t + 1, i, j] = 0.0
                                 w_minus[t + 1, i, j] = w_minus[t, i, j] + lrate[t, i, j]*delta[t, j] + w_plus[t, i, j]
                     else:
                         for i in range(n_f):
-                            if (1 - sim_pars['gamma'])*lrate[t, i, j]*delta[t, j] <= -w_minus[t, i, j]:
-                                w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma']*lrate[t, i, j]*delta[t, j]
-                                w_minus[t + 1, i, j] = w_minus[t, i, j] + (1 - sim_pars['gamma'])*lrate[t, i, j]*delta[t, j]
+                            if (1 - sim_pars['gamma_pos'])*lrate[t, i, j]*delta[t, j] <= -w_minus[t, i, j]:
+                                w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma_pos']*lrate[t, i, j]*delta[t, j]
+                                w_minus[t + 1, i, j] = w_minus[t, i, j] + (1 - sim_pars['gamma_pos'])*lrate[t, i, j]*delta[t, j]
                             else:
                                 w_plus[t + 1, i, j] = w_plus[t, i, j] + lrate[t, i, j]*delta[t, j] + w_minus[t, i, j]
                                 w_minus[t + 1, i, j] = 0.0
