@@ -21,8 +21,18 @@ class oat:
     
     Class Methods (alternative constructors for different types of OAT)
     -------------------------------------------------------------------
-    define_within_subject_response_contrast():
-        Define a within subjects response contrast OAT.    
+    define_response_contrast(cls, stage, trials, resp_pos, resp_neg, schedule = 'design')
+        Alternative constructor to conveniently define a within subjects (single schedule)
+        OAT which contrasts responses across a single set of trials.
+        
+    define_trial_contrast(cls, stage, trial_pos, trial_neg, resp, schedule = 'design')
+        Alternative constructor to conveniently define a within subjects (single schedule)
+        OAT which contrasts a single response across two sets of trials.
+        
+    define_between_subjects_single_response(cls, schedule_pos, schedule_neg, stage, trials, single_resp = 'us'):
+        Alternative constructor to conveniently define a between subjects
+        OAT which contrasts different schedules across a single set of trials
+        with a single response.
     
     Methods
     -------
@@ -86,11 +96,37 @@ class oat:
             List of responses counted as negative.
         schedule: str. optional
             Name of the schedule used.  Defaults to
-            'design', which is used when there is only
+            'design', which is typically used when there is only
             one schedule in an experiment.
         """
         bscore = behav_score(stage = stage, trial_pos = trials, resp_pos = resp_pos, trial_neg = trials, resp_neg = resp_neg)
         return cls(schedule_pos = [schedule], behav_score_pos = bscore)
+    
+    @classmethod
+    def define_trial_contrast(cls, stage, trial_pos, trial_neg, single_resp = 'us', schedule = 'design'):
+        """
+        Alternative constructor to conveniently define a within subjects (single schedule)
+        OAT which contrasts a single response across two sets of trials.
+        
+        Parameters
+        ----------
+        stage: str
+            Name of the stage used.
+        trial_pos: list of str
+            Names of trial types counted as positive.
+        trial_neg: list of str
+            Names of trial types used.
+        single_resp: str, optional
+            Name of the response used.  Defaults to 'us'
+            for convenient use in Pavlovian conditioning experiments.
+        schedule: str. optional
+            Name of the schedule used.  Defaults to
+            'design', which is typically used when there is only
+            one schedule in an experiment.
+        """
+        bscore = behav_score(stage = stage, trial_pos = trial_pos, trial_neg = trial_neg, resp_pos = [single_resp])
+        return cls(schedule_pos = [schedule], behav_score_pos = bscore)
+        
     
     @classmethod
     def define_between_subjects_single_response(cls, schedule_pos, schedule_neg, stage, trials, single_resp = 'us'):
