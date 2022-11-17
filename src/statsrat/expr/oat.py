@@ -351,4 +351,10 @@ class oat:
         else:
             mean_resp = df_pos
             
+        # ** drop unneeded columns, if any **    
+        cnames = ['schedule', 'trial_name', 'y_name']
+        for cn in cnames:
+            if mean_resp[cn].nunique() == 1:
+                mean_resp = mean_resp.drop(columns = [cn])
+            
         return mean_resp
