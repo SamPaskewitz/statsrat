@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from plotnine import *
 
-def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_var = None, color = None, draw_points = False, drop_zeros = False, only_main = False, trial_name_list = None, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
+def single(ds, var, hline = None, sel = None, rename_coords = None, color_var = None, facet_var = None, color = None, draw_points = False, drop_zeros = False, only_main = False, trial_name_list = None, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from a single schedule (condition, group) as a function of time.
     
@@ -12,6 +12,9 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
         Learning simulation data (output of a model's 'simulate' method).
     var : string
         Variable to plot.
+    hline : float or None, optional
+        If a float, then a horizontal dashed line is drawn at that y axis position.
+        If None (the default), then no such line is drawn.
     sel : dict, optional
         Used to select a subset of 'var'.  Defaults to 'None' (i.e. all
         data in 'var' are plotted).
@@ -141,9 +144,13 @@ def single(ds, var, sel = None, rename_coords = None, color_var = None, facet_va
     if not y_axis_label is None:
         plot += ylab(y_axis_label)
     
+    # draw a dashed horizontal line if desired
+    if not hline is None:
+        plot += hline(yintercept = hline, linetype = 'dashed')
+    
     return plot
 
-def multiple(ds_list, var, condition_names = None, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, trial_name_list = None, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
+def multiple(ds_list, var, hline = None, condition_names = None, sel = None, rename_coords = None, linetype_var = None, rename_schedules = None, color = None, draw_points = False, drop_zeros = False, only_main = False, trial_name_list = None, stage_name_list = None, stage_labels = True, text_size = 15.0, figure_size = (4.0, 2.5), dodge_width = 1.0, y_axis_label = None):
     """
     Plots learning simulation data from multiple conditions (e.g. groups) as a function of time.
     Conditions are represented by color.
@@ -155,6 +162,9 @@ def multiple(ds_list, var, condition_names = None, sel = None, rename_coords = N
         (output of a model's 'simulate' method) from a different schedule.
     var : string
         Variable to plot.
+    hline : float or None, optional
+        If a float, then a horizontal dashed line is drawn at that y axis position.
+        If None (the default), then no such line is drawn.
     condition_names: list or None, optional
         List of names for conditions, corresponding to the datasets in ds_list.
         If None, then the datasets' schedule names are used as a default (assuming
@@ -311,7 +321,11 @@ def multiple(ds_list, var, condition_names = None, sel = None, rename_coords = N
     plot += theme(figure_size = figure_size, axis_text_x = element_text(ha = 'left'), legend_key_height = 3) # Change figure size, align x axis text to the left, and squish legend lines closer together
     if not y_axis_label is None:
         plot += ylab(y_axis_label)
-                        
+    
+    # draw a dashed horizontal line if desired
+    if not hline is None:
+        plot += hline(yintercept = hline, linetype = 'dashed')
+    
     return plot
 
 def mean_resp(ds_list, stage_name, trial_name, y_name, t_name = 'main', condition_names = None, text_size = 15.0, figure_size = (4.0, 2.5)):
