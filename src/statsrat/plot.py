@@ -146,7 +146,7 @@ def single(ds, var, hline = None, sel = None, rename_coords = None, color_var = 
     
     # draw a dashed horizontal line if desired
     if not hline is None:
-        plot += hline(yintercept = hline, linetype = 'dashed')
+        plot += geom_hline(yintercept = hline, linetype = 'dashed')
     
     return plot
 
@@ -324,7 +324,7 @@ def multiple(ds_list, var, hline = None, condition_names = None, sel = None, ren
     
     # draw a dashed horizontal line if desired
     if not hline is None:
-        plot += hline(yintercept = hline, linetype = 'dashed')
+        plot += geom_hline(yintercept = hline, linetype = 'dashed')
     
     return plot
 
