@@ -47,11 +47,12 @@ class model:
     
     The learning rules for w_plus and w_minus are arranged such that the change in net
     association weights (w) is IDENTICAL to the ordinary Rescorla-Wagner update rule,
-    while keeping w_plus >= 0 and w_minus <= 0.  The parameter gamma determines the balance
-    between changes in w_plus and w_minus: when gamma is large, w_plus mainly changes, 
-    while when gamma is small w_minus largely changes.  We keep 0 < gamma < 1.  See the code
-    below for the exact learning rules (THIS SHOULD BE ADDED TO THE HELP TEXT ITSELF IN LATER
-    VERSIONS).
+    while keeping w_plus >= 0 and w_minus <= 0.
+    
+    The parameter gamma determines the balance between changes in w_plus and w_minus: when gamma
+    is large, w_plus mainly changes, while when gamma is small w_minus largely changes.
+    We keep 0 < gamma < 1.  See the code below for the exact learning rules (THIS SHOULD BE ADDED TO THE
+    HELP TEXT ITSELF IN LATER VERSIONS).
     '''
 
     def __init__(self, name, pred, fbase, fweight, lrate, drate_plus, drate_minus, aux):
