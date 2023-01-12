@@ -279,10 +279,10 @@ class schedule:
                 i += 1
 
         # create dataset for trial type definitions ('trial_def')
-        trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x),
-                                            'y': (['t', 'y_name'], y),
-                                            'y_psb': (['t', 'y_name'], y_psb),
-                                            'y_lrn': (['t', 'y_name'], y_lrn)},
+        trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x.values),
+                                            'y': (['t', 'y_name'], y.values),
+                                            'y_psb': (['t', 'y_name'], y_psb.values),
+                                            'y_lrn': (['t', 'y_name'], y_lrn.values)},
                                coords = {'t': range(n_t_trial_def),
                                          't_name': ('t', t_name),
                                          'ex': ('t', ex_name),
