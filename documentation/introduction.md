@@ -1,7 +1,7 @@
 ## Introduction
 
 ### Overview
-*statsrat* is a package for using mathematical learning models in psychology and neuroscience research.  It provides a framework for implementing learning models, creating simulated versions of real-world learning experiments, running and analyzing simulations and fitting models to behavioral data.  It is hoped that *statsrat* will make modeling easier for both beginners and experienced modelers.  *statsrat*'s common format for behavioral data, experimental designs and learning models will aid in reproducibility and communication.  The package is designed to save time that would otherwise be spent on tedious programming and debugging.  The *statsrat* user can construct learning models out of modular building blocks, implementing existing models or creating new ones with just a few lines of code.  Instead of painstakingly implementing a simulated version of a real-world learning experiment, someone using *statrat* simply describes the experiment's structure is the same way as a table in research paper.  *statsrat* has an array of functions for plotting, model fitting, data import and simulation that remove the need for complicated custom scripts.  In summary, *statsrat* aims to streamline modeling so that researchers can focus on science.
+*statsrat* is a package for using mathematical learning models in psychology and neuroscience research.  It provides a framework for implementing learning models, creating simulated versions of real-world learning experiments, running and analyzing simulations, and fitting models to behavioral data.  It is hoped that *statsrat* will make modeling easier for both beginners and experienced modelers.  *statsrat*'s common format for behavioral data, experimental designs, and learning models will aid in reproducibility and communication.  The package is designed to save time that would otherwise be spent on tedious programming and debugging.  The *statsrat* user can construct learning models out of modular building blocks, implementing existing models or creating new ones with just a few lines of code.  Instead of painstakingly implementing a simulated version of a real-world learning experiment, someone using *statrat* simply describes the experiment's structure is the same way as a table in research paper.  *statsrat* has an array of functions for plotting, model fitting, data import, and simulation that remove the need for complicated custom scripts.  In summary, *statsrat* aims to streamline modeling so that researchers can focus on science.
 
 ### Installation
 (Insert this later.)
@@ -14,13 +14,13 @@ Here are some examples of experiments and learning models that can and cannot be
 Experiments that can be simulated in *statsrat*:
 * human category learning *** REF ***
 * Pavlovian conditioning *** REF ***
-* bandit tasks *** REF ***
 * animal successive discrimination tasks *** REF ***
 
 Learning models that can be implemented in *statsrat*:
 * Rescorla-Wagner and variants *** REF ***
-* instance-based learning *** REF ***
+* exemplars models *** REF ***
 * latent cause models *** REF ***
+* Bayesian regression models *** REF ***
 
 Experiments that cannot be simulated in *statsrat*:
 * paired associates list learning tasks *** CHECK AND REFS ***
@@ -35,12 +35,12 @@ Learning models that cannot be implemented in *statsrat*:
 (Insert this later.)
 
 ### Introduction to package design
-*statsrat* is built around three main components: learning model objects, experiment objects and a suite of functions used to perform various simulation tasks.  Here we give an overview of each of these components: more detailed information can be found in the relevant modules.  See the *examples* directory for Jupyter notebooks that show how to use *statsrat* for various simulation and data analysis tasks.
+*statsrat* is built around three main components: learning model objects, experiment objects, and a suite of functions used to perform various simulation tasks.  Here we give an overview of each of these components: more detailed information can be found in the relevant modules.  See the *examples* directory for Jupyter notebooks that show how to use *statsrat* for various simulation and data analysis tasks.
 
 #### Learning model objects
-Each learning model belongs to a class of related models that share the same basic design.  Currently, the three model classes are Rescorla-Wagner variants (*** REFS *** , module *rw*), exemplar models (** REFS ** , module *exemplar*), latent cause models (*** REFS *** , module *latent_cause*), and Bayesian regression models (** REFS ** , module *bayes_regr*).  Each model class is characterized by its *simulate* method, which outlines how that model learns and makes decisions.  To define a learning model, the user specifies various model attributes relating to stimulus processing, memory formation, learning rates etc.  See the documentation of each model class for more details.  Each model attribute is either a function or a class, and is associated with certain model parameters that are automatically added to the model definition.  Model attributes are ''plugged into'' the model's *simulate* method to specify exactly how that model works.  Predefined learning models can be found in the ''predef'' sub-modules for each model class along with descriptions and references.
+Each learning model belongs to a family of related models that share the same basic design.  Currently, the model families are Rescorla-Wagner variants (*** REFS *** , module *rw*), Rescorla-Wagner variants with separate positive and negative associations (*** REFS *** ), exemplar models (** REFS ** , module *exemplar*), latent cause models (*** REFS *** , module *latent_cause*), and Bayesian regression models (** REFS ** , module *bayes_regr*).  Each model class is characterized by its *simulate* method, which outlines how that model learns and makes decisions.  To define a learning model, the user specifies various model attributes relating to stimulus processing, memory formation, learning rates etc.  See the documentation of each model class for more details.  Each model attribute is either a function or a class, and is associated with certain model parameters that are automatically added to the model definition.  Model attributes are ''plugged into'' the model's *simulate* method to specify exactly how that model works.  Predefined learning models can be found in the ''predef'' sub-modules for each model class along with descriptions and references.
 
-**Note on the term ''model''**: One must take care to avoid confusion about how the term ''model'' is used in *statsrat*, which is different from how it is typically used in machine learning.  In machine learning, the data being modeled are a series of predictors (corresponding to cues or conditioned stimuli) and possibly a series of accompanying class labels or reward values (corresponding to experimental feedback such as category labels or unconditioned stimuli).  Thus, in machine learning a ''model'' is a particular instance of a learning architecture that has been fitted to a dataset, while quantities controlling learning rates etc.\ are considered ''hyperparameters''.  In *statsrat* and psychological learning literature more broadly, the data being modeled are a time series of cues/conditioned stimuli, feedback/unconditioned stimuli and behavioral responses.  Thus ''model'' is synonymous with ''learning architecture'' or ''theory'' and does not correspond to a particular fitted instance of an architecture.  Many learning models are based on the assumption that an organism's behavior is guided by an attempt to predict feedback/unconditioned stimuli from cues/conditioned stimuli, and hence can also be viewed from the machine learning perspective.  Hopefully this distinction will not cause too much confusion.  Throughout the documentation of *statsrat*, we shall endeavor to specify whether the term ''model'' should be understood in the psychological (cues + feedback -> behavior) or machine learning (cues -> feedback) sense, although the former is the default.
+**Note on the term ''model''**: One must take care to avoid confusion about how the term ''model'' is used in *statsrat*, which is different from how it is typically used in machine learning.  In machine learning, the data being modeled are a series of predictors (corresponding to cues or conditioned stimuli) and possibly a series of accompanying class labels or reward values (corresponding to experimental feedback such as category labels or unconditioned stimuli).  Thus, in machine learning a ''model'' is a particular instance of a learning architecture that has been fitted to a dataset, while quantities controlling learning rates etc.\ are considered ''hyperparameters''.  In *statsrat* and psychological learning literature more broadly, the data being modeled are a time series of cues/conditioned stimuli, feedback/unconditioned stimuli and behavioral responses.  Thus ''model'' in the psychological context is synonymous with ''learning architecture'' or ''theory'' and does not correspond to a particular fitted instance of an architecture.  Many learning models are based on the assumption that an organism's behavior is guided by an attempt to predict feedback/unconditioned stimuli from cues/conditioned stimuli, and hence can also be viewed from the machine learning perspective.  Hopefully this distinction will not cause too much confusion.  Throughout the documentation of *statsrat*, we shall endeavor to specify whether the term ''model'' should be understood in the psychological (cues + feedback -> behavior) or machine learning (cues -> feedback) sense, although the former is the default.
 
 ##### Running a simple simulation
 WRITE THIS
@@ -58,6 +58,8 @@ Experiment objects are the second main component of *statsrat*.  As might be sur
 What follows is a brief overview of each of these items.  Please see the relevant documentation for more details.  *statsrat* comes with a variety of predefined experiments objects, and these provide good examples upon which to base the user's own experiment objects.
 
 ##### Response type
+UPDATE THIS
+
 This is the type of behavioral response produced by the participant.  Currently this includes excitatory Pavlovian conditioning, inhibitory Pavlovian conditioning and discrete choices (e.g. choosing one of two levers in a Skinner box, or one of several category labels in a human classification learning experiment).
 
 ##### Schedules
@@ -72,11 +74,13 @@ This is simply some text describing the experiment, for examples giving referenc
 #### Functions for performing simulation tasks
 These functions can be divided into three categories:
 * plotting simulation data
-* ordinal adequacy tests (OATs), i.e. analyzing data at a merely ordinal level
+* ordinal adequacy tests (OATs), i.e. analyzing data at an ordinal level
 * importing behavioral data
 * fitting a model to trial by trial behavioral data by optimizing free parameters
 
 ##### Plotting
+UPDATE THIS
+
 It is often very useful to plot simulation data.  Such plots can not only display simulated behavior over time (i.e. classic learning curves) but also model representations of attention, associations, memory retrieval and so on (depending on the particular model in question).  *statsrat* has two built in functions to make such plots quickly and conveniently (they are based on the *plotnine* package, which in turn is based on *ggplot2* for R).  The *learn_plot* function is for plotting data from a single individual dataset, while *multi_plot* is for comparing different datasets.  See the relevant documenation for each function for more details.
 
 ##### Performing Ordinal adequacy tests (OATs)
