@@ -173,7 +173,7 @@ class model:
         y_psb = np.array(trials['y_psb'], dtype = 'float64')
         y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
         ex = trials['ex'].values
-        ex_names = list(trials.ex_names) # exemplar names
+        ex_names = list(trials['ex_name'].values) # exemplar names
         # count things
         n = {'t': x.shape[0], # number of time points
              'x': x.shape[1], # number of features
@@ -183,7 +183,7 @@ class model:
         b_hat = np.zeros((n['t'], n['y']))
         # initialize state
         state = {}
-        state['x_ex'] = trials.x_ex # exemplar locations
+        state['x_ex'] = trials['x_ex'].values # exemplar locations
         state['sim'] = np.zeros(n['ex']) # similarity to exemplars
         state['rtrv'] = np.zeros(n['ex']) # exemplar retrieval strength
         state['y_ex'] = np.zeros((n['ex'], n['y'])) # outcomes (y) associated with each exemplar

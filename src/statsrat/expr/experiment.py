@@ -477,7 +477,7 @@ class experiment:
             print('There was a problem merging individual datasets together.')
             
         # **** create summary data frame (each row corresponds to a participant) ****
-        summary = ds.drop_dims(['t', 'x_name', 'y_name']).to_dataframe()
+        summary = ds.drop_dims(['t', 'x_name', 'y_name', 'ex_name']).to_dataframe()
         # **** add pct_correct ****
         for st in scd.stages:
             not_test = scd.stages[st].lrn

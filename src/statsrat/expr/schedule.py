@@ -196,7 +196,7 @@ class schedule:
         trial_name = []
         t = []
         t_name = []
-        ex_name = []           
+        ex = []           
         
         k = 0 # time step index
         i = 0 # stage index
@@ -222,7 +222,7 @@ class schedule:
                 if stages[st].lrn == True:
                     y_lrn.loc[{'row': range(k, k + stages[st].intro_length), 'y_name': stages[st].y_psb}] = 1.0
                 t_name += (stages[st].intro_length)*['bg']
-                ex_name += (stages[st].intro_length)*['.'.join(x_names_ex[stages[st].x_bg])]
+                ex += (stages[st].intro_length)*['.'.join(x_names_ex[stages[st].x_bg])]
                 k += stages[st].intro_length
                 i += 1
             # loop through trial types
@@ -249,19 +249,19 @@ class schedule:
                     if iti > 0:
                         t_name += (iti - 1)*['bg']
                         t_name += ['pre_main']
-                        ex_name += iti*['.'.join(x_names_ex[stages[st].x_bg])]
+                        ex += iti*['.'.join(x_names_ex[stages[st].x_bg])]
                     # set up 'main', i.e. time step with punctate cues/outcomes
                     t_name += ['main']
                     if has_x_pn:
                         x.loc[{'row': k + iti, 'x_name': stages[st].x_pn[j]}] = stages[st].x_value.loc[stages[st].x_pn[j]] # punctate cues (x_pn)
-                        ex_name += ['.'.join(x_names_ex[stages[st].x_bg + stages[st].x_pn[j]])]
+                        ex += ['.'.join(x_names_ex[stages[st].x_bg + stages[st].x_pn[j]])]
                     else:
-                        ex_name += ['.'.join(x_names_ex[stages[st].x_bg])]
+                        ex += ['.'.join(x_names_ex[stages[st].x_bg])]
                     if has_y:
                         y.loc[{'row': k + iti, 'y_name': stages[st].y[j]}] = stages[st].y_value.loc[stages[st].y[j]]
                 else:
                     t_name += (iti + 1)*['bg']
-                    ex_name += (iti + 1)*['.'.join(x_names_ex[stages[st].x_bg])]
+                    ex += (iti + 1)*['.'.join(x_names_ex[stages[st].x_bg])]
                 # advance time step and stage indices
                 k += iti + 1
                 i += 1
@@ -274,30 +274,37 @@ class schedule:
                 if stages[st].lrn == True:
                     y_lrn.loc[{'row': range(k, k + stages[st].outro_length), 'y_name': stages[st].y_psb}] = 1.0
                 t_name += (stages[st].outro_length)*['bg']
-                ex_name += (stages[st].outro_length)*['.'.join(x_names_ex[stages[st].x_bg])]
+                ex += (stages[st].outro_length)*['.'.join(x_names_ex[stages[st].x_bg])]
                 k += stages[st].outro_length
                 i += 1
 
+        # obtain exemplar definitions
+        ex_array = ex_array, ex_index = np.unique(x, axis = 0, return_index = True)
+        ex_names = pd.Series(ex).loc[ex_index].values
+        
         # create dataset for trial type definitions ('trial_def')
         trial_def = xr.Dataset(data_vars = {'x': (['t', 'x_name'], x.values),
                                             'y': (['t', 'y_name'], y.values),
                                             'y_psb': (['t', 'y_name'], y_psb.values),
-                                            'y_lrn': (['t', 'y_name'], y_lrn.values)},
+                                            'y_lrn': (['t', 'y_name'], y_lrn.values),
+                                            'x_ex': (['ex_name', 'x_name'], ex_array)},
                                coords = {'t': range(n_t_trial_def),
                                          't_name': ('t', t_name),
-                                         'ex': ('t', ex_name),
+                                         'ex': ('t', ex),
                                          'trial': ('t', trial),
                                          'trial_name': ('t', trial_name),
                                          'stage': ('t', stage),
                                          'stage_name': ('t', stage_name),
+                                         'ex_name': ex_names,
                                          'x_name': x_names,
                                          'y_name': y_names})
         
         # create a dataframe for exemplars, and attach to trial type dataset as an attribute
-        ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
-        ex_names = trial_def['ex'].loc[{'t': ex_index}].values
-        x_ex = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
-        trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names, resp_type = resp_type)
+        #ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
+        #ex_names = trial_def['ex'].loc[{'t': ex_index}].values
+        #x_ex = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
+        #trial_def = trial_def.assign_attrs(x_ex = x_ex, ex_names = ex_names, resp_type = resp_type)
+        trial_def = trial_def.assign_attrs(resp_type = resp_type)
 
         # make sure that no trial type is duplicated within any stage
         for st in stages:

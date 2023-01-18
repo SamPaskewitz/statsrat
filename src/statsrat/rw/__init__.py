@@ -243,7 +243,7 @@ class model:
                         'drate' : (['t', 'f_name', 'y_name'], drate)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class' : 'rw',
-                              'sim_pars' : sim_pars})
+                              'sim_pars' : sim_pars.values})
         ds = aux.add_data(ds) # add extra data from aux
         if random_resp and trials.resp_type == 'choice':
             ds = ds.assign({'b_index': (['t'], b_index),
