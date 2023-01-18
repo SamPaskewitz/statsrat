@@ -253,6 +253,8 @@ class experiment:
         
         I also assume that all 'x_names' in the Python schedule object are lower case.
         
+        Data import fails if the response labels in the .csv files are not lower case.
+        
         I also assume that each stage has at most one trial type for any set of punctate cues.
         
         I also assume that the Python schedule object has exactly the right number of trials.
@@ -361,10 +363,9 @@ class experiment:
                         for k in range(n_rc): # loop through response columns
                             if pd.notna(raw.loc[m, resp_col[k]]):
                                 raw_y_name = raw.loc[m, resp_col[k]].lower()
-                                #assert raw_y_name in resp_map.keys(), 'raw data response name "{}" is not found in "resp_map" (trial {})'.format(raw_y_name, m)
                                 if raw_y_name in resp_map.keys():
                                     mapped_y_name = resp_map[raw_y_name]
-                                    b.loc[{'t' : m, 'y_name' : mapped_y_name}] = 1
+                                    b.loc[{'t': m, 'y_name': mapped_y_name}] = 1
                     valid_resp = b.sum(dim = 'y_name').astype(bool) # indicates whether responses are missing, i.e. if a valid response was found (0 = missing, 1 = not missing)
                 except Exception as e:
                     print(e)

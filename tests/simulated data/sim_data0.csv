@@ -1,0 +1,11 @@
+response,test_response,left_cue,right_cue
+ii,,x,b
+ii,,y,a
+ii,,a,x
+i,,b,y
+i,,y,b
+i,,a,y
+i,,x,a
+i,,b,x
+,i,a,y
+,ii,x,b
