@@ -86,7 +86,7 @@ class model:
         self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
         
-    def simulate(self, trials, par_val = None, rich_output = False, init_atn = 1.0, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, rich_output = True, init_atn = 1.0, random_resp = False, ident = 'sim'):
         """
         Simulate a trial sequence once with known model parameters.
         
@@ -244,7 +244,7 @@ class model:
                 ds['y_hat'].loc[{'t': t}] = state_history[t]['y_hat']
             ds = ds.assign_attrs({'model': self.name,
                                   'model_class' : 'exemplar',
-                                  'sim_pars' : sim_pars})
+                                  'sim_pars' : sim_pars.values})
         else:
             # FOR NOW (until I revise how log-likelihood calculations work) just put b and b_hat in a dataset
             ds = trials.copy(deep = True)
