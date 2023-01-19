@@ -78,7 +78,7 @@ class model:
     Rational approximations to rational models: Alternative algorithms
     for category learning. Psychological Review, 117(4), 1144–1167.
     
-    Zhu, X., Ghahramani, Z., & Lafferty, J. (n.d.).
+    Zhu, X., Ghahramani, Z., & Lafferty, J. (2005).
     Time-Sensitive Dirichlet Process Mixture Models.    
     '''
     def __init__(self, name, kernel):
@@ -90,17 +90,17 @@ class model:
         self.kernel = kernel
         # determine the model's parameter space
         default_pars = pd.DataFrame([{'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for x'},
-                                     {'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'other prior hyperparameter for eta for x'},
+                                     {'min': 1.0, 'max': 10.0, 'default': 4.0, 'description': 'other prior hyperparameter for eta for x'},
                                      {'min': 0.01, 'max': 10.0, 'default': 1.0, 'description': 'prior hyperparameter for eta for y'},
-                                     {'min': 1.0, 'max': 10.0, 'default': 5.0, 'description': 'other prior hyperparameter for eta for y'},
-                                     {'min': -5.0, 'max': 5.0, 'default': 1.0, 'description': 'stickiness for CRP prior'},
-                                     {'min': 0.0, 'max': 15.0, 'default': 1.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'},
+                                     {'min': 1.0, 'max': 10.0, 'default': 4.0, 'description': 'other prior hyperparameter for eta for y'},
+                                     {'min': -5.0, 'max': 5.0, 'default': 0.0, 'description': 'stickiness for CRP prior'},
+                                     {'min': 0.0, 'max': 15.0, 'default': 10.0, 'description': 'concentration parameter; higher -> tend to infer more latent causes'},
                                      {'min': 0.0, 'max': 10.0, 'default': 1.0, 'description': 'scales softmax/logistic response functions'}],
                                      index = ['prior_tau2_x', 'prior_nu_x', 'prior_tau2_y', 'prior_nu_y', 'stick', 'alpha', 'resp_scale'])
         if kernel.pars is None:
             self.pars = default_pars.sort_index()
         else:
-            self.pars = pd.concat(par_list)
+            self.pars = pd.concat([kernel.pars, default_pars])
             self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
         
@@ -289,7 +289,7 @@ class model:
         
         # run calculations for first time step
         x_sofar[x[0, :] > 0] = 1 # keep track of cues observed so far
-        b_hat[0, :] = sim_resp_fun(y_hat[0, :], y_psb[0, :], sim_pars['resp_scale']) # response
+        b_hat[0, :] = response.mean(y_hat[0, :], y_psb[0, :], sim_pars['resp_scale']) # response (y_hat initially is always 0)
         phi_x[0, 0] = 1
         phi[0, 0] = 1
         tau1_x[1, 0, :] = tau1_x[0, 0, :] + x_sofar*x[0, :]
@@ -405,7 +405,7 @@ class model:
                         'E_log_lik_y': (['t', 'z_name'], E_log_lik_y)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class': 'latent_cause',
-                              'sim_pars': sim_pars,
+                              'sim_pars': sim_pars.values,
                               'n_z': n_z})
         return ds
     
@@ -527,7 +527,7 @@ class model:
         
         # run calculations for first time step
         x_sofar[x[0, :] > 0] = 1 # keep track of cues observed so far
-        b_hat[0, :] = sim_resp_fun(y_hat[0, :], y_psb[0, :], sim_pars['resp_scale']) # response (y_hat initially is always 0)
+        b_hat[0, :] = response.mean(y_hat[0, :], y_psb[0, :], sim_pars['resp_scale']) # response (y_hat initially is always 0)
         tau1_x[:, 0, :] += x_sofar*x[0, :]
         tau2_x[:, 0, :] += x_sofar*x[0, :]**2
         nu_x[:, 0, :] += x_sofar
@@ -607,7 +607,7 @@ class model:
             # after looping through particles, average their predictions together and compute b_hat
             pred_weights = lik_x/lik_x.sum()
             y_hat[t, :] = np.mean(y_hat_p*np.repeat(pred_weights, n_y).reshape((n_p, n_y)), axis = 0)
-            b_hat[t, :] = sim_resp_fun(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
+            b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
             
             # record summary statistics about latent causes across particles
             mean_N[t] = np.mean(N) # mean number of latent causes per particle
@@ -648,7 +648,7 @@ class model:
                         'mean_ineq': ('t', mean_ineq)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class': 'latent_cause',
-                              'sim_pars': sim_pars,
+                              'sim_pars': sim_pars.values,
                               'n_z': n_z,
                               'n_p': n_p})
         return ds

@@ -4,6 +4,7 @@ from statsrat.rw import predef as rw_predef
 from statsrat.rw_plus_minus import predef as rw_plus_minus_predef
 from statsrat.exemplar import predef as exemplar_predef
 from statsrat.bayes_regr import predef as bayes_regr_predef
+from statsrat.latent_cause import predef as latent_cause_predef
 
 # import trials
 trials = xr.open_dataset('data/trials_for_simulation_tests.nc')
@@ -146,7 +147,7 @@ class TestBayesRegr(unittest.TestCase):
         comparison = xr.open_dataset('data/sim data for comparison/bayes_regr/probit_constant.nc')
         
         # test that they are equal
-        self.assertTrue(sim_data.equals(comparison))      
+        self.assertTrue(sim_data.equals(comparison))
         
     def test_multinomial_probit_constant(self):
         # create simulation data
@@ -176,4 +177,69 @@ class TestBayesRegr(unittest.TestCase):
         comparison = xr.open_dataset('data/sim data for comparison/bayes_regr/linear_ard_drv_atn.nc')
         
         # test that they are equal
-        self.assertTrue(sim_data.equals(comparison))      
+        self.assertTrue(sim_data.equals(comparison))
+        
+class TestLatentCause(unittest.TestCase):
+    """
+    Test selected latent cause models by simulating them on a pre-defined trial sequence
+    (from the inverse base rate effect category learning task) and comparing the simulated output to saved output.
+    """
+    def test_constant(self):
+        # create simulation data
+        sim_data = latent_cause_predef.constant.simulate(trials)
+
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/latent_cause/constant.nc')
+
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+
+    def test_exponential(self):
+        # create simulation data
+        sim_data = latent_cause_predef.exponential.simulate(trials)
+
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/latent_cause/exponential.nc')
+
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+
+    def test_power(self):
+        # create simulation data
+        sim_data = latent_cause_predef.power.simulate(trials)
+
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/latent_cause/power.nc')
+
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+
+    def test_power_asymptote(self):
+        # create simulation data
+        sim_data = latent_cause_predef.power_asymptote.simulate(trials)
+
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/latent_cause/power_asymptote.nc')
+
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+
+    def test_power_clusters(self):
+        # create simulation data
+        sim_data = latent_cause_predef.power_clusters.simulate(trials)
+
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/latent_cause/power_clusters.nc')
+
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+
+    def test_refractory_period(self):
+        # create simulation data
+        sim_data = latent_cause_predef.refractory_period.simulate(trials)
+
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/latent_cause/refractory_period.nc')
+
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
