@@ -51,7 +51,7 @@ class drva:
         self.data = {'atn': np.zeros((n_t, n_f))}
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
-        abs_w_sum = np.sum(abs(w[t, :]), axis = 1)
+        abs_w_sum = np.sum(abs(w), axis = 1)
         abv_min = abs_w_sum >= sim_pars['atn_min']
         blw_max = abs_w_sum < 1
         self.data['atn'][t, :] = abs_w_sum*abv_min*blw_max + sim_pars['atn_min']*(1 - abv_min) + 1*(1 - blw_max)
@@ -74,7 +74,7 @@ class tdrva:
         self.data['atn'][0, :] = 0.5/denom + sim_pars['lrate_min']
 
     def update(self, sim_pars, n_y, n_f, t, fbase, fweight, f_x, y_psb, y_hat, delta, w):
-        abs_w_mean = np.mean(abs(w[t, :]), axis = 1)
+        abs_w_mean = np.mean(abs(w), axis = 1)
         f_present = f_x > 0
         self.data['tau'][t + 1, :] = self.data['tau'][t, :] + f_present*sim_pars['lrate_tau']*(abs_w_mean - self.data['tau'][t, :])
         denom = (1/self.data['tau'][t + 1, :] + 1)**sim_pars['power']

@@ -287,6 +287,6 @@ class model:
                         'mean_wsq' : (['t', 'f_name', 'y_name'], mean_wsq)})
         ds = ds.assign_attrs({'model': self.name,
                               'model_class' : 'bayes_regr',
-                              'sim_pars' : sim_pars})
+                              'sim_pars' : sim_pars.values})
 
         return ds
