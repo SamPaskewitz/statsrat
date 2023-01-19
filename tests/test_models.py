@@ -1,6 +1,7 @@
 import unittest
 import xarray as xr
 from statsrat.rw import predef as rw_predef
+from statsrat.rw_plus_minus import predef as rw_plus_minus_predef
 from statsrat.exemplar import predef as exemplar_predef
 from statsrat.bayes_regr import predef as bayes_regr_predef
 
@@ -78,6 +79,31 @@ class TestRW(unittest.TestCase):
         
         # import comparison simulation data
         comparison = xr.open_dataset('data/sim data for comparison/rw/Kalman.nc')
+        
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+
+class TestRWPlusMinus(unittest.TestCase):
+    """
+    Test selected Rescorla-Wagner +/- family models by simulating them on a pre-defined trial sequence
+    (from the inverse base rate effect category learning task) and comparing the simulated output to saved output.
+    """
+    def test_decay_plus_minus(self):
+        # create simulation data
+        sim_data = rw_plus_minus_predef.decay_plus_minus.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw_plus_minus/decay_plus_minus.nc')
+        
+        # test that they are equal
+        self.assertTrue(sim_data.equals(comparison))
+        
+    def test_decay_only_minus(self):
+        # create simulation data
+        sim_data = rw_plus_minus_predef.decay_only_minus.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw_plus_minus/decay_only_minus.nc')
         
         # test that they are equal
         self.assertTrue(sim_data.equals(comparison))
