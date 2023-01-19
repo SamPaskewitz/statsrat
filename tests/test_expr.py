@@ -1,6 +1,6 @@
 import unittest
 import xarray as xr
-from experiments_for_tests import learned_pred
+from experiment_for_testing_data_import import learned_pred
 from statsrat.expr.predef.pvl_iti import blocking
 
 # https://realpython.com/python-testing
