@@ -3,6 +3,7 @@ import pandas as pd
 import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
+from copy import deepcopy
 from . import sim, rtrv, atn_update, y_ex_update
 
 class model:
@@ -176,7 +177,7 @@ class model:
         ex_names = list(trials['ex_name'].values) # exemplar names
         # count things
         n = {'t': x.shape[0], # number of time points
-             'x': x.shape[1], # number of features
+             'x': x.shape[1], # number of cues
              'y': y.shape[1], # number of outcomes/response options
              'ex': len(ex_names)} # number of exemplars
         # set up array for mean response (b_hat)
@@ -212,7 +213,8 @@ class model:
             state['rtrv'] = self.rtrv(state, n, env, sim_pars) # retrieval strength
             state['y_hat'] = state['rtrv']@(env['y_psb']*state['y_ex']) # prediction
             b_hat[t, :] = response.mean(state['y_hat'], env['y_psb'], sim_pars['resp_scale']) # response
-            state_history += [state] # record current state before learning occurs
+            state_history += [state]
+            #state_history += [deepcopy(state)] # record a copy of the current state before learning occurs
             state['y_ex'] += self.y_ex_update(state, n, env, sim_pars) # update y_ex
             state['atn'] += self.atn_update(state, n, env, sim_pars) # update attention
         

@@ -4,6 +4,7 @@ import xarray as xr
 from scipy import stats
 from statsrat import resp_fun
 from time import time
+from copy import deepcopy
 
 class model:
     '''
@@ -91,7 +92,7 @@ class model:
         self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
  
-    def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, rich_output = True, random_resp = False, ident = 'sim'):
         """
         Simulate a trial sequence once with known model parameters.
         
@@ -102,6 +103,10 @@ class model:
 
         par_val: list, optional
             Learning model parameters (floats or ints).
+            
+        rich_output: Boolean, optional
+            Whether to output full simulation data (True) or just
+            responses, i.e. b/b_hat (False).  Defaults to False.
 
         random_resp: str, optional
             Whether or not simulated responses should be random.  Defaults
@@ -168,7 +173,7 @@ class model:
             all_ok = np.prod(abv_min & blw_max)
             assert all_ok, 'par_val outside acceptable limits'
             sim_pars = pd.Series(par_val, self.pars.index)
-
+        
         # set stuff up
         x = np.array(trials['x'], dtype = 'float64')
         y = np.array(trials['y'], dtype = 'float64')
@@ -178,24 +183,35 @@ class model:
         y_names = list(trials.y_name.values)
         (fbase, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names
         fbase = fbase.squeeze()
-        n_t = fbase.shape[0] # number of time points
-        n_x = x.shape[1] # number of cues/stimulus elements
-        n_f = fbase.shape[1] # number of features
-        n_y = y.shape[1] # number of outcomes/response options
-        fweight = np.zeros((n_t, n_f))
-        f_x = np.zeros((n_t, n_f))
-        y_hat = np.zeros((n_t, n_y)) # outcome predictions
-        b_hat = np.zeros((n_t, n_y)) # expected behavior
-        delta = np.zeros((n_t, n_y)) # prediction error
-        w_plus = np.zeros((n_t + 1, n_f, n_y)); w_minus = np.zeros((n_t + 1, n_f, n_y)); w = np.zeros((n_t, n_f, n_y))
-        lrate = np.zeros((n_t, n_f, n_y))
-        drate_plus = np.zeros((n_t, n_f, n_y)); drate_minus = np.zeros((n_t, n_f, n_y))
+        # count things
+        n = {'t': x.shape[0], # number of time points
+             'x': x.shape[1], # number of cues
+             'y': y.shape[1], # number of outcomes/response options
+             'f': fbase.shape[1]} # number of features
+        # set up array for mean response (b_hat)
+        b_hat = np.zeros((n['t'], n['y']))
+        # initialize state
+        state_dims = {'fbase': ['f_name'], 'fweight': ['f_name'], 'f_x': ['f_name'], 'y_hat': ['y_name'], 'delta': ['y_name'], 'w_plus': ['f_name', 'y_name'], 'w_minus': ['f_name', 'y_name'], 'w': ['f_name', 'y_name'], 'lrate': ['f_name', 'y_name'], 'drate_plus': ['f_name', 'y_name'], 'drate_minus': ['f_name', 'y_name']}
+        state_sizes = {'fbase': [n['f']], 'fweight': [n['f']], 'f_x': [n['f']], 'y_hat': [n['y']], 'delta': [n['y']], 'w_plus': [n['f'], n['y']], 'w_minus': [n['f'], n['y']], 'w': [n['f'], n['y']], 'lrate': [n['f'], n['y']], 'drate_plus': [n['f'], n['y']], 'drate_minus': [n['f'], n['y']]}
+        state = {}
+        for var in state_sizes:
+            state[var] = np.zeros(state_sizes[var])
+        new_state, new_state_dims, new_state_sizes = self.aux(state, n, {}, sim_pars, 'initialize') # add auxilliary variables (e.g. attention) to initial state
+        state.update(new_state); state_dims.update(new_state_dims); state_sizes.update(new_state_sizes)
+        state_history = []
+        # figure out x_dims
         has_x_dims = 'x_dims' in list(trials.attrs.keys())
         if has_x_dims:
             x_dims = trials.attrs['x_dims']
         else:
             x_dims = None
-        aux = self.aux(sim_pars, n_t, n_x, n_f, n_y, f_names, x_dims)
+        # set up response function (depends on response type)
+        resp_dict = {'choice': resp_fun.choice,
+                     'exct': resp_fun.exct,
+                     'supr': resp_fun.supr,
+                     'normal': resp_fun.normal,
+                     'log_normal': resp_fun.log_normal}
+        response = resp_dict[trials.resp_type]
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -206,44 +222,48 @@ class model:
         response = resp_dict[trials.resp_type]
 
         # loop through time steps
-        for t in range(n_t):
-            fweight[t, :] = self.fweight(aux, t, fbase, n_f, sim_pars)
-            f_x[t, :] = fbase[t, :]*fweight[t, :] # weight base features
-            w[t, :, :] = w_plus[t, :, :] + w_minus[t, :, :] # association weights
-            y_hat[t, :] = self.pred(y_psb[t, :]*(f_x[t, :]@w[t, :, :]), sim_pars) # prediction
-            b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
-            delta[t, :] = y_lrn[t, :]*(y[t, :] - y_hat[t, :]) # prediction error
-            aux.update(sim_pars, n_y, n_f, t, fbase, fweight, f_x[t, :], y_psb, y_hat[t, :], delta[t, :], w[t, :, :]) # update auxiliary data (e.g. attention weights, or Kalman filter covariance matrix)
+        for t in range(n['t']):
+            env = {'x': x[t, :], 'y': y[t, :], 'y_psb': y_psb[t, :], 'y_lrn': y_lrn[t, :]}
+            state['fbase'] = fbase[t, :]
+            state['fweight'] = self.fweight(state, n, env, sim_pars)
+            state['f_x'] = state['fbase']*state['fweight'] # weight base features
+            state['w'] = state['w_plus'] + state['w_minus'] # association weights
+            state['y_hat'] = self.pred(env['y_psb']*(state['f_x']@state['w']), sim_pars) # prediction
+            b_hat[t, :] = response.mean(state['y_hat'], env['y_psb'], sim_pars['resp_scale']) # response
+            state['delta'] = env['y_lrn']*(env['y'] - state['y_hat']) # prediction error
+            state = self.aux(state, n, env, sim_pars, 'compute') # compute auxiliary data for current time step
+            state['lrate'] = self.lrate(state, n, env, sim_pars) # learning rates for this time step
+            state_copy = deepcopy(state) # make a copy of the current state before learning occurs         
             
             # association learning
-            lrate[t, :, :] = self.lrate(aux, t, delta[t, :], fbase, fweight, n_f, n_y, sim_pars) # current learning rates
-            for j in range(n_y):
-                if y_lrn[t, j] == 1:
-                    if delta[t, j] < 0:
-                        for i in range(n_f):
-                            if sim_pars['gamma_neg']*lrate[t, i, j]*delta[t, j] >= -w_plus[t, i, j]:
-                                w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma_neg']*lrate[t, i, j]*delta[t, j]
-                                w_minus[t + 1, i, j] = w_minus[t, i, j] + (1 - sim_pars['gamma_neg'])*lrate[t, i, j]*delta[t, j]
+            for j in range(n['y']):
+                if env['y_lrn'][j] == 1:
+                    if state['delta'][j] < 0:
+                        for i in range(n['f']):
+                            if sim_pars['gamma_neg']*state['lrate'][i, j]*state['delta'][j] >= -state['w_plus'][i, j]:
+                                state['w_plus'][i, j] += sim_pars['gamma_neg']*state['lrate'][i, j]*state['delta'][j]
+                                state['w_minus'][i, j] += (1 - sim_pars['gamma_neg'])*state['lrate'][i, j]*state['delta'][j]
                             else:
-                                w_plus[t + 1, i, j] = 0.0
-                                w_minus[t + 1, i, j] = w_minus[t, i, j] + lrate[t, i, j]*delta[t, j] + w_plus[t, i, j]
+                                state['w_plus'][i, j] = 0.0
+                                state['w_minus'][i, j] += state['lrate'][i, j]*state['delta'][j] + state['w_plus'][i, j]
                     else:
-                        for i in range(n_f):
-                            if (1 - sim_pars['gamma_pos'])*lrate[t, i, j]*delta[t, j] <= -w_minus[t, i, j]:
-                                w_plus[t + 1, i, j] = w_plus[t, i, j] + sim_pars['gamma_pos']*lrate[t, i, j]*delta[t, j]
-                                w_minus[t + 1, i, j] = w_minus[t, i, j] + (1 - sim_pars['gamma_pos'])*lrate[t, i, j]*delta[t, j]
+                        for i in range(n['f']):
+                            if (1 - sim_pars['gamma_pos'])*state['lrate'][i, j]*state['delta'][j] <= -state['w_minus'][i, j]:
+                                state['w_plus'][i, j] += sim_pars['gamma_pos']*state['lrate'][i, j]*state['delta'][j]
+                                state['w_minus'][i, j] += (1 - sim_pars['gamma_pos'])*state['lrate'][i, j]*state['delta'][j]
                             else:
-                                w_plus[t + 1, i, j] = w_plus[t, i, j] + lrate[t, i, j]*delta[t, j] + w_minus[t, i, j]
-                                w_minus[t + 1, i, j] = 0.0
-                else:
-                    w_plus[t + 1, i, j] = w_plus[t, i, j]
-                    w_minus[t + 1, i, j] = w_minus[t, i, j]
+                                state['w_plus'][i, j] += state['lrate'][i, j]*state['delta'][j] + state['w_minus'][i, j]
+                                state['w_minus'][i, j] = 0.0
                     
             # weight decay
-            drate_plus[t, :, :] = self.drate_plus(aux, t, w, n_f, n_y, sim_pars) # current decay rates for w_plus
-            w_plus[t + 1, :, :] -= drate_plus[t, :, :]*w_plus[t + 1, :, :]
-            drate_minus[t, :, :] = self.drate_minus(aux, t, w, n_f, n_y, sim_pars) # current decay rates for w_minus
-            w_minus[t + 1, :, :] -= drate_minus[t, :, :]*w_minus[t + 1, :, :]
+            state_copy['drate_plus'] = self.drate_plus(state, n, env, sim_pars) # current decay rates for w_plus
+            state_copy['drate_minus'] = self.drate_minus(state, n, env, sim_pars) # current decay rates for w_minus
+            state_history += [state_copy] # record the copy of the current state
+            state['w_plus'] -= state_copy['drate_plus']*state['w_plus']
+            state['w_minus'] -= state_copy['drate_minus']*state['w_minus']
+            
+            # update aux
+            state = self.aux(state, n, env, sim_pars, 'update') # update auxiliary data for current time step
         
         # generate simulated responses
         if random_resp:
@@ -252,29 +272,24 @@ class model:
             b = b_hat
             b_index = None
 
-        # put all simulation data into a single xarray dataset
-        ds = trials.copy(deep = True)
-        ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
-        ds = ds.assign({'y_psb' : (['t', 'y_name'], y_psb),
-                        'y_lrn' : (['t', 'y_name'], y_lrn),
-                        'fbase' : (['t', 'f_name'], fbase),
-                        'fweight' : (['t', 'f_name'], fweight),
-                        'f_x' : (['t', 'f_name'], f_x),
-                        'y_hat' : (['t', 'y_name'], y_hat),
-                        'b_hat' : (['t', 'y_name'], b_hat),
-                        'b' : (['t', 'y_name'], b),
-                        'w' : (['t', 'f_name', 'y_name'], w),
-                        'w_plus' : (['t', 'f_name', 'y_name'], w_plus[range(n_t), :, :]), # remove unnecessary last row
-                        'w_minus' : (['t', 'f_name', 'y_name'], w_minus[range(n_t), :, :]), # remove unnecessary last row
-                        'delta' : (['t', 'y_name'], delta),
-                        'lrate' : (['t', 'f_name', 'y_name'], lrate),
-                        'drate_plus' : (['t', 'f_name', 'y_name'], drate_plus),
-                        'drate_minus' : (['t', 'f_name', 'y_name'], drate_minus)})
-        ds = ds.assign_attrs({'model': self.name,
-                              'model_class' : 'rw',
-                              'sim_pars' : sim_pars.values})
-        ds = aux.add_data(ds) # add extra data from aux
-        if random_resp and trials.resp_type == 'choice':
-            ds = ds.assign({'b_index': (['t'], b_index),
-                            'b_name': (['t'], np.array(y_names)[b_index])})
+        if rich_output: 
+            # ** put all simulation data into a single xarray dataset **
+            # create a dataset to contain the data
+            ds = trials.copy(deep = True)
+            ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
+            ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
+                            'b' : (['t', 'y_name'], b)})
+            # fill out the xarray dataset from state_history
+            for var in state:
+                ds = ds.assign({var: (['t'] + state_dims[var], np.zeros([n['t']] + state_sizes[var]))})
+                for t in range(n['t']):
+                    ds[var].loc[{'t': t}] = state_history[t][var]
+            ds = ds.assign_attrs({'model': self.name,
+                                  'model_class' : 'rw',
+                                  'sim_pars' : sim_pars.values})
+        else:
+            # ** FOR NOW (until I revise how log-likelihood calculations work) just put b and b_hat in a dataset **
+            ds = trials.copy(deep = True)
+            ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
+                            'b' : (['t', 'y_name'], b)})
         return ds
