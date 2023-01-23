@@ -134,21 +134,3 @@ CompAct_cfg2_intercept = rw.model(name = 'CompAct_cfg2_intercept',
                                   lrate = rw.lrate.from_aux_norm,
                                   drate = rw.drate.zero,
                                   aux = rw.aux.gradcomp)
-
-# Kalman filter Rescorla-Wagner (with only elemental features); Dayan and Kakade (2001), Gershman and Diedrichsen (2015).
-Kalman = rw.model(name = 'Kalman',
-                  pred = rw.pred.identity,
-                  fbase = rw.fbase.elem,
-                  fweight = rw.fweight.none,
-                  lrate = rw.lrate.from_aux_direct,
-                  drate = rw.drate.zero,
-                  aux = rw.aux.Kalman)
-
-# Kalman filter Rescorla-Wagner (with intercept term).
-Kalman_intercept = rw.model(name = 'Kalman_intercept',
-                            pred = rw.pred.identity,
-                            fbase = rw.fbase.elem_intercept,
-                            fweight = rw.fweight.none,
-                            lrate = rw.lrate.from_aux_direct,
-                            drate = rw.drate.zero,
-                            aux = rw.aux.Kalman)
