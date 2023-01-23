@@ -84,6 +84,16 @@ class TestRW(unittest.TestCase):
         
         # test that they are equal (within a very small tolerance)
         xr.testing.assert_allclose(sim_data, comparison)
+        
+    def test_CompAct_atn_decay(self):
+        # create simulation data
+        sim_data = rw_predef.CompAct_atn_decay.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw/CompAct_atn_decay.nc')
+        
+        # test that they are equal (within a very small tolerance)
+        xr.testing.assert_allclose(sim_data, comparison)
     
     def test_CompAct_cfg2_intercept(self):
         # create simulation data

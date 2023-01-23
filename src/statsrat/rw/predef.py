@@ -126,6 +126,15 @@ CompAct_elem_bias = rw.model(name = 'CompAct_elem_bias',
                              drate = rw.drate.zero,
                              aux = rw.aux.gradcomp_elem_bias)
 
+# CompAct with attention decay.
+CompAct_atn_decay = rw.model(name = 'CompAct_atn_decay',
+                             pred = rw.pred.identity,
+                             fbase = rw.fbase.elem,
+                             fweight = rw.fweight.from_aux_norm,
+                             lrate = rw.lrate.from_aux_norm,
+                             drate = rw.drate.zero,
+                             aux = rw.aux.gradcomp_atn_decay)
+
 # CompAct (with intercept term).
 CompAct_intercept = rw.model(name = 'CompAct_intercept',
                              pred = rw.pred.identity,
