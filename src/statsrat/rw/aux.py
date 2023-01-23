@@ -266,18 +266,17 @@ def gradcomp_Kruschke_idea(state, n, env, sim_pars, purpose): # FIX
     Journal of Mathematical Psychology, 45(6), 812–863.
 
     '''
-    def __init__(self, state, n, env, sim_pars):
-        self.data = {'atn': np.zeros((n['t'] + 1, n['f'])),
-                     'w_virtual': np.zeros((n['t'] + 1, n['f']))}
-        self.data['atn'][0, :] = 1
-        self.data['w_virtual'][0, :] = sim_pars['w_virtual0']
+    if purpose == 'initialize':
+        new_state = {'atn': np.ones(n['f']),
+                     'w_virtual': sim_pars['w_virtual0']*np.ones(n['f'])}
+        new_state_dims = {'atn': ['f_name'], 'w_virtual': ['f_name']}
+        new_state_sizes = {'atn': [n['f']], 'w_virtual': [n['f']]}
+        return new_state, new_state_dims, new_state_sizes
 
-    def update(self, state, n, env, sim_pars):
-        '''
-        Update 'atn' by gradient descent on squared error (derived assuming 'fweight = 'fweight_norm')
-        with decay of 'atn' for features that are present.  Also keep track of associations involving
-        the virtual 'outcome' that is initially predicted but never occurs.
-        '''
+    elif purpose == 'compute':
+        return state
+
+    elif purpose == 'update':
         # calculations based on the real outcomes
         w_psb = state['w'] @ np.diag(env['y_psb']) # select only columns corresponding to possible outcomes
         y_hat_alone = w_psb.T @ np.diag(state['fbase'])
@@ -287,17 +286,14 @@ def gradcomp_Kruschke_idea(state, n, env, sim_pars, purpose): # FIX
         norm = sum(atn_gain**sim_pars['metric'])**(1/sim_pars['metric'])
         ngrad = state['delta'].reshape((1, n['y'])) @ y_hat_dif @ np.diag(state['fbase']/norm) # negative gradient from real outcomes
         # calculations based on the virtual 'outcome'
-        y_hat_virtual = np.sum(self.data['w_virtual'][t, :]*state['f_x'])
+        y_hat_virtual = np.sum(state['w_virtual']*state['f_x'])
         delta_virtual = 0 - y_hat_virtual
-        y_hat_alone_virtual = self.data['w_virtual'][t, :]*state['fbase']
+        y_hat_alone_virtual = state['w_virtual']*state['fbase']
         y_hat_dif_virtual = y_hat_alone_virtual - y_hat_virtual*comp_factor
         ngrad_virtual = delta_virtual*y_hat_dif_virtual*state['fbase']/norm # negative gradient from the virtual 'outcome'
         # update attention
-        self.data['atn'][t + 1, :] = np.maximum(state['atn'] + sim_pars['lrate_atn']*(ngrad + ngrad_virtual), n['f']*[0.01])
+        state['atn'] = np.maximum(state['atn'] + sim_pars['lrate_atn']*(ngrad + ngrad_virtual), n['f']*[0.01]).squeeze()
         # update virtual 'outcome' associations
-        self.data['w_virtual'][t + 1, :] = self.data['w_virtual'][t, :] + sim_pars['lrate']*state['f_x']*delta_virtual
-
-    def add_data(self, ds):
-        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(n['t']), :]),
-                         w_virtual = (['t', 'f_name'], self.data['w_virtual'][range(n['t']), :]))
+        state['w_virtual'] += (sim_pars['lrate']*state['f_x']*delta_virtual).squeeze()
+        return state
 gradcomp_Kruschke_idea.pars = pd.DataFrame([{'min': 0.0, 'max': 2.0, 'default': 0.2}, {'min': 0.1, 'max': 10, 'default': 2}, {'min': 0.0, 'max': 1.0, 'default': 0.5}], index = ['lrate_atn', 'metric', 'w_virtual0'])

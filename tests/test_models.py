@@ -90,6 +90,16 @@ class TestRW(unittest.TestCase):
         
         # test that they are equal (within a very small tolerance)
         xr.testing.assert_allclose(sim_data, comparison)
+        
+    def test_CompAct_Kruschke_idea(self):
+        # create simulation data
+        sim_data = rw_predef.CompAct_cfg2_intercept.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw/CompAct_cfg2_intercept.nc')
+        
+        # test that they are equal (within a very small tolerance)
+        xr.testing.assert_allclose(sim_data, comparison)
 
 class TestRWPlusMinus(unittest.TestCase):
     """

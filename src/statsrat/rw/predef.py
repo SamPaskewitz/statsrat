@@ -143,3 +143,12 @@ CompAct_cfg2_intercept = rw.model(name = 'CompAct_cfg2_intercept',
                                   lrate = rw.lrate.from_aux_norm,
                                   drate = rw.drate.zero,
                                   aux = rw.aux.gradcomp)
+
+# CompAct with an idea from Kruschke (2001) to implement latent inhibition.
+CompAct_Kruschke_idea = rw.model(name = 'CompAct_Kruschke_idea',
+                                 pred = rw.pred.identity,
+                                 fbase = rw.fbase.elem,
+                                 fweight = rw.fweight.from_aux_norm,
+                                 lrate = rw.lrate.from_aux_norm,
+                                 drate = rw.drate.zero,
+                                 aux = rw.aux.gradcomp_Kruschke_idea)
