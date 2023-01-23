@@ -196,7 +196,7 @@ def gradcomp_elem_bias(state, n, env, sim_pars, purpose):
     '''
     if purpose == 'initialize':
         new_state = {'f_counts': np.zeros(n['f']), 'atn': sim_pars['eta0']*np.ones(n['f'])}
-        new_state['atn'][0, range(n['x'])] = 1 # the first n['x'] features are assumed to be the elemental ones and get higher initial attention
+        new_state['atn'][range(n['x'])] = 1 # the first n['x'] features are assumed to be the elemental ones and get higher initial attention
         new_state_dims = {'f_counts': ['f_name'], 'atn': ['f_name']}
         new_state_sizes = {'f_counts': [n['f']], 'atn': [n['f']]}
         return new_state, new_state_dims, new_state_sizes

@@ -33,12 +33,6 @@ class TestRW(unittest.TestCase):
         comparison = xr.open_dataset('data/sim data for comparison/rw/power.nc')
         
         # test that they are equal (within a very small tolerance)
-        for var in list(comparison.coords.keys()) + list(comparison.variables.keys()):
-            if not np.array_equal(comparison[var].values, sim_data[var].values):
-                print()
-                print(var)
-                print(comparison.loc[{'t': 100}][var].values)
-                print(sim_data.loc[{'t': 100}][var].values)
         xr.testing.assert_allclose(sim_data, comparison)
         
     def test_drva(self):
@@ -81,6 +75,16 @@ class TestRW(unittest.TestCase):
         # test that they are equal (within a very small tolerance)
         xr.testing.assert_allclose(sim_data, comparison)
         
+    def test_CompAct_elem_bias(self):
+        # create simulation data
+        sim_data = rw_predef.CompAct_elem_bias.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw/CompAct_elem_bias.nc')
+        
+        # test that they are equal (within a very small tolerance)
+        xr.testing.assert_allclose(sim_data, comparison)
+    
     def test_CompAct_cfg2_intercept(self):
         # create simulation data
         sim_data = rw_predef.CompAct_cfg2_intercept.simulate(trials)

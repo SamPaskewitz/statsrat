@@ -117,6 +117,15 @@ CompAct = rw.model(name = 'CompAct',
                    drate = rw.drate.zero,
                    aux = rw.aux.gradcomp)
 
+# CompAct with configural features and a bias towards elemental features.
+CompAct_elem_bias = rw.model(name = 'CompAct_elem_bias',
+                             pred = rw.pred.identity,
+                             fbase = rw.fbase.cfg2,
+                             fweight = rw.fweight.from_aux_norm,
+                             lrate = rw.lrate.from_aux_norm,
+                             drate = rw.drate.zero,
+                             aux = rw.aux.gradcomp_elem_bias)
+
 # CompAct (with intercept term).
 CompAct_intercept = rw.model(name = 'CompAct_intercept',
                              pred = rw.pred.identity,
