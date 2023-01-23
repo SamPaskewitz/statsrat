@@ -90,6 +90,15 @@ drva = rw.model(name = 'drva',
                 drate = rw.drate.zero,
                 aux = rw.aux.drva)
 
+# A different derived attention model.
+tdrva = rw.model(name = 'tdrva',
+                 pred = rw.pred.identity,
+                 fbase = rw.fbase.elem,
+                 fweight = rw.fweight.none,
+                 lrate = rw.lrate.from_aux_feature,
+                 drate = rw.drate.zero,
+                 aux = rw.aux.tdrva)
+
 # Simple predictiveness model (with only elemental features); Model 2 from Paskewitz and Jones (2020).
 smpr = rw.model(name = 'smpr',
                 pred = rw.pred.identity,

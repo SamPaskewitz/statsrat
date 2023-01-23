@@ -51,6 +51,16 @@ class TestRW(unittest.TestCase):
         # test that they are equal (within a very small tolerance)
         xr.testing.assert_allclose(sim_data, comparison)
         
+    def test_tdrva(self):
+        # create simulation data
+        sim_data = rw_predef.tdrva.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw/tdrva.nc')
+        
+        # test that they are equal (within a very small tolerance)
+        xr.testing.assert_allclose(sim_data, comparison)
+        
     def test_smpr(self):
         # create simulation data
         sim_data = rw_predef.smpr.simulate(trials)

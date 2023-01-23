@@ -46,23 +46,23 @@ def tdrva(state, n, env, sim_pars, purpose): # FIX
     Attention is a sigmoidal function of mean associative strength (tau).
     This is a bit like the model of Frey and Sears (1978), but is simpler.
     '''
-    def __init__(self, state, n, env, sim_pars):
-        self.data = {'atn': np.zeros((n['t'] + 1, n['f'])), # attention (i.e. learning rate for present features)
-                     'tau': np.zeros((n['t'] + 1, n['f']))} # tracks the mean of |w| across outcomes
-        self.data['tau'][0, :] = sim_pars['tau0']
-        denom = (1/sim_pars['tau0'] + 1)**sim_pars['power']
-        self.data['atn'][0, :] = 0.5/denom + sim_pars['lrate_min']
-
-    def update(self, state, n, env, sim_pars):
+    if purpose == 'initialize':
+        new_state = {'atn': np.zeros(n['f']), # attention (i.e. learning rate for present features)
+                     'tau': sim_pars['tau0']*np.ones(n['f'])} # tracks the mean of |w| across outcomes
+        new_state_dims = {'atn': ['f_name'], 'tau': ['f_name']}
+        new_state_sizes = {'atn': [n['f']], 'tau': [n['f']]}
+        return new_state, new_state_dims, new_state_sizes
+    
+    elif purpose == 'compute':
+        denom = (1/state['tau'] + 1)**sim_pars['power']
+        state['atn'] = 0.5/denom + sim_pars['lrate_min']
+        return state
+    
+    elif purpose == 'update':
         abs_w_mean = np.mean(abs(state['w']), axis = 1)
         f_present = state['f_x'] > 0
-        self.data['tau'][t + 1, :] = self.data['tau'][t, :] + f_present*sim_pars['lrate_tau']*(abs_w_mean - self.data['tau'][t, :])
-        denom = (1/self.data['tau'][t + 1, :] + 1)**sim_pars['power']
-        self.data['atn'][t + 1, :] = 0.5/denom + sim_pars['lrate_min']
-
-    def add_data(self, ds):
-        n['t'] = ds['t'].values.shape[0]
-        return ds.assign(atn = (['t', 'f_name'], self.data['atn'][range(n['t']), :]), tau = (['t', 'f_name'], self.data['tau'][range(n['t']), :]))
+        state['tau'] += f_present*sim_pars['lrate_tau']*(abs_w_mean - state['tau'])
+        return state        
 tdrva.pars = pd.DataFrame([{'min': 0.0, 'max': 0.5, 'default': 0.1}, {'min': 0.0, 'max': 2.0, 'default': 0.5}, {'min': 0.01, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 1.0, 'default': 0.2}], index = ['lrate_min', 'power', 'tau0', 'lrate_tau'])
 
 def grad(state, n, env, sim_pars, purpose):
