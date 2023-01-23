@@ -25,6 +25,16 @@ class TestRW(unittest.TestCase):
         # test that they are equal (within a very small tolerance)
         self.assertTrue(sim_data[list(comparison.variables.keys())].equals(comparison))
         
+    def test_cfg2_distinct(self):
+        # create simulation data
+        sim_data = rw_predef.cfg2_distinct.simulate(trials)
+        
+        # import comparison simulation data
+        comparison = xr.open_dataset('data/sim data for comparison/rw/cfg2_distinct.nc')
+        
+        # test that they are equal (within a very small tolerance)
+        self.assertTrue(sim_data[list(comparison.variables.keys())].equals(comparison))
+        
     def test_power(self):
         # create simulation data
         sim_data = rw_predef.power.simulate(trials)

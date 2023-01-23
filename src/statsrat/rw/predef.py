@@ -45,6 +45,15 @@ cfg2 = rw.model(name = 'cfg2',
                 drate = rw.drate.zero,
                 aux = rw.aux.basic)
 
+# Rescorla-Wagner model with binary configural features that only appear when they are distinct from elemental features.
+cfg2_distinct = rw.model(name = 'cfg2_distinct',
+                         pred = rw.pred.identity,
+                         fbase = rw.fbase.cfg2_distinct,
+                         fweight = rw.fweight.none,
+                         lrate = rw.lrate.cnst,
+                         drate = rw.drate.zero,
+                         aux = rw.aux.basic)
+
 # Rescorla-Wagner model with binary configural features and intercept.
 cfg2_intercept = rw.model(name = 'cfg2_intercept',
                           pred = rw.pred.identity,
