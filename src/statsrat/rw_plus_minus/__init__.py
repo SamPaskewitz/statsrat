@@ -106,7 +106,7 @@ class model:
             
         rich_output: Boolean, optional
             Whether to output full simulation data (True) or just
-            responses, i.e. b/b_hat (False).  Defaults to False.
+            responses, i.e. b/b_hat (False).  Defaults to True.
 
         random_resp: str, optional
             Whether or not simulated responses should be random.  Defaults

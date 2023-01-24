@@ -6,6 +6,7 @@ from statsrat.rw import fbase
 from statsrat import resp_fun
 from numpy.linalg import cond
 from scipy.linalg import solve
+from copy import deepcopy
 from . import link, tausq_inv_dist
 
 class model:
@@ -96,7 +97,7 @@ class model:
         self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
  
-    def simulate(self, trials, par_val = None, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, rich_output = True, random_resp = False, ident = 'sim'):
         """
         Simulate a trial sequence once with known model
         parameters.
@@ -108,6 +109,10 @@ class model:
             
         par_val : list, optional
             Learning model parameters (floats or ints).
+            
+        rich_output: Boolean, optional
+            Whether to output full simulation data (True) or just
+            responses, i.e. b/b_hat (False).  Defaults to True.
 
         random_resp : str, optional
             Whether or not simulated responses should be random.  Defaults
@@ -182,36 +187,40 @@ class model:
         x_names = list(trials.x_name.values)
         y_names = list(trials.y_name.values)
         (f_x, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names
-        n_t = f_x.shape[0] # number of time points
-        n_f = f_x.shape[1] # number of features
-        n_y = y.shape[1] # number of outcomes/response options
-        y_hat = np.zeros((n_t, n_y)) # outcome predictions
-        b_hat = np.zeros((n_t, n_y)) # expected behavior
-        shrink_cond = np.zeros((n_t, n_y)) # condition number of a matrix relevant to shrinkage
-        # arrays for variational distribution hyperparameters and objects
-        tausq_inv_dist = self.tausq_inv_dist(n_y, n_f, sim_pars)
-        link = self.link(n_y, n_f)
-        hpar0_w = np.zeros((n_t + 1, n_f, n_y)) # hyperparameter for the variational distribution of w (precision * mean)
-        hpar1_w = np.zeros((n_t + 1, n_f, n_f, n_y)) # hyperparameter for the variational distribution of w (precision)
-        # array for sufficient statistics need to estimate w
-        sufstat0_w = np.zeros((n_t + 1, n_f, n_y)) # sufficient statistic for w
-        sufstat1_w = np.zeros((n_t + 1, n_f, n_f, n_y)) # sufficient statistic for w
-        # arrays for variational means and variances
-        mean_tausq_inv = np.zeros((n_t, n_f, n_y)) # variational mean of 1/tau^2
-        mean_tausq = np.zeros((n_t, n_f, n_y)) # variational mean of tau^2 (solely for analysis purposes)
-        mean_w = np.zeros((n_t, n_f, n_y)) # variational mean of w (a.k.a. mu)
-        var_w = np.zeros((n_t, n_f, n_y)) # variational variance of w (i.e. the diagonal elements of the covariance matrix)
-        mean_wsq = np.zeros((n_t, n_f, n_y)) # variational mean of w^2
-        z_hat = np.zeros((n_t, n_y)) # predicted latent variable (z) before observing outcome (y)
-        mean_z = np.zeros((n_t, n_y)) # variational mean of the latent variable z (after observing y)
-        y_psb_so_far = np.zeros(n_y) # keeps track of which outcomes have been encountered as possible so far
+        # count things
+        n = {'t': x.shape[0], # number of time points
+             'y': y.shape[1], # number of outcomes/response options
+             'f': f_x.shape[1]} # number of features
+        
+        # set up array for mean response (b_hat)
+        b_hat = np.zeros((n['t'], n['y']))
+        # initialize state
+        state = {'y_hat': np.zeros(n['y']), # outcome predictions
+                 'shrink_cond': np.zeros(n['y']), # condition number of a matrix relevant to shrinkage
+                 'hpar0_w': np.zeros((n['f'], n['y'])), # hyperparameter for the variational distribution of w (precision * mean)
+                 'hpar1_w': np.zeros((n['f'], n['f'], n['y'])), # hyperparameter for the variational distribution of w (precision)
+                 'sufstat0_w': np.zeros((n['f'], n['y'])), # sufficient statistic for w
+                 'sufstat1_w': np.zeros((n['f'], n['f'], n['y'])), # other sufficient statistic for w
+                 'mean_tausq_inv': np.zeros((n['f'], n['y'])), # variational mean of 1/tau^2
+                 'mean_tausq': np.zeros((n['f'], n['y'])), # variational mean of tau^2 (solely for analysis purposes)
+                 'mean_w': np.zeros((n['f'], n['y'])), # variational mean of w (a.k.a. mu)
+                 'var_w': np.zeros((n['f'], n['y'])), # variational variance of w (i.e. the diagonal elements of the covariance matrix)
+                 'mean_wsq': np.zeros((n['f'], n['y'])), # variational mean of w^2
+                 'z_hat': np.zeros(n['y']), # predicted latent variable (z) before observing outcome (y)
+                 'mean_z': np.zeros(n['y']), # variational mean of the latent variable z (after observing y)
+                 'y_psb_so_far': np.zeros(n['y']) # keeps track of which outcomes have been encountered as possible so far
+                }
+        state_history = []
+        # initialize tausq_inv_dist and link function
+        tausq_inv_dist = self.tausq_inv_dist(n['y'], n['f'], sim_pars)
+        link = self.link(n['y'], n['f'])
         # determine value of z_var (variance of the latent variable z)
         if 'y_var' in self.pars.index:
             # In this case, y = z so y_var = z_var.
             z_var = sim_pars['y_var']
         else:
             # Used for probit regression.
-            z_var = 1    
+            z_var = 1
 
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
@@ -222,44 +231,46 @@ class model:
         response = resp_dict[trials.resp_type]
         
         # loop through time steps
-        for t in range(n_t):
+        for t in range(n['t']):
+            env = {'x': x[t, :], 'y': y[t, :], 'y_psb': y_psb[t, :], 'y_lrn': y_lrn[t, :]}
             # compute means of tausq and tausq_inv
-            mean_tausq_inv[t, :, :] = tausq_inv_dist.mean_tausq_inv()
-            mean_tausq[t, :, :] = tausq_inv_dist.mean_tausq()
+            state['mean_tausq_inv'] = tausq_inv_dist.mean_tausq_inv()
+            state['mean_tausq'] = tausq_inv_dist.mean_tausq()
             # compute hpar_w and related quantities using mean_tausq_inv
-            for j in range(n_y):
+            for j in range(n['y']):
                 # keep track of which outcomes have been observed so far
-                if y_psb[t, j] == 1:
-                    y_psb_so_far[j] = 1
+                if env['y_psb'][j] == 1:
+                    state['y_psb_so_far'][j] = 1
                     
-                calculate = y_psb[t, j] == 1
+                calculate = env['y_psb'][j] == 1
                 if calculate:
                     # mean prior precision matrix
-                    T = np.diag(mean_tausq_inv[t, :, j])
+                    T = np.diag(state['mean_tausq_inv'][:, j])
                     # compute hpar_w
-                    hpar0_w[t:n_t, :, j] = sufstat0_w[t, :, j]
-                    hpar1_w[t:n_t, :, :, j] = T + sufstat1_w[t, :, :, j] # precision matrix
+                    state['hpar0_w'][:, j] = state['sufstat0_w'][:, j]
+                    state['hpar1_w'][:, :, j] = T + state['sufstat1_w'][:, :, j] # precision matrix
                     # compute mean_w
-                    P_inv = np.diag(1/np.diag(hpar1_w[t, :, :, j])) # Jacobi preconditioning matrix
-                    shrink_cond[t, j] = cond(P_inv@hpar1_w[t, :, :, j]) # condition number
-                    mean_w[t:n_t, :, j] = solve(P_inv@hpar1_w[t, :, :, j], P_inv@hpar0_w[t, :, j])
+                    P_inv = np.diag(1/np.diag(state['hpar1_w'][:, :, j])) # Jacobi preconditioning matrix
+                    state['shrink_cond'][j] = cond(P_inv@state['hpar1_w'][:, :, j]) # condition number
+                    state['mean_w'][:, j] = solve(P_inv@state['hpar1_w'][:, :, j], P_inv@state['hpar0_w'][:, j])
                     # compute var_w and mean_wsq
-                    var_w[t:n_t, :, j] = 1/np.diag(hpar1_w[t, :, :, j])
-                    mean_wsq[t:n_t, :, j] = var_w[t, :, j] + mean_w[t, :, j]**2
+                    state['var_w'][:, j] = 1/np.diag(state['hpar1_w'][:, :, j])
+                    state['mean_wsq'][:, j] = state['var_w'][:, j] + state['mean_w'][:, j]**2
             # update tausq_inv_dist using mean_wsq
-            tausq_inv_dist.update(mean_wsq[t, :, :], y_psb_so_far)
+            tausq_inv_dist.update(state['mean_wsq'], state['y_psb_so_far'])
             # predict y (outcome) and compute b (behavior)
-            z_hat[t, :] = y_psb[t, :]*(f_x[t, :]@mean_w[t, :, :]) # predicted value of latent variable (z)
-            y_hat[t, :] = link.y_hat(z_hat[t, :], y_psb[t, :], f_x[t, :], hpar1_w[t, :, :, :]) # predicted value of outcome (y)
-            b_hat[t, :] = response.mean(y_hat[t, :], y_psb[t, :], sim_pars['resp_scale']) # response
-            mean_z[t, :] = link.mean_z(z_hat[t, :], y[t, :], y_psb[t, :]) # mean of z after observing y
+            state['z_hat'] = env['y_psb']*(f_x[t, :]@state['mean_w']) # predicted value of latent variable (z)
+            state['y_hat'] = link.y_hat(state['z_hat'], env['y_psb'], f_x[t, :], state['hpar1_w']) # predicted value of outcome (y)
+            b_hat[t, :] = response.mean(state['y_hat'], env['y_psb'], sim_pars['resp_scale']) # response
+            state['mean_z'] = link.mean_z(state['z_hat'], env['y'], env['y_psb']) # mean of z after observing y
+            state_history += [deepcopy(state)] # record a copy of the current state before learning occurs
             # update sufficient statistics of x and y for estimating w
             f = f_x[t, :].squeeze() # for convenience
-            for j in range(n_y):
-                update = y_lrn[t, j] == 1
+            for j in range(n['y']):
+                update = env['y_lrn'][j] == 1
                 if update:
-                    sufstat0_w[(t+1):n_t, :, j] = sufstat0_w[t, :, j] + (f*mean_z[t, j])/z_var
-                    sufstat1_w[(t+1):n_t, :, :, j] = sufstat1_w[t, :, :, j] + np.outer(f, f)/z_var
+                    state['sufstat0_w'][:, j] += (f*state['mean_z'][j])/z_var
+                    state['sufstat1_w'][:, :, j] += np.outer(f, f)/z_var
 
         # generate simulated responses
         if random_resp:
@@ -268,25 +279,31 @@ class model:
             b = b_hat
             b_index = None
         
-        # put all simulation data into a single xarray dataset
-        ds = trials.copy(deep = True)
-        ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
-        ds = ds.assign({'y_psb' : (['t', 'y_name'], y_psb),
-                        'y_lrn' : (['t', 'y_name'], y_lrn),
-                        'f_x' : (['t', 'f_name'], f_x),
-                        'z_hat' : (['t', 'y_name'], z_hat),
-                        'y_hat' : (['t', 'y_name'], y_hat),
-                        'b_hat' : (['t', 'y_name'], b_hat),
-                        'b' : (['t', 'y_name'], b),
-                        'shrink_cond' : (['t', 'y_name'], shrink_cond),
-                        'mean_tausq_inv' : (['t', 'f_name', 'y_name'], mean_tausq_inv),
-                        'mean_tausq' : (['t', 'f_name', 'y_name'], mean_tausq),
-                        'mean_w' : (['t', 'f_name', 'y_name'], mean_w),
-                        'var_w' : (['t', 'f_name', 'y_name'], var_w),
-                        'mean_z' : (['t', 'y_name'], mean_z),
-                        'mean_wsq' : (['t', 'f_name', 'y_name'], mean_wsq)})
-        ds = ds.assign_attrs({'model': self.name,
-                              'model_class' : 'bayes_regr',
-                              'sim_pars' : sim_pars.values})
-
+        if rich_output:
+            # put all simulation data into a single xarray dataset
+            ds = trials.copy(deep = True)
+            ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
+            ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
+                            'b' : (['t', 'y_name'], b),
+                            'f_x' : (['t', 'f_name'], f_x),
+                            'z_hat' : (['t', 'y_name'], np.zeros((n['t'], n['y']))),
+                            'y_hat' : (['t', 'y_name'], np.zeros((n['t'], n['y']))),
+                            'shrink_cond' : (['t', 'y_name'], np.zeros((n['t'], n['y']))),
+                            'mean_tausq_inv' : (['t', 'f_name', 'y_name'], np.zeros((n['t'], n['f'], n['y']))),
+                            'mean_tausq' : (['t', 'f_name', 'y_name'], np.zeros((n['t'], n['f'], n['y']))),
+                            'mean_w' : (['t', 'f_name', 'y_name'], np.zeros((n['t'], n['f'], n['y']))),
+                            'var_w' : (['t', 'f_name', 'y_name'], np.zeros((n['t'], n['f'], n['y']))),
+                            'mean_z' : (['t', 'y_name'], np.zeros((n['t'], n['y']))),
+                            'mean_wsq' : (['t', 'f_name', 'y_name'], np.zeros((n['t'], n['f'], n['y'])))})
+            for t in range(n['t']): # fill out the xarray dataset from state_history
+                for var in ['z_hat', 'y_hat', 'shrink_cond', 'mean_tausq_inv', 'mean_tausq', 'mean_w', 'var_w', 'mean_z', 'mean_wsq']:
+                    ds[var].loc[{'t': t}] = state_history[t][var]
+            ds = ds.assign_attrs({'model': self.name,
+                                  'model_class': 'bayes_regr',
+                                  'sim_pars': sim_pars.values})
+        else:
+            # FOR NOW (until I revise how log-likelihood calculations work) just put b and b_hat in a dataset
+            ds = trials.copy(deep = True)
+            ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
+                            'b' : (['t', 'y_name'], b)})
         return ds
