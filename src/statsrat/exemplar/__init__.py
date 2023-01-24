@@ -213,8 +213,7 @@ class model:
             state['rtrv'] = self.rtrv(state, n, env, sim_pars) # retrieval strength
             state['y_hat'] = state['rtrv']@(env['y_psb']*state['y_ex']) # prediction
             b_hat[t, :] = response.mean(state['y_hat'], env['y_psb'], sim_pars['resp_scale']) # response
-            state_history += [state]
-            #state_history += [deepcopy(state)] # record a copy of the current state before learning occurs
+            state_history += [deepcopy(state)] # record a copy of the current state before learning occurs
             state['y_ex'] += self.y_ex_update(state, n, env, sim_pars) # update y_ex
             state['atn'] += self.atn_update(state, n, env, sim_pars) # update attention
         
