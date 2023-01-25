@@ -23,7 +23,7 @@ class TestRW(unittest.TestCase):
         comparison = open_dataset('data/sim data for comparison/rw/basic.nc')
         
         # test that they are equal (within a very small tolerance)
-        self.assertTrue(sim_data[list(comparison.variables.keys())].equals(comparison))
+        assert_allclose(sim_data, comparison)
         
     def test_cfg2_distinct(self):
         # create simulation data
@@ -33,7 +33,7 @@ class TestRW(unittest.TestCase):
         comparison = open_dataset('data/sim data for comparison/rw/cfg2_distinct.nc')
         
         # test that they are equal (within a very small tolerance)
-        self.assertTrue(sim_data[list(comparison.variables.keys())].equals(comparison))
+        assert_allclose(sim_data, comparison)
         
     def test_power(self):
         # create simulation data
