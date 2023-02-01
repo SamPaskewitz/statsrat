@@ -18,7 +18,7 @@ Experiments that can be simulated in *statsrat*:
 
 Learning models that can be implemented in *statsrat*:
 * Rescorla-Wagner and variants *** REF ***
-* exemplars models *** REF ***
+* exemplar models *** REF ***
 * latent cause models *** REF ***
 * Bayesian regression models *** REF ***
 
@@ -35,18 +35,12 @@ Learning models that cannot be implemented in *statsrat*:
 (Insert this later.)
 
 ### Introduction to package design
-*statsrat* is built around three main components: learning model objects, experiment objects, and a suite of functions used to perform various simulation tasks.  Here we give an overview of each of these components: more detailed information can be found in the relevant modules.  See the *examples* directory for Jupyter notebooks that show how to use *statsrat* for various simulation and data analysis tasks.
+*statsrat* is built around three main components: learning model objects, experiment objects, and a suite of functions used to perform various simulation tasks.  Here we give an overview of each of these components: more detailed information can be found in the relevant modules.
 
 #### Learning model objects
 Each learning model belongs to a family of related models that share the same basic design.  Currently, the model families are Rescorla-Wagner variants (*** REFS *** , module *rw*), Rescorla-Wagner variants with separate positive and negative associations (*** REFS *** ), exemplar models (** REFS ** , module *exemplar*), latent cause models (*** REFS *** , module *latent_cause*), and Bayesian regression models (** REFS ** , module *bayes_regr*).  Each model class is characterized by its *simulate* method, which outlines how that model learns and makes decisions.  To define a learning model, the user specifies various model attributes relating to stimulus processing, memory formation, learning rates etc.  See the documentation of each model class for more details.  Each model attribute is either a function or a class, and is associated with certain model parameters that are automatically added to the model definition.  Model attributes are ''plugged into'' the model's *simulate* method to specify exactly how that model works.  Predefined learning models can be found in the ''predef'' sub-modules for each model class along with descriptions and references.
 
 **Note on the term ''model''**: One must take care to avoid confusion about how the term ''model'' is used in *statsrat*, which is different from how it is typically used in machine learning.  In machine learning, the data being modeled are a series of predictors (corresponding to cues or conditioned stimuli) and possibly a series of accompanying class labels or reward values (corresponding to experimental feedback such as category labels or unconditioned stimuli).  Thus, in machine learning a ''model'' is a particular instance of a learning architecture that has been fitted to a dataset, while quantities controlling learning rates etc.\ are considered ''hyperparameters''.  In *statsrat* and psychological learning literature more broadly, the data being modeled are a time series of cues/conditioned stimuli, feedback/unconditioned stimuli and behavioral responses.  Thus ''model'' in the psychological context is synonymous with ''learning architecture'' or ''theory'' and does not correspond to a particular fitted instance of an architecture.  Many learning models are based on the assumption that an organism's behavior is guided by an attempt to predict feedback/unconditioned stimuli from cues/conditioned stimuli, and hence can also be viewed from the machine learning perspective.  Hopefully this distinction will not cause too much confusion.  Throughout the documentation of *statsrat*, we shall endeavor to specify whether the term ''model'' should be understood in the psychological (cues + feedback -> behavior) or machine learning (cues -> feedback) sense, although the former is the default.
-
-##### Running a simple simulation
-WRITE THIS
-
-##### Data structure (real or simulated trial by trial data)
-WRITE THIS
 
 #### Experiment objects
 Experiment objects are the second main component of *statsrat*.  As might be surmised from the name, they are abstract representations of experimental designs.  Experiment objects are used to import real life experimental data for model fitting and other analysis, to perform ordinal adequacy tests (OATs, i.e. simulations testing a model's ability to produce a general pattern of results), and other related tasks.  Each experiment object consists of four attributes:
