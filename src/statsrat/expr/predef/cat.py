@@ -35,7 +35,7 @@ design = expr.schedule(resp_type = 'choice',
                             y_psb = ['cat3', 'cat4'],
                             lrn = False,
                             n_rep = 2)},
-                   x_dims = {'fruits': ['alpha', 'beta', 'theta', 'phi'], 'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})
+                   x_dim = {'fruits': ['alpha', 'beta', 'theta', 'phi'], 'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})
 
 rel_irl = expr.oat(schedule_pos = ['design'],
                     behav_score_pos = expr.behav_score(stage = 'test',
@@ -102,7 +102,7 @@ fast_no_tutorial = expr.experiment(
                             y_psb = ['cat3', 'cat4'],
                             lrn = False,
                             n_rep = 2)},
-                   x_dims = {'fruits': ['alpha', 'beta', 'theta', 'phi'], 'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})},
+                   x_dim = {'benign_faces': ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'], 'angry_faces': ['t1', 't2', 't3', 't4', 't5', 't6']})},
                   oats = {'rel_irl': rel_irl, 
                           'threat_benign_os': threat_benign_os, 
                           'threat_benign_brel': threat_benign_brel, 

@@ -28,7 +28,7 @@ class schedule:
         Defines the trial types implied by 'stages'.
     x_names: list of str
         Names of cues (stimulus attributes).
-    x_dims: dict or None
+    x_dim: dict or None
         If not None, then a dictionary specifying the cues belonging to
         each stimulus dimension.  Keys are dimension names and values
         are lists cue names (i.e. 'x_names') for cues belonging to that
@@ -66,7 +66,7 @@ class schedule:
     Each schedule is composed of several stages, as described in the
     documentation for the '__init__' method below.
     
-    Stimulus dimensions (specified by the 'x_dims' attribute) are sets
+    Stimulus dimensions (specified by the 'x_dim' attribute) are sets
     of related cues, e.g. the cues 'red', 'blue' and 'yellow' might
     all belong to the dimension 'color'.  This is optional information
     that is used by certain learning models.
@@ -126,7 +126,7 @@ class schedule:
     x_name: str
         Cue name dimension.        
     """
-    def __init__(self, resp_type, stages, delays = None, x_dims = None):
+    def __init__(self, resp_type, stages, delays = None, x_dim = None):
         """
         Parameters
         ----------
@@ -141,7 +141,7 @@ class schedule:
             then there is a 100 unit delay between the end of stage 0 and
             the start of stage 1).  If None, then there are no delays (all are 0).
             Defaults to None.
-        x_dims: dict or None, optional
+        x_dim: dict or None, optional
             If not None, then a dictionary specifying the cues belonging to
             each stimulus dimension.  Keys are dimension names and values
             are cue names (i.e. 'x_names').  Defaults to None.
@@ -300,6 +300,7 @@ class schedule:
                                          'y_name': y_names})
         
         # create a dataframe for exemplars, and attach to trial type dataset as an attribute
+        # NEED TO FIX OR REMOVE
         #ex_array, ex_index = np.unique(trial_def['x'], axis = 0, return_index = True)
         #ex_names = trial_def['ex'].loc[{'t': ex_index}].values
         #x_ex = pd.DataFrame(ex_array, index = ex_names, columns = x_names)
@@ -314,7 +315,7 @@ class schedule:
             assert all_unique, 'Duplicate trial definition found in stage "{}".'.format(st)
                 
         # record information in new object ('self')
-        self.name = None # the schedule doesn't get a real name attribute until put in an experiment object
+        self.name = None # the schedule doesn't get a real name attribute until put it in an experiment object
         self.resp_type = resp_type
         self.stages = deepcopy(stages)
         for st in stages:
@@ -334,12 +335,17 @@ class schedule:
         self.n_ex = len(self.ex_names)
         
         # record stimulus dimension info, if any
-        if not x_dims is None:
-            self.x_dims = x_dims
-            self.dim_names = list(x_dims.keys())
-            self.n_dim = len(self.dim_names)
-            self.trial_def = trial_def.assign_attrs(x_dims = self.x_dims)
+        if not x_dim is None:
+            self.x_dim = x_dim
+            x_dim_names = list(x_dim.keys())
+            x_dim_names.sort()
+            self.x_dim_names = x_dim_names
+            self.n_dim = len(self.x_dim_names)
+            x_dim_series = pd.Series('', index = x_names)
+            for dim in x_dim_names:
+                x_dim_series.loc[x_dim[dim]] = dim
+            self.trial_def = trial_def.assign_coords({'x_dim': ('x_name', x_dim_series)})
         else:
-            self.x_dims = None
-            self.dim_names = None
+            self.x_dim = None
+            self.x_dim_names = None
             self.n_dim = None

@@ -181,8 +181,8 @@ class model:
         y = np.array(trials['y'], dtype = 'float64')
         y_psb = np.array(trials['y_psb'], dtype = 'float64')
         y_lrn = np.array(trials['y_lrn'], dtype = 'float64')
-        x_names = list(trials.x_name.values)
-        y_names = list(trials.y_name.values)
+        x_names = list(trials['x_name'].values)
+        y_names = list(trials['y_name'].values)
         (fbase, f_names) = self.fbase(x, x_names, sim_pars).values() # features and feature names
         fbase = fbase.squeeze()
         # count things
@@ -198,15 +198,21 @@ class model:
         state = {}
         for var in state_sizes:
             state[var] = np.zeros(state_sizes[var])
-        new_state, new_state_dims, new_state_sizes = self.aux(state, n, {}, sim_pars, 'initialize') # add auxilliary variables (e.g. attention) to initial state
-        state.update(new_state); state_dims.update(new_state_dims); state_sizes.update(new_state_sizes)
-        state_history = []
-        # figure out x_dims
-        has_x_dims = 'x_dims' in list(trials.attrs.keys())
+        # initialize env
+        env = {'x_names': x_names, 'y_names': y_names, 'f_names': f_names}
+        # add x_dims if present
+        has_x_dims = 'x_dim' in list(trials.coords.keys())
         if has_x_dims:
-            x_dims = trials.attrs['x_dims']
-        else:
-            x_dims = None
+            x_dim_names = list(np.unique(trials['x_dim'].values))
+            x_dim_names.sort()
+            env.update({'x_dim_names': x_dim_names})
+            env.update({'x_dim': trials['x_dim']})
+            n.update({'x_dim': len(env['x_dim_names'])})
+        # add auxilliary variables (e.g. attention) to initial state
+        new_state, new_state_dims, new_state_sizes = self.aux(state, n, env, sim_pars, 'initialize')
+        state.update(new_state); state_dims.update(new_state_dims); state_sizes.update(new_state_sizes)
+        # create an empty list for state history
+        state_history = []
         # set up response function (depends on response type)
         resp_dict = {'choice': resp_fun.choice,
                      'exct': resp_fun.exct,
@@ -217,7 +223,7 @@ class model:
 
         # loop through time steps
         for t in range(n['t']):
-            env = {'x': x[t, :], 'y': y[t, :], 'y_psb': y_psb[t, :], 'y_lrn': y_lrn[t, :]}
+            env.update({'x': x[t, :], 'y': y[t, :], 'y_psb': y_psb[t, :], 'y_lrn': y_lrn[t, :]})
             state['fbase'] = fbase[t, :]
             state['fweight'] = self.fweight(state, n, env, sim_pars)
             state['f_x'] = state['fbase']*state['fweight'] # weight base features
