@@ -103,7 +103,7 @@ class behav_score:
         # loop through replications ('ident')
         scores = []
         for name in ds.ident:
-            try:
+            #try:
                 ds_name = ds.loc[{'ident' : name}] # dataset for current individual
                 
                 # positive trials and responses
@@ -140,6 +140,7 @@ class behav_score:
                     scores += [pos_mean - neg_mean]
                 else:
                     scores += [pos_mean]
-            except:
-                scores += ['nan']
+                    #print(scores)
+            #except:
+                #scores += ['nan']
         return np.array(scores, dtype = 'float')

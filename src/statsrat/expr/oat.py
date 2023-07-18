@@ -119,14 +119,13 @@ class oat:
         single_resp: str, optional
             Name of the response used.  Defaults to 'us'
             for convenient use in Pavlovian conditioning experiments.
-        schedule: str. optional
+        schedule: str, optional
             Name of the schedule used.  Defaults to
             'design', which is typically used when there is only
             one schedule in an experiment.
         """
-        bscore = behav_score(stage = stage, trial_pos = trial_pos, trial_neg = trial_neg, resp_pos = [single_resp])
-        return cls(schedule_pos = [schedule], behav_score_pos = bscore)
-        
+        bscore = behav_score(stage = stage, trial_pos = trial_pos, trial_neg = trial_neg, resp_pos = [single_resp], resp_neg = [single_resp])
+        return cls(schedule_pos = [schedule], behav_score_pos = bscore)        
     
     @classmethod
     def define_between_subjects_single_response(cls, schedule_pos, schedule_neg, stage, trials, single_resp = 'us'):

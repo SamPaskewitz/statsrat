@@ -14,9 +14,11 @@ src/statsrat.egg-info/requires.txt
 src/statsrat.egg-info/top_level.txt
 src/statsrat/bayes_regr/__init__.py
 src/statsrat/bayes_regr/link.py
+src/statsrat/bayes_regr/predef.py
 src/statsrat/bayes_regr/tausq_inv_dist.py
 src/statsrat/exemplar/__init__.py
 src/statsrat/exemplar/atn_update.py
+src/statsrat/exemplar/predef.py
 src/statsrat/exemplar/rtrv.py
 src/statsrat/exemplar/sim.py
 src/statsrat/exemplar/y_ex_update.py
@@ -37,6 +39,7 @@ src/statsrat/expr/predef/pvl_no_iti.py
 src/statsrat/expr/predef/pvl_time_cue.py
 src/statsrat/latent_cause/__init__.py
 src/statsrat/latent_cause/kernel.py
+src/statsrat/latent_cause/predef.py
 src/statsrat/rw/__init__.py
 src/statsrat/rw/aux.py
 src/statsrat/rw/drate.py
@@ -46,3 +49,7 @@ src/statsrat/rw/lrate.py
 src/statsrat/rw/pred.py
 src/statsrat/rw/predef.py
 src/statsrat/rw_plus_minus/__init__.py
+src/statsrat/rw_plus_minus/predef.py
+tests/test_expr.py
+tests/test_model_fitting.py
+tests/test_models.py
