@@ -10,7 +10,7 @@ class model:
     '''
     Class for Rescorla-Wagner family learning models with
     association weights separated into positive and negative 
-    parts.
+    parts and separate decay rates for each.
 
     Attributes
     ----------
@@ -24,10 +24,6 @@ class model:
         Attentional weights for features.
     lrate: function
         Determines learning rates.
-    drate_plus: function
-        Determines decay rates for w_plus.
-    drate_plus: function
-        Determines decay rates for w_minus.
     aux: object
         Auxilliary learning, e.g. attention or weight covariance.
     par_names: list
@@ -56,7 +52,7 @@ class model:
     HELP TEXT ITSELF IN LATER VERSIONS).
     '''
 
-    def __init__(self, name, pred, fbase, fweight, lrate, drate_plus, drate_minus, aux):
+    def __init__(self, name, pred, fbase, fweight, lrate, aux):
         """
         Parameters
         ----------
@@ -70,10 +66,6 @@ class model:
             Attentional weights for features.
         lrate: function
             Determines learning rates.
-        drate_plus: function
-            Determines decay rates for w_plus.
-        drate_plus: function
-            Determines decay rates for w_minus.
         aux: object
             Auxilliary learning, e.g. attention or weight covariance.
         """
@@ -83,16 +75,14 @@ class model:
         self.fbase = fbase
         self.fweight = fweight
         self.lrate = lrate
-        self.drate_plus = drate_plus
-        self.drate_minus = drate_minus
         self.aux = aux
         # determine model's parameter space
-        par_list = [elm for elm in [pred.pars, fbase.pars, fweight.pars, lrate.pars, drate_plus.pars, drate_minus.pars, aux.pars, pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 10.0, 'default': 1.0}], index = ['gamma_pos', 'gamma_neg', 'resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
+        par_list = [elm for elm in [pred.pars, fbase.pars, fweight.pars, lrate.pars, aux.pars, pd.DataFrame([{'min': 0.0, 'max': 1.0, 'default': 0.25}, {'min': 0.0, 'max': 1.0, 'default': 0.25}, {'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 1.0, 'default': 0.5}, {'min': 0.0, 'max': 10.0, 'default': 1.0}], index = ['drate_plus', 'drate_minus', 'gamma_pos', 'gamma_neg', 'resp_scale'])] if elm is not None] # create list of par dataframes, excluding None
         self.pars = pd.concat(par_list)
         self.pars = self.pars.loc[~self.pars.index.duplicated()].sort_index()
         self.par_names = self.pars.index.values
  
-    def simulate(self, trials, par_val = None, rich_output = True, random_resp = False, ident = 'sim'):
+    def simulate(self, trials, par_val = None, rich_output = False, random_resp = False, ident = 'sim'):
         """
         Simulate a trial sequence once with known model parameters.
         
@@ -140,7 +130,6 @@ class model:
         w: association weights
         delta: prediction error
         lrate: learning rates
-        drate: decay rates
         b_index: index of behavioral response (only present if response type is 'choice' and random_resp is True)
         b_name: name of behavioral response (only present if response type is 'choice' and random_resp is True)
 
@@ -191,8 +180,8 @@ class model:
         # set up array for mean response (b_hat)
         b_hat = np.zeros((n['t'], n['y']))
         # initialize state
-        state_dims = {'fbase': ['f_name'], 'fweight': ['f_name'], 'f_x': ['f_name'], 'y_hat': ['y_name'], 'delta': ['y_name'], 'w_plus': ['f_name', 'y_name'], 'w_minus': ['f_name', 'y_name'], 'w': ['f_name', 'y_name'], 'lrate': ['f_name', 'y_name'], 'drate_plus': ['f_name', 'y_name'], 'drate_minus': ['f_name', 'y_name']}
-        state_sizes = {'fbase': [n['f']], 'fweight': [n['f']], 'f_x': [n['f']], 'y_hat': [n['y']], 'delta': [n['y']], 'w_plus': [n['f'], n['y']], 'w_minus': [n['f'], n['y']], 'w': [n['f'], n['y']], 'lrate': [n['f'], n['y']], 'drate_plus': [n['f'], n['y']], 'drate_minus': [n['f'], n['y']]}
+        state_dims = {'fbase': ['f_name'], 'fweight': ['f_name'], 'f_x': ['f_name'], 'y_hat': ['y_name'], 'delta': ['y_name'], 'w_plus': ['f_name', 'y_name'], 'w_minus': ['f_name', 'y_name'], 'w': ['f_name', 'y_name'], 'lrate': ['f_name', 'y_name']}
+        state_sizes = {'fbase': [n['f']], 'fweight': [n['f']], 'f_x': [n['f']], 'y_hat': [n['y']], 'delta': [n['y']], 'w_plus': [n['f'], n['y']], 'w_minus': [n['f'], n['y']], 'w': [n['f'], n['y']], 'lrate': [n['f'], n['y']]}
         state = {}
         for var in state_sizes:
             state[var] = np.zeros(state_sizes[var])
@@ -233,7 +222,8 @@ class model:
             state['delta'] = env['y_lrn']*(env['y'] - state['y_hat']) # prediction error
             state = self.aux(state, n, env, sim_pars, 'compute') # compute auxiliary data for current time step
             state['lrate'] = self.lrate(state, n, env, sim_pars) # learning rates for this time step
-            state_copy = deepcopy(state) # make a copy of the current state before learning occurs         
+            if rich_output:
+                state_history += [deepcopy(state)] # make a copy of the current state before learning occurs     
             
             # association learning
             for j in range(n['y']):
@@ -256,11 +246,8 @@ class model:
                                 state['w_minus'][i, j] = 0.0
                     
             # weight decay
-            state_copy['drate_plus'] = self.drate_plus(state, n, env, sim_pars) # current decay rates for w_plus
-            state_copy['drate_minus'] = self.drate_minus(state, n, env, sim_pars) # current decay rates for w_minus
-            state_history += [state_copy] # record the copy of the current state
-            state['w_plus'] -= state_copy['drate_plus']*state['w_plus']
-            state['w_minus'] -= state_copy['drate_minus']*state['w_minus']
+            state['w_plus'] -= sim_pars['drate_plus']*state['w_plus']
+            state['w_minus'] -= sim_pars['drate_minus']*state['w_minus']
             
             # update aux
             state = self.aux(state, n, env, sim_pars, 'update') # update auxiliary data for current time step
@@ -272,24 +259,19 @@ class model:
             b = b_hat
             b_index = None
 
-        if rich_output: 
-            # ** put all simulation data into a single xarray dataset **
-            # create a dataset to contain the data
-            ds = trials.copy(deep = True)
-            ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
-            ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
-                            'b' : (['t', 'y_name'], b)})
+        # put data in an xarray dataset
+        ds = trials.copy(deep = True)
+        ds = ds.assign_coords({'f_name' : f_names, 'ident' : [ident]})
+        ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
+                        'b' : (['t', 'y_name'], b)})
+        ds = ds.assign_attrs({'model': self.name,
+                              'model_class' : 'rw_plus_minus',
+                              'sim_pars' : sim_pars.values})
+        if rich_output:             
             # fill out the xarray dataset from state_history
             for var in state:
                 ds = ds.assign({var: (['t'] + state_dims[var], np.zeros([n['t']] + state_sizes[var]))})
                 for t in range(n['t']):
                     ds[var].loc[{'t': t}] = state_history[t][var]
-            ds = ds.assign_attrs({'model': self.name,
-                                  'model_class' : 'rw',
-                                  'sim_pars' : sim_pars.values})
-        else:
-            # ** FOR NOW (until I revise how log-likelihood calculations work) just put b and b_hat in a dataset **
-            ds = trials.copy(deep = True)
-            ds = ds.assign({'b_hat' : (['t', 'y_name'], b_hat),
-                            'b' : (['t', 'y_name'], b)})
+                    
         return ds

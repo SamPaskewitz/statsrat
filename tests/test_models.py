@@ -7,6 +7,8 @@ from statsrat.exemplar import predef as exemplar_predef
 from statsrat.bayes_regr import predef as bayes_regr_predef
 from statsrat.latent_cause import predef as latent_cause_predef
 
+# python -m unittest test_models.py
+
 # import trials
 trials = open_dataset('data/trials_for_simulation_tests.nc')
 
@@ -132,23 +134,13 @@ class TestRWPlusMinus(unittest.TestCase):
     """
     def test_decay_plus_minus(self):
         # create simulation data
-        sim_data = rw_plus_minus_predef.decay_plus_minus.simulate(trials)
+        sim_data = rw_plus_minus_predef.decay_plus_minus.simulate(trials, rich_output = True)
         
         # import comparison simulation data
         comparison = open_dataset('data/sim data for comparison/rw_plus_minus/decay_plus_minus.nc')
         
         # test that they are equal (within a very small tolerance)
         assert_allclose(sim_data, comparison, atol=1e-10, rtol=1e-10)
-        
-    def test_decay_only_minus(self):
-        # create simulation data
-        sim_data = rw_plus_minus_predef.decay_only_minus.simulate(trials)
-        
-        # import comparison simulation data
-        comparison = open_dataset('data/sim data for comparison/rw_plus_minus/decay_only_minus.nc')
-        
-        # test that they are equal (within a very small tolerance)
-        assert_allclose(sim_data, comparison)
         
 class TestExemplar(unittest.TestCase):
     """
