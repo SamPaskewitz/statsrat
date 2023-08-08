@@ -164,6 +164,7 @@ class model:
             sim_pars = pd.Series(par_val, self.pars.index)
         
         # set stuff up
+        time = np.array(trials['time'])
         x = np.array(trials['x'], dtype = 'float64')
         y = np.array(trials['y'], dtype = 'float64')
         y_psb = np.array(trials['y_psb'], dtype = 'float64')
@@ -212,6 +213,13 @@ class model:
 
         # loop through time steps
         for t in range(n['t']):
+            # check if there has been a timeskip greater than (e.g. representing a delay of a day); if so then process weight decay
+            timeskip = time[t] - time[t-1]
+            if timeskip > 1:
+                state['w_plus'] *= (1 - sim_pars['drate_plus'])**timeskip
+                state['w_minus'] *= (1 - sim_pars['drate_minus'])**timeskip
+            
+            # prediction, behavior, and prediction error calculation
             env = {'x': x[t, :], 'y': y[t, :], 'y_psb': y_psb[t, :], 'y_lrn': y_lrn[t, :]}
             state['fbase'] = fbase[t, :]
             state['fweight'] = self.fweight(state, n, env, sim_pars)
@@ -222,8 +230,10 @@ class model:
             state['delta'] = env['y_lrn']*(env['y'] - state['y_hat']) # prediction error
             state = self.aux(state, n, env, sim_pars, 'compute') # compute auxiliary data for current time step
             state['lrate'] = self.lrate(state, n, env, sim_pars) # learning rates for this time step
+                        
+            # make a copy of the current state before learning occurs
             if rich_output:
-                state_history += [deepcopy(state)] # make a copy of the current state before learning occurs     
+                state_history += [deepcopy(state)]     
             
             # association learning
             for j in range(n['y']):
